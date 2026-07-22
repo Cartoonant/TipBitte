@@ -64,6 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. LOCALSTORAGE PERSISTENCE & INITIALIZATION
   // ==========================================
 
+  let isInitialized = false;
+
+  const saveState = () => {
+    localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
+    if (isInitialized) {
+      renderAll();
+    }
+  };
+
   const loadState = () => {
     const saved = localStorage.getItem('tiprank_resto_state');
     if (saved) {
@@ -81,11 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       initDefaultState();
     }
-  };
-
-  const saveState = () => {
-    localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
-    renderAll();
   };
 
   const initDefaultState = () => {
@@ -141,10 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
 
-    // Tasks list empty by default until defined together
     appState.tasks = [];
-
-    saveState();
+    localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
   };
 
   // ==========================================
@@ -166,9 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return appState.tasks
       .filter(t => t.employeeId === empId && t.status === 'APPROVED')
       .reduce((sum, t) => sum + (t.points || 0), 0);
-  };  // Tip distribution calculation based on Coins (Hybrid Model)
+  };
+
+  // Tip distribution calculation based on Coins (Hybrid Model)
   const calculateTipDistribution = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
 
     let empStats = appState.staff.map(emp => {
@@ -229,46 +233,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const renderMonthSelector = () => {
     const select = document.getElementById('current-month-select');
-    select.innerHTML = '';
+    if (!select) return;
 
-    const months = [
-      { key: '2026-08', label: 'August 2026' },
-      { key: '2026-09', label: 'September 2026' },
-      { key: '2026-10', label: 'October 2026' }
-    ];
+    select.innerHTML = `
+      <option value="2026-08" selected>August 2026</option>
+      <option value="2026-09">September 2026</option>
+      <option value="2026-10">October 2026</option>
+    `;
+    select.value = appState.currentMonth;
 
-    months.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.key;
-      opt.textContent = m.label;
-      if (m.key === appState.currentMonth) opt.selected = true;
-      select.appendChild(opt);
-    });
-
-    document.getElementById('hero-month-name').textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
+    const heroMonth = document.getElementById('hero-month-name');
+    if (heroMonth) heroMonth.textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
   };
 
   // Dashboard & Leaderboard Renderer (Unified Global Ranking)
   const renderDashboard = () => {
     const { empStats, grandTotalPoints } = calculateTipDistribution();
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
 
     // Overview Cards
-    document.getElementById('stat-total-tips').textContent = `${totalTips.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
-    const ratePerCoin = grandTotalPoints > 0 ? (totalTips / grandTotalPoints).toFixed(2) : '0.00';
-    document.getElementById('stat-tips-rate').textContent = `${ratePerCoin} € / Coin`;
+    const elTips = document.getElementById('stat-total-tips');
+    if (elTips) elTips.textContent = `${totalTips.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
 
-    document.getElementById('stat-total-hours').textContent = `${grandTotalPoints} Coins`;
+    const ratePerCoin = grandTotalPoints > 0 ? (totalTips / grandTotalPoints).toFixed(2) : '0.00';
+    const elRate = document.getElementById('stat-tips-rate');
+    if (elRate) elRate.textContent = `${ratePerCoin} € / Coin`;
+
+    const elTotalHours = document.getElementById('stat-total-hours');
+    if (elTotalHours) elTotalHours.textContent = `${grandTotalPoints} Coins`;
 
     const approvedTasks = appState.tasks.filter(t => t.status === 'APPROVED');
-    document.getElementById('stat-completed-tasks').textContent = approvedTasks.length;
-    document.getElementById('stat-points-earned').textContent = `${approvedTasks.length} entries approved`;
+    const elCompletedTasks = document.getElementById('stat-completed-tasks');
+    if (elCompletedTasks) elCompletedTasks.textContent = approvedTasks.length;
+
+    const elPtsEarned = document.getElementById('stat-points-earned');
+    if (elPtsEarned) elPtsEarned.textContent = `${approvedTasks.length} entries approved`;
 
     const frontCount = appState.staff.filter(s => s.role === 'FRONT').length;
     const kitchenCount = appState.staff.filter(s => s.role === 'KITCHEN').length;
-    document.getElementById('stat-staff-count').textContent = appState.staff.length;
-    document.getElementById('stat-team-breakdown').textContent = `${frontCount} Front / ${kitchenCount} Kitchen`;
+    
+    const elStaffCount = document.getElementById('stat-staff-count');
+    if (elStaffCount) elStaffCount.textContent = appState.staff.length;
+
+    const elTeamBreakdown = document.getElementById('stat-team-breakdown');
+    if (elTeamBreakdown) elTeamBreakdown.textContent = `${frontCount} Front / ${kitchenCount} Kitchen`;
 
     // Unified Global Ranking (No team filters on Leaderboard tab)
     let filteredList = [...empStats];
@@ -276,68 +285,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Podium Renderer (Top 3)
     const podiumContainer = document.getElementById('podium-container');
-    podiumContainer.innerHTML = '';
+    if (podiumContainer) {
+      podiumContainer.innerHTML = '';
 
-    if (filteredList.length >= 2) {
-      const top1 = filteredList[0];
-      const top2 = filteredList[1];
-      const top3 = filteredList[2] || null;
+      if (filteredList.length >= 2) {
+        const top1 = filteredList[0];
+        const top2 = filteredList[1];
+        const top3 = filteredList[2] || null;
 
-      const createPodiumStep = (emp, rank, stepClass) => {
-        if (!emp) return '';
-        return `
-          <div class="podium-step ${stepClass}">
-            ${rank === 1 ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
-            <div class="podium-avatar" style="background-color: ${emp.color}">
-              ${emp.avatar}
+        const createPodiumStep = (emp, rank, stepClass) => {
+          if (!emp) return '';
+          return `
+            <div class="podium-step ${stepClass}">
+              ${rank === 1 ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
+              <div class="podium-avatar" style="background-color: ${emp.color}">
+                ${emp.avatar}
+              </div>
+              <div class="podium-name">${emp.name}</div>
+              <div class="podium-pts">${emp.points} Coins</div>
+              <div class="podium-pillar">${rank}</div>
             </div>
-            <div class="podium-name">${emp.name}</div>
-            <div class="podium-pts">${emp.points} Coins</div>
-            <div class="podium-pillar">${rank}</div>
-          </div>
-        `;
-      };
+          `;
+        };
 
-      podiumContainer.innerHTML = `
-        ${createPodiumStep(top2, 2, 'step-2')}
-        ${createPodiumStep(top1, 1, 'step-1')}
-        ${top3 ? createPodiumStep(top3, 3, 'step-3') : ''}
-      `;
-    } else {
-      podiumContainer.innerHTML = `<p class="text-muted">Add at least 2 team members to unlock the podium!</p>`;
+        podiumContainer.innerHTML = `
+          ${createPodiumStep(top2, 2, 'step-2')}
+          ${createPodiumStep(top1, 1, 'step-1')}
+          ${top3 ? createPodiumStep(top3, 3, 'step-3') : ''}
+        `;
+      } else {
+        podiumContainer.innerHTML = `<p class="text-muted">Add at least 2 team members to unlock the podium!</p>`;
+      }
     }
 
     // Table Renderer (Unified Global Table)
     const tbody = document.getElementById('leaderboard-tbody');
-    tbody.innerHTML = '';
+    if (tbody) {
+      tbody.innerHTML = '';
 
-    filteredList.forEach((emp, index) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>#${index + 1}</strong></td>
-        <td>
-          <div class="staff-info">
-            <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
-              ${emp.avatar}
+      filteredList.forEach((emp, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${index + 1}</strong></td>
+          <td>
+            <div class="staff-info">
+              <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
+                ${emp.avatar}
+              </div>
+              <div>
+                <strong>${emp.name}</strong>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
+              </div>
             </div>
-            <div>
-              <strong>${emp.name}</strong>
-              <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
-            </div>
-          </div>
-        </td>
-        <td>
-          <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
-            ${emp.role === 'FRONT' ? 'Front (Floor/Bar)' : 'Kitchen'}
-          </span>
-        </td>
-        <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} Coins</strong></td>
-        <td>${emp.workedDays} days</td>
-        <td><strong>${emp.tipSharePercent}%</strong></td>
-        <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
-      `;
-      tbody.appendChild(tr);
-    });
+          </td>
+          <td>
+            <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
+              ${emp.role === 'FRONT' ? 'Front (Floor/Bar)' : 'Kitchen'}
+            </span>
+          </td>
+          <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} Coins</strong></td>
+          <td>${emp.workedDays} days</td>
+          <td><strong>${emp.tipSharePercent.toFixed(2)}%</strong></td>
+          <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     if (window.lucide) lucide.createIcons();
   };
@@ -347,6 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const renderPlanning = () => {
     const container = document.getElementById('roster-weekly-container');
+    if (!container) return;
+
     container.innerHTML = '';
 
     const isManager = appState.activeRole === 'MANAGER';
@@ -454,16 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Week Selector Listener
-  document.querySelectorAll('.week-filter').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.week-filter').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      selectedWeek = e.currentTarget.dataset.week;
-      renderPlanning();
-    });
-  });
-
   // Sub-Tab Switching Handler
   let activeSubtab = 'daily-tasks';
 
@@ -521,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    // Populate Manager Task Scheduler Select Dropdown
     const schedEmpSelect = document.getElementById('sched-task-employee');
     const bonusEmpSelect = document.getElementById('task-bonus-employee');
 
@@ -536,81 +540,79 @@ document.addEventListener('DOMContentLoaded', () => {
       bonusEmpSelect.disabled = false;
     }
 
-    // ==========================================
     // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER
-    // ==========================================
     const dailyGrid = document.getElementById('daily-tasks-grid');
-    dailyGrid.innerHTML = '';
+    if (dailyGrid) {
+      dailyGrid.innerHTML = '';
 
-    let visibleScheduledTasks = [...(appState.scheduledDailyTasks || [])];
-    if (!isManager && activeEmp) {
-      visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
-    }
+      let visibleScheduledTasks = [...(appState.scheduledDailyTasks || [])];
+      if (!isManager && activeEmp) {
+        visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
+      }
 
-    if (visibleScheduledTasks.length === 0) {
-      dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily tasks scheduled ${!isManager ? 'for you' : ''} yet. ${isManager ? 'Use the form above to assign tasks!' : ''}</p>`;
-    } else {
-      visibleScheduledTasks.forEach(task => {
-        const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
-        const item = document.createElement('div');
-        item.className = 'task-item';
-        
-        item.innerHTML = `
-          <div>
-            <div class="task-user">${task.title}</div>
-            <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <span class="task-pts">+${task.points} Coins</span>
-            ${!isManager ? `
-              <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
-                <i data-lucide="check-circle"></i> Complete Task
-              </button>
-            ` : `
-              <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
-                <i data-lucide="trash-2"></i> Remove
-              </button>
-            `}
-          </div>
-        `;
-        dailyGrid.appendChild(item);
+      if (visibleScheduledTasks.length === 0) {
+        dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily tasks scheduled ${!isManager ? 'for you' : ''} yet. ${isManager ? 'Use the form above to assign tasks!' : ''}</p>`;
+      } else {
+        visibleScheduledTasks.forEach(task => {
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+          const item = document.createElement('div');
+          item.className = 'task-item';
+          
+          item.innerHTML = `
+            <div>
+              <div class="task-user">${task.title}</div>
+              <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <span class="task-pts">+${task.points} Coins</span>
+              ${!isManager ? `
+                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
+                  <i data-lucide="check-circle"></i> Complete Task
+                </button>
+              ` : `
+                <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
+                  <i data-lucide="trash-2"></i> Remove
+                </button>
+              `}
+            </div>
+          `;
+          dailyGrid.appendChild(item);
+        });
+      }
+
+      // Employee claim task listener
+      dailyGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const desc = e.currentTarget.dataset.desc;
+          const pts = parseInt(e.currentTarget.dataset.pts);
+
+          const newSubmission = {
+            id: 't-' + Date.now(),
+            employeeId: appState.activeRole,
+            desc: `Daily Task Completed: ${desc}`,
+            points: pts,
+            status: 'PENDING',
+            timestamp: Date.now()
+          };
+
+          appState.tasks.push(newSubmission);
+          saveState();
+          showToast("Task completed and submitted for manager approval!");
+        });
+      });
+
+      // Manager remove scheduled task listener
+      dailyGrid.querySelectorAll('.btn-delete-sched').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.dataset.id;
+          appState.scheduledDailyTasks = appState.scheduledDailyTasks.filter(t => t.id !== id);
+          saveState();
+          showToast("Scheduled task removed.");
+        });
       });
     }
 
-    // Employee claim task listener
-    dailyGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const desc = e.currentTarget.dataset.desc;
-        const pts = parseInt(e.currentTarget.dataset.pts);
-
-        const newSubmission = {
-          id: 't-' + Date.now(),
-          employeeId: appState.activeRole,
-          desc: `Daily Task Completed: ${desc}`,
-          points: pts,
-          status: 'PENDING',
-          timestamp: Date.now()
-        };
-
-        appState.tasks.push(newSubmission);
-        saveState();
-        showToast("Task completed and submitted for manager approval!");
-      });
-    });
-
-    // Manager remove scheduled task listener
-    dailyGrid.querySelectorAll('.btn-delete-sched').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
-        appState.scheduledDailyTasks = appState.scheduledDailyTasks.filter(t => t.id !== id);
-        saveState();
-        showToast("Scheduled task removed.");
-      });
-    });
-
-    // ==========================================
     // SUB-TAB 2: SUBMISSIONS & INITIATIVES (PRIVACY ENFORCED)
-    // ==========================================
     const managerBlock = document.getElementById('manager-tasks-dashboard');
     const empProfileCard = document.getElementById('employee-profile-card');
     const empSubmissionsBlock = document.getElementById('employee-submissions-block');
@@ -625,45 +627,58 @@ document.addEventListener('DOMContentLoaded', () => {
       if (empSubmissionsBlock) empSubmissionsBlock.classList.remove('hidden');
 
       // Populate Employee Profile Card
-      document.getElementById('emp-profile-avatar').textContent = activeEmp.avatar;
-      document.getElementById('emp-profile-avatar').style.backgroundColor = activeEmp.color;
-      document.getElementById('emp-profile-name').textContent = activeEmp.name;
-      document.getElementById('emp-profile-role').textContent = `${activeEmp.role === 'FRONT' ? 'Front (Floor/Bar)' : 'Kitchen'} - ${activeEmp.title}`;
-      document.getElementById('emp-profile-role').className = `badge ${activeEmp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}`;
+      const avatarEl = document.getElementById('emp-profile-avatar');
+      if (avatarEl) {
+        avatarEl.textContent = activeEmp.avatar;
+        avatarEl.style.backgroundColor = activeEmp.color;
+      }
+      const nameEl = document.getElementById('emp-profile-name');
+      if (nameEl) nameEl.textContent = activeEmp.name;
+
+      const roleEl = document.getElementById('emp-profile-role');
+      if (roleEl) {
+        roleEl.textContent = `${activeEmp.role === 'FRONT' ? 'Front (Floor/Bar)' : 'Kitchen'} - ${activeEmp.title}`;
+        roleEl.className = `badge ${activeEmp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}`;
+      }
 
       const empCoins = getEmployeePoints(activeEmp.id);
-      document.getElementById('emp-profile-coins').textContent = `${empCoins} Coins`;
+      const coinsEl = document.getElementById('emp-profile-coins');
+      if (coinsEl) coinsEl.textContent = `${empCoins} Coins`;
 
       const { empStats } = calculateTipDistribution();
       const sorted = [...empStats].sort((a, b) => b.points - a.points);
       const rank = sorted.findIndex(s => s.id === activeEmp.id) + 1;
-      document.getElementById('emp-profile-rank').textContent = `#${rank > 0 ? rank : 1}`;
+      
+      const rankEl = document.getElementById('emp-profile-rank');
+      if (rankEl) rankEl.textContent = `#${rank > 0 ? rank : 1}`;
 
       // Render STRICTLY PRIVATE Submissions for Logged In Employee ONLY
       const empSubmissionsList = document.getElementById('employee-submissions-list');
-      empSubmissionsList.innerHTML = '';
+      if (empSubmissionsList) {
+        empSubmissionsList.innerHTML = '';
+        const myEntries = appState.tasks.filter(t => t.employeeId === activeEmp.id).reverse();
 
-      const myEntries = appState.tasks.filter(t => t.employeeId === activeEmp.id).reverse();
-      if (myEntries.length === 0) {
-        empSubmissionsList.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">You haven't submitted any initiatives yet this month.</p>`;
-      } else {
-        myEntries.forEach(task => {
-          const item = document.createElement('div');
-          item.className = 'task-item';
-          
-          let statusBadge = `<span class="badge badge-purple">+${task.points} Coins Approved</span>`;
-          if (task.status === 'PENDING') statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Approval (+${task.points} Coins)</span>`;
-          if (task.status === 'REJECTED') statusBadge = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
+        if (myEntries.length === 0) {
+          empSubmissionsList.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">You haven't submitted any initiatives yet this month.</p>`;
+        } else {
+          myEntries.forEach(task => {
+            const item = document.createElement('div');
+            item.className = 'task-item';
+            
+            let statusBadge = `<span class="badge badge-purple">+${task.points} Coins Approved</span>`;
+            if (task.status === 'PENDING') statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Approval (+${task.points} Coins)</span>`;
+            if (task.status === 'REJECTED') statusBadge = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
 
-          item.innerHTML = `
-            <div>
-              <div class="task-user">${task.desc}</div>
-              <div class="task-desc">${new Date(task.timestamp).toLocaleDateString()}</div>
-            </div>
-            ${statusBadge}
-          `;
-          empSubmissionsList.appendChild(item);
-        });
+            item.innerHTML = `
+              <div>
+                <div class="task-user">${task.desc}</div>
+                <div class="task-desc">${new Date(task.timestamp).toLocaleDateString()}</div>
+              </div>
+              ${statusBadge}
+            `;
+            empSubmissionsList.appendChild(item);
+          });
+        }
       }
     }
 
@@ -777,139 +792,110 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { empStats, totalTips, frontPool, kitchenPool } = calculateTipDistribution();
 
-    document.getElementById('summary-front-amount').textContent = `${frontPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
-    document.getElementById('summary-kitchen-amount').textContent = `${kitchenPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+    const elFrontAmt = document.getElementById('summary-front-amount');
+    if (elFrontAmt) elFrontAmt.textContent = `${frontPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+
+    const elKitchenAmt = document.getElementById('summary-kitchen-amount');
+    if (elKitchenAmt) elKitchenAmt.textContent = `${kitchenPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
 
     const frontCoins = empStats.filter(e => e.role === 'FRONT').reduce((s, e) => s + e.points, 0);
     const kitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((s, e) => s + e.points, 0);
 
-    document.getElementById('summary-front-sub').textContent = `${frontCoins} Coins earned (Front)`;
-    document.getElementById('summary-kitchen-sub').textContent = `${kitchenCoins} Coins earned (Kitchen)`;
+    const elFrontSub = document.getElementById('summary-front-sub');
+    if (elFrontSub) elFrontSub.textContent = `${frontCoins} Coins earned (Front)`;
+
+    const elKitchenSub = document.getElementById('summary-kitchen-sub');
+    if (elKitchenSub) elKitchenSub.textContent = `${kitchenCoins} Coins earned (Kitchen)`;
 
     // Detailed Editable Table
     const tbody = document.getElementById('tips-detail-tbody');
-    tbody.innerHTML = '';
+    if (tbody) {
+      tbody.innerHTML = '';
 
-    empStats.forEach(emp => {
-      const tr = document.createElement('tr');
-      const hasOverride = emp.manualPercent !== null;
+      empStats.forEach(emp => {
+        const tr = document.createElement('tr');
+        const hasOverride = emp.manualPercent !== null;
 
-      tr.innerHTML = `
-        <td>
-          <div class="staff-info">
-            <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
-              ${emp.avatar}
+        tr.innerHTML = `
+          <td>
+            <div class="staff-info">
+              <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
+                ${emp.avatar}
+              </div>
+              <div>
+                <strong>${emp.name}</strong>
+              </div>
             </div>
-            <div>
-              <strong>${emp.name}</strong>
+          </td>
+          <td>
+            <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
+              ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'} - ${emp.title}
+            </span>
+          </td>
+          <td><strong class="text-gold">${emp.points} Coins</strong></td>
+          <td><span class="text-muted">${emp.baselinePercent.toFixed(2)}%</span></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.25rem;">
+              <input type="number" 
+                     class="form-control editable-percent-input" 
+                     data-emp="${emp.id}" 
+                     value="${emp.tipSharePercent.toFixed(2)}" 
+                     step="0.5" min="0" max="100" />
+              <span>%</span>
+              ${hasOverride ? `<span class="badge badge-purple" style="font-size:0.65rem; padding:0.1rem 0.3rem;" title="Manually edited share">Custom</span>` : ''}
             </div>
-          </div>
-        </td>
-        <td>
-          <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
-            ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'} - ${emp.title}
-          </span>
-        </td>
-        <td><strong class="text-gold">${emp.points} Coins</strong></td>
-        <td><span class="text-muted">${emp.baselinePercent.toFixed(2)}%</span></td>
-        <td>
-          <div style="display:flex; align-items:center; gap:0.25rem;">
-            <input type="number" 
-                   class="form-control editable-percent-input" 
-                   data-emp="${emp.id}" 
-                   value="${emp.tipSharePercent.toFixed(2)}" 
-                   step="0.5" min="0" max="100" />
-            <span>%</span>
-            ${hasOverride ? `<span class="badge badge-purple" style="font-size:0.65rem; padding:0.1rem 0.3rem;" title="Manually edited share">Custom</span>` : ''}
-          </div>
-        </td>
-        <td>
-          <div style="display:flex; align-items:center; gap:0.25rem;">
-            <input type="number" 
-                   class="form-control editable-amount-input" 
-                   data-emp="${emp.id}" 
-                   value="${emp.tipAmount.toFixed(2)}" 
-                   step="5" min="0" />
-            <strong class="text-green">€</strong>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    // Percentage Input Listener
-    tbody.querySelectorAll('.editable-percent-input').forEach(input => {
-      input.addEventListener('change', (e) => {
-        const empId = e.currentTarget.dataset.emp;
-        const newPct = parseFloat(e.currentTarget.value) || 0;
-
-        if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
-        appState.manualTipOverrides[empId] = { percent: newPct };
-
-        saveState();
-        showToast("Custom tip share percentage updated!");
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.25rem;">
+              <input type="number" 
+                     class="form-control editable-amount-input" 
+                     data-emp="${emp.id}" 
+                     value="${emp.tipAmount.toFixed(2)}" 
+                     step="5" min="0" />
+              <strong class="text-green">€</strong>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
-    });
 
-    // Amount Input Listener
-    tbody.querySelectorAll('.editable-amount-input').forEach(input => {
-      input.addEventListener('change', (e) => {
-        const empId = e.currentTarget.dataset.emp;
-        const newAmt = parseFloat(e.currentTarget.value) || 0;
-        const totalPool = parseFloat(appState.tipsConfig[appState.currentMonth]?.totalAmount) || 2600;
+      // Percentage Input Listener
+      tbody.querySelectorAll('.editable-percent-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const empId = e.currentTarget.dataset.emp;
+          const newPct = parseFloat(e.currentTarget.value) || 0;
 
-        const newPct = totalPool > 0 ? parseFloat(((newAmt / totalPool) * 100).toFixed(2)) : 0;
+          if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
+          appState.manualTipOverrides[empId] = { percent: newPct };
 
-        if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
-        appState.manualTipOverrides[empId] = { percent: newPct };
-
-        saveState();
-        showToast("Custom payable tip amount updated!");
+          saveState();
+          showToast("Custom tip share percentage updated!");
+        });
       });
-    });
-  };
 
-  // Tip Calculator Renderer
-  const renderTips = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0, rule: 'VALUE_POINTS' };
-    document.getElementById('input-total-tips').value = config.totalAmount || '';
-    document.getElementById('tip-distribution-rule').value = config.rule || 'VALUE_POINTS';
+      // Amount Input Listener
+      tbody.querySelectorAll('.editable-amount-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const empId = e.currentTarget.dataset.emp;
+          const newAmt = parseFloat(e.currentTarget.value) || 0;
+          const totalPool = parseFloat(appState.tipsConfig[appState.currentMonth]?.totalAmount) || 2600;
 
-    const { empStats, frontPool, kitchenPool, totalFrontPoints, totalKitchenPoints } = calculateTipDistribution();
+          const newPct = totalPool > 0 ? parseFloat(((newAmt / totalPool) * 100).toFixed(2)) : 0;
 
-    document.getElementById('summary-front-amount').textContent = `${frontPool.toFixed(2)} €`;
-    document.getElementById('summary-front-sub').textContent = `${totalFrontPoints} Coins earned (Front)`;
+          if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
+          appState.manualTipOverrides[empId] = { percent: newPct };
 
-    document.getElementById('summary-kitchen-amount').textContent = `${kitchenPool.toFixed(2)} €`;
-    document.getElementById('summary-kitchen-sub').textContent = `${totalKitchenPoints} Coins earned (Kitchen)`;
-
-    const tbody = document.getElementById('tips-detail-tbody');
-    tbody.innerHTML = '';
-
-    empStats.forEach(emp => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>
-          <strong>${emp.name}</strong>
-          <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
-        </td>
-        <td>
-          <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
-            ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'}
-          </span>
-        </td>
-        <td><strong class="text-gold">${emp.points} Coins</strong></td>
-        <td>${emp.workedDays} d (${emp.workedHours}h)</td>
-        <td><strong>${emp.tipSharePercent}%</strong></td>
-        <td><strong class="text-green" style="font-size:1.1rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
-      `;
-      tbody.appendChild(tr);
-    });
+          saveState();
+          showToast("Custom payable tip amount updated!");
+        });
+      });
+    }
   };
 
   // Staff Management Renderer
   const renderStaff = () => {
     const grid = document.getElementById('staff-list-grid');
+    if (!grid) return;
     grid.innerHTML = '';
 
     appState.staff.forEach(emp => {
@@ -1033,172 +1019,168 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  document.querySelectorAll('.pill-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      if (e.currentTarget.classList.contains('planning-filter')) return;
-      document.querySelectorAll('.pill-btn:not(.planning-filter)').forEach(p => p.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      appState.activeFilter = e.currentTarget.dataset.filter;
-      renderDashboard();
+  const btnTheme = document.getElementById('btn-theme-toggle');
+  if (btnTheme) {
+    btnTheme.addEventListener('click', () => {
+      appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+      saveState();
     });
-  });
+  }
 
-  document.getElementById('btn-theme-toggle').addEventListener('click', () => {
-    appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
-    saveState();
-  });
-
-  document.getElementById('current-month-select').addEventListener('change', (e) => {
-    appState.currentMonth = e.target.value;
-    saveState();
-    showToast(`Month switched to ${e.target.options[e.target.selectedIndex].text}`);
-  });
-
-  // Submit Fixed Task
-  document.getElementById('btn-submit-fixed-task').addEventListener('click', () => {
-    const empId = document.getElementById('task-fixed-employee').value;
-    const preset = document.getElementById('task-fixed-preset').value;
-
-    let pts = 20;
-    if (preset.includes('+15')) pts = 15;
-    if (preset.includes('+25')) pts = 25;
-    if (preset.includes('+30')) pts = 30;
-
-    appState.tasks.push({
-      id: 'task-' + Date.now(),
-      employeeId: empId,
-      desc: preset,
-      points: pts,
-      status: 'PENDING',
-      timestamp: Date.now()
+  const selectMonth = document.getElementById('current-month-select');
+  if (selectMonth) {
+    selectMonth.addEventListener('change', (e) => {
+      appState.currentMonth = e.target.value;
+      saveState();
+      showToast(`Month switched to ${e.target.options[e.target.selectedIndex].text}`);
     });
+  }
 
-    saveState();
-    showToast("Task completion submitted for manager approval!");
-  });
+  // Submit Bonus Initiative Form Listener
+  const formBonus = document.getElementById('form-bonus-task');
+  if (formBonus) {
+    formBonus.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const empId = document.getElementById('task-bonus-employee').value;
+      const desc = document.getElementById('task-bonus-desc').value.trim();
+      const pts = parseInt(document.getElementById('task-bonus-pts').value);
 
-  // Submit Bonus Initiative
-  document.getElementById('form-bonus-task').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const empId = document.getElementById('task-bonus-employee').value;
-    const desc = document.getElementById('task-bonus-desc').value.trim();
-    const pts = parseInt(document.getElementById('task-bonus-pts').value);
+      if (!desc) return;
 
-    if (!desc) return;
+      appState.tasks.push({
+        id: 'task-' + Date.now(),
+        employeeId: empId,
+        desc: `Initiative: ${desc}`,
+        points: pts,
+        status: 'PENDING',
+        timestamp: Date.now()
+      });
 
-    appState.tasks.push({
-      id: 'task-' + Date.now(),
-      employeeId: empId,
-      desc: `Initiative: ${desc}`,
-      points: pts,
-      status: 'PENDING',
-      timestamp: Date.now()
+      document.getElementById('task-bonus-desc').value = '';
+      saveState();
+      showToast("Initiative submitted! Pending manager approval.");
     });
+  }
 
-    document.getElementById('task-bonus-desc').value = '';
-    saveState();
-    showToast("Initiative submitted! Pending manager approval.");
-  });
-
-  // Save Tip Parameters
-  document.getElementById('btn-save-tips').addEventListener('click', () => {
-    const totalAmount = parseFloat(document.getElementById('input-total-tips').value) || 0;
-    const rule = document.getElementById('tip-distribution-rule').value;
-
-    appState.tipsConfig[appState.currentMonth] = { totalAmount, rule };
-    saveState();
-    showToast("Tip parameters updated and shares recalculated!");
-  });
-
-  document.getElementById('btn-print-tips').addEventListener('click', () => {
-    window.print();
-  });
-
-  // Add Staff Member
-  document.getElementById('form-add-staff').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('staff-name').value.trim();
-    const role = document.getElementById('staff-role').value;
-    const title = document.getElementById('staff-title').value.trim() || role;
-    const color = document.getElementById('staff-color').value;
-
-    if (!name) return;
-
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-    appState.staff.push({
-      id: 'emp-' + Date.now(),
-      name,
-      role,
-      title,
-      color,
-      avatar: initials || 'EX'
+  // Save Tip Pool Amount Listener
+  const btnSaveTips = document.getElementById('btn-save-tips');
+  if (btnSaveTips) {
+    btnSaveTips.addEventListener('click', () => {
+      const totalAmount = parseFloat(document.getElementById('input-total-tips').value) || 0;
+      appState.tipsConfig[appState.currentMonth] = { totalAmount };
+      saveState();
+      showToast("Tip pool amount saved and shares recalculated!");
     });
+  }
 
-    document.getElementById('staff-name').value = '';
-    document.getElementById('staff-title').value = '';
-    saveState();
-    showToast(`New team member ${name} added!`);
-  });
+  const btnPrintTips = document.getElementById('btn-print-tips');
+  if (btnPrintTips) {
+    btnPrintTips.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  // Add Staff Member Listener
+  const formAddStaff = document.getElementById('form-add-staff');
+  if (formAddStaff) {
+    formAddStaff.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('staff-name').value.trim();
+      const role = document.getElementById('staff-role').value;
+      const title = document.getElementById('staff-title').value.trim() || role;
+      const color = document.getElementById('staff-color').value;
+
+      if (!name) return;
+
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+      appState.staff.push({
+        id: 'emp-' + Date.now(),
+        name,
+        role,
+        title,
+        color,
+        avatar: initials || 'EX'
+      });
+
+      document.getElementById('staff-name').value = '';
+      document.getElementById('staff-title').value = '';
+      saveState();
+      showToast(`New team member ${name} added!`);
+    });
+  }
 
   // Export JSON Backup
-  document.getElementById('btn-export-data').addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `tiprank_resto_backup_${appState.currentMonth}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    showToast("JSON backup file downloaded!");
-  });
+  const btnExport = document.getElementById('btn-export-data');
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `tiprank_resto_backup_${appState.currentMonth}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("JSON backup file downloaded!");
+    });
+  }
 
   // Import JSON Backup
-  document.getElementById('input-import-data').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const inputImport = document.getElementById('input-import-data');
+  if (inputImport) {
+    inputImport.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const importedState = JSON.parse(event.target.result);
-        if (importedState.staff && Array.isArray(importedState.staff)) {
-          appState = importedState;
-          saveState();
-          showToast("Data backup successfully imported!");
-        } else {
-          alert("Invalid backup file format.");
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedState = JSON.parse(event.target.result);
+          if (importedState.staff && Array.isArray(importedState.staff)) {
+            appState = importedState;
+            saveState();
+            showToast("Data backup successfully imported!");
+          } else {
+            alert("Invalid backup file format.");
+          }
+        } catch (err) {
+          alert("Error reading JSON backup file.");
         }
-      } catch (err) {
-        alert("Error reading JSON backup file.");
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  const btnLoadDemo = document.getElementById('btn-load-demo');
+  if (btnLoadDemo) {
+    btnLoadDemo.addEventListener('click', () => {
+      if (confirm("Reset application with default restaurant demo data?")) {
+        initDefaultState();
+        saveState();
+        showToast("Demo data reloaded!");
       }
-    };
-    reader.readAsText(file);
-  });
+    });
+  }
 
-  document.getElementById('btn-load-demo').addEventListener('click', () => {
-    if (confirm("Reset application with default restaurant demo data?")) {
-      initDefaultState();
-      showToast("Demo data reloaded!");
-    }
-  });
+  const btnResetMonth = document.getElementById('btn-reset-month');
+  if (btnResetMonth) {
+    btnResetMonth.addEventListener('click', () => {
+      if (confirm("Warning: This will reset tasks and roster schedules for the current month. Proceed?")) {
+        delete appState.schedules[appState.currentMonth];
+        delete appState.tipsConfig[appState.currentMonth];
+        appState.tasks = [];
+        saveState();
+        showToast("Current month data reset.");
+      }
+    });
+  }
 
-  document.getElementById('btn-reset-month').addEventListener('click', () => {
-    if (confirm("Warning: This will reset tasks and roster schedules for the current month. Proceed?")) {
-      delete appState.schedules[appState.currentMonth];
-      delete appState.tipsConfig[appState.currentMonth];
-      appState.tasks = [];
-      saveState();
-      showToast("Current month data reset.");
-    }
-  });
-
-  // Roster Filter Actions
-  document.querySelectorAll('.planning-filter').forEach(btn => {
+  // Week Selector Listener
+  document.querySelectorAll('.week-filter').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.planning-filter').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.week-filter').forEach(b => b.classList.remove('active'));
       e.currentTarget.classList.add('active');
-      planningFilter = e.currentTarget.dataset.planFilter;
+      selectedWeek = e.currentTarget.dataset.week;
       renderPlanning();
     });
   });
@@ -1209,7 +1191,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const triggerWinnerModal = () => {
     const { empStats } = calculateTipDistribution();
-
     const sorted = [...empStats].sort((a, b) => b.points - a.points);
     const winner = sorted[0];
 
@@ -1223,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('winner-team-badge').className = `badge ${winner.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}`;
 
     document.getElementById('winner-points').textContent = `${winner.points} Coins`;
-    document.getElementById('winner-days').textContent = `${winner.workedDays} d (${winner.workedHours}h)`;
+    document.getElementById('winner-days').textContent = `${winner.workedDays} days`;
     document.getElementById('winner-tips').textContent = `${winner.tipAmount.toFixed(2)} €`;
 
     const modal = document.getElementById('modal-winner');
@@ -1242,14 +1223,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  document.getElementById('btn-reveal-winner').addEventListener('click', triggerWinnerModal);
-  document.getElementById('btn-celebrate-again').addEventListener('click', launchConfetti);
-  document.getElementById('btn-close-winner').addEventListener('click', () => {
-    document.getElementById('modal-winner').classList.add('hidden');
-  });
+  const btnRevealWinner = document.getElementById('btn-reveal-winner');
+  if (btnRevealWinner) btnRevealWinner.addEventListener('click', triggerWinnerModal);
+
+  const btnCelebrateAgain = document.getElementById('btn-celebrate-again');
+  if (btnCelebrateAgain) btnCelebrateAgain.addEventListener('click', launchConfetti);
+
+  const btnCloseWinner = document.getElementById('btn-close-winner');
+  if (btnCloseWinner) {
+    btnCloseWinner.addEventListener('click', () => {
+      document.getElementById('modal-winner').classList.add('hidden');
+    });
+  }
 
   const showToast = (message) => {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.innerHTML = `<i data-lucide="info"></i> <span>${message}</span>`;
@@ -1277,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadState();
   initSubtabs();
   initSchedulerForm();
+  isInitialized = true;
   renderAll();
 
 });
