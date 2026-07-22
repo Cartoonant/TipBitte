@@ -11,14 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DEFAULT_STAFF = [
     // Front Team (Floor / Bar)
-    { id: 'emp-2', name: 'Vinod', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VN' },
-    { id: 'emp-3', name: 'Siri', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SR' },
+    { id: 'emp-2', name: 'Vinod', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VN', offDays: [4] },       // Thursday
+    { id: 'emp-3', name: 'Siri', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SR', offDays: [2, 3] },    // Tue, Wed
     
     // Kitchen Team
-    { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD' },
-    { id: 'emp-5', name: 'Karthik', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KR' },
-    { id: 'emp-6', name: 'Bhanu', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BH' },
-    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
+    { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD', offDays: [4] },    // Thursday
+    { id: 'emp-5', name: 'Karthik', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KR', offDays: [1] },    // Monday
+    { id: 'emp-6', name: 'Bhanu', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BH', offDays: [2] },    // Tuesday
+    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT', offDays: [3] }    // Wednesday
   ];
 
   const DEFAULT_MASTER_CATALOGUE = [
@@ -125,26 +125,38 @@ document.addEventListener('DOMContentLoaded', () => {
     generateDemoData();
   };
 
-  const generateDemoData = () => {
-    const mKey = appState.currentMonth;
-    const daysCount = getDaysInMonth(mKey);
-    const [year, month] = mKey.split('-').map(Number);
+  // Guarantee Days Off Schedule Persistence across any selected month
+  const ensureMonthSchedule = (monthKey) => {
+    if (!monthKey) return;
+    if (!appState.schedules) appState.schedules = {};
 
-    // Initialize schedules with recurring off days
-    if (!appState.schedules[mKey]) {
-      appState.schedules[mKey] = {};
-      appState.staff.forEach((emp) => {
-        appState.schedules[mKey][emp.id] = {};
-        const empOffWeekdays = DEFAULT_OFF_DAYS_CONFIG[emp.id] || [];
+    if (!appState.schedules[monthKey]) {
+      appState.schedules[monthKey] = {};
+      const daysCount = getDaysInMonth(monthKey);
+      const [year, month] = monthKey.split('-').map(Number);
+
+      (appState.staff || []).forEach((emp) => {
+        appState.schedules[monthKey][emp.id] = {};
+        const empOffWeekdays = emp.offDays || DEFAULT_OFF_DAYS_CONFIG[emp.id] || [];
 
         for (let d = 1; d <= daysCount; d++) {
           const date = new Date(year, month - 1, d);
-          const dayOfWeek = date.getDay();
+          const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ...
           const isOff = empOffWeekdays.includes(dayOfWeek);
-          appState.schedules[mKey][emp.id][d] = !isOff;
+          appState.schedules[monthKey][emp.id][d] = !isOff;
         }
       });
     }
+
+    if (!appState.tipsConfig) appState.tipsConfig = {};
+    if (!appState.tipsConfig[monthKey]) {
+      appState.tipsConfig[monthKey] = { totalAmount: 2600 };
+    }
+  };
+
+  const generateDemoData = () => {
+    const mKey = appState.currentMonth;
+    ensureMonthSchedule(mKey);
 
     // Default tip configuration (e.g. 2600 € pool)
     if (!appState.tipsConfig[mKey]) {
@@ -1132,6 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    ensureMonthSchedule(appState.currentMonth);
     renderHeaderLiveDate();
     renderMonthSelector();
     renderDashboard();
@@ -1348,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (selectMonth) {
     selectMonth.addEventListener('change', (e) => {
       appState.currentMonth = e.target.value;
+      ensureMonthSchedule(appState.currentMonth);
       saveState();
       showToast(`Month switched to ${e.target.options[e.target.selectedIndex].text}`);
     });
