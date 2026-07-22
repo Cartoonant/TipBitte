@@ -46,6 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Date(year, month, 0).getDate();
   };
 
+  const DEFAULT_SOP_PDFS = [
+    { id: 'pdf-1', title: 'Bar & Front Service Opening Standard Operating Procedure.pdf', category: 'FRONT', url: '#', size: '1.2 MB', date: '2026-08-01' },
+    { id: 'pdf-2', title: 'HACCP Kitchen Hygiene & Food Prep Guidelines 2026.pdf', category: 'KITCHEN', url: '#', size: '2.4 MB', date: '2026-08-01' },
+    { id: 'pdf-3', title: 'Closing Register & Cash Terminal Protocol.pdf', category: 'FRONT', url: '#', size: '850 KB', date: '2026-08-01' },
+    { id: 'pdf-4', title: 'Restaurant Emergency Procedures & First Aid.pdf', category: 'EVERYONE', url: '#', size: '1.8 MB', date: '2026-08-01' }
+  ];
+
   // Global State
   let appState = {
     currentMonth: getCurrentMonthKey(),
@@ -59,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     schedules: {},           // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
     scheduledDailyTasks: [], // [ { id, employeeId, day, title, category, period, points, desc } ]
     tasks: [],               // Submissions: [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', timestamp } ]
+    sopDocuments: [],        // SOP PDF Documents: [ { id, title, category, url, size, date } ]
     tipsConfig: {},          // { "2026-08": { totalAmount: 2600 } }
     manualTipOverrides: {}   // { "emp-2": { percent: 25, amount: 650 } }
   };
@@ -1113,6 +1121,129 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
+  // SOP (Standard Operating Procedures) Renderer
+  let activeSopFilter = 'ALL';
+
+  const renderSOP = () => {
+    if (!appState.sopDocuments || appState.sopDocuments.length === 0) {
+      appState.sopDocuments = JSON.parse(JSON.stringify(DEFAULT_SOP_PDFS));
+    }
+
+    const isManager = appState.activeRole === 'MANAGER';
+
+    // Render Linked PDF Documents Grid
+    const pdfContainer = document.getElementById('sop-pdf-library');
+    if (pdfContainer) {
+      pdfContainer.innerHTML = '';
+      if (appState.sopDocuments.length === 0) {
+        pdfContainer.innerHTML = `<p class="text-muted" style="grid-column:1/-1;">No PDF SOP documents linked yet. Upload PDF files above.</p>`;
+      } else {
+        appState.sopDocuments.forEach(doc => {
+          const pdfCard = document.createElement('div');
+          pdfCard.className = 'section-card';
+          pdfCard.style.padding = '1rem';
+          pdfCard.style.display = 'flex';
+          pdfCard.style.alignItems = 'center';
+          pdfCard.style.justifyContent = 'space-between';
+          pdfCard.style.gap = '0.75rem';
+          pdfCard.style.background = 'var(--bg-input)';
+          pdfCard.style.border = '1px solid var(--border-color)';
+          pdfCard.style.borderRadius = 'var(--radius-md)';
+
+          const badgeClass = doc.category === 'FRONT' ? 'badge-front' : (doc.category === 'KITCHEN' ? 'badge-kitchen' : 'badge-gold');
+
+          pdfCard.innerHTML = `
+            <div style="display:flex; align-items:center; gap:0.75rem; overflow:hidden;">
+              <div style="width:42px; height:42px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; color:var(--color-danger); flex-shrink:0;">
+                <i data-lucide="file-text" style="width:24px; height:24px;"></i>
+              </div>
+              <div style="overflow:hidden;">
+                <strong style="display:block; font-size:0.85rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; color:var(--text-main);">${doc.title}</strong>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.2rem;">
+                  <span class="badge ${badgeClass}" style="font-size:0.6rem; padding:0.05rem 0.35rem;">${doc.category}</span>
+                  <span style="font-size:0.7rem; color:var(--text-muted);">${doc.size || 'PDF Document'}</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.35rem; flex-shrink:0;">
+              <a href="${doc.url || '#'}" download="${doc.title}" target="_blank" class="btn btn-outline btn-sm" style="padding:0.3rem 0.6rem; font-size:0.75rem;" title="View / Download PDF">
+                <i data-lucide="download"></i> View
+              </a>
+              ${isManager ? `
+                <button class="btn-icon btn-delete-pdf" data-id="${doc.id}" style="color:var(--color-danger); padding:0.35rem;" title="Unlink PDF">
+                  <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                </button>
+              ` : ''}
+            </div>
+          `;
+          pdfContainer.appendChild(pdfCard);
+        });
+
+        pdfContainer.querySelectorAll('.btn-delete-pdf').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (confirm("Remove this PDF SOP document link?")) {
+              appState.sopDocuments = appState.sopDocuments.filter(d => d.id !== id);
+              saveState();
+              showToast("PDF document unlinked.");
+            }
+          });
+        });
+      }
+    }
+
+    // Render Master Task Procedures & Instructions
+    const tasksContainer = document.getElementById('sop-tasks-list');
+    if (tasksContainer) {
+      tasksContainer.innerHTML = '';
+      const catalogue = appState.masterTaskCatalogue || DEFAULT_MASTER_CATALOGUE;
+      
+      const filtered = catalogue.filter(t => {
+        if (activeSopFilter === 'ALL') return true;
+        return t.scope === activeSopFilter;
+      });
+
+      if (filtered.length === 0) {
+        tasksContainer.innerHTML = `<p class="text-muted">No procedures found for this category filter.</p>`;
+      } else {
+        filtered.forEach((task, index) => {
+          const card = document.createElement('div');
+          card.className = 'task-card';
+          card.style.borderLeft = task.scope === 'FRONT' ? '4px solid var(--color-primary)' : (task.scope === 'KITCHEN' ? '4px solid var(--color-danger)' : '4px solid var(--color-gold)');
+          
+          card.innerHTML = `
+            <div class="task-main-info" style="width:100%;">
+              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.4rem;">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                  <span class="badge ${task.scope === 'FRONT' ? 'badge-front' : (task.scope === 'KITCHEN' ? 'badge-kitchen' : 'badge-gold')}">
+                    ${task.scope}
+                  </span>
+                  <span class="badge" style="background:var(--bg-input); border:1px solid var(--border-color); color:var(--text-muted); font-size:0.65rem;">
+                    ⏰ ${task.period || 'ANYTIME'}
+                  </span>
+                  <span class="badge" style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:var(--color-gold); font-size:0.65rem;">
+                    🔁 ${task.recurrence || 'DAILY'}
+                  </span>
+                </div>
+                <strong class="text-gold" style="font-size:0.95rem;">+${task.points} Coins</strong>
+              </div>
+              <h4 style="margin:0 0 0.4rem 0; font-size:1.05rem; font-weight:700; color:var(--text-main);">
+                SOP #${index + 1}: ${task.title}
+              </h4>
+              <p style="margin:0; font-size:0.88rem; color:var(--text-muted); line-height:1.5; background:var(--bg-input); padding:0.65rem 0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                <strong style="color:var(--text-main); display:block; margin-bottom:0.25rem;">📋 Standard Operating Procedure / Detailed Instructions:</strong>
+                ${task.desc || 'Standard operational procedure and checklist guidelines for shift execution.'}
+              </p>
+            </div>
+          `;
+          tasksContainer.appendChild(card);
+        });
+      }
+    }
+
+    if (window.lucide) lucide.createIcons();
+  };
+
   const renderAll = () => {
     applyTheme();
 
@@ -1150,6 +1281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderPlanning();
     renderTasks();
+    renderSOP();
     if (isManager) {
       renderTips();
       renderStaff();
@@ -1340,10 +1472,52 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabId === 'dashboard') renderDashboard();
     if (tabId === 'planning') renderPlanning();
     if (tabId === 'tasks') renderTasks();
+    if (tabId === 'sop') renderSOP();
     if (tabId === 'approvals' && isManager) renderTasks();
     if (tabId === 'tips' && isManager) renderTips();
     if (tabId === 'staff' && isManager) renderStaff();
   };
+
+  // SOP Category Filter Listener
+  document.querySelectorAll('#sop-category-filter .pill-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#sop-category-filter .pill-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeSopFilter = e.target.dataset.sopFilter || 'ALL';
+      renderSOP();
+    });
+  });
+
+  // PDF SOP Documents Upload Listener
+  const inputSopPdf = document.getElementById('input-sop-pdf-upload');
+  if (inputSopPdf) {
+    inputSopPdf.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (!files || files.length === 0) return;
+
+      if (!appState.sopDocuments) appState.sopDocuments = [];
+
+      files.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        const sizeFormatted = file.size > 1048576 
+          ? (file.size / 1048576).toFixed(1) + ' MB' 
+          : Math.round(file.size / 1024) + ' KB';
+
+        appState.sopDocuments.unshift({
+          id: 'pdf-upload-' + Date.now() + '-' + index,
+          title: file.name,
+          category: 'EVERYONE',
+          url: url,
+          size: sizeFormatted,
+          date: new Date().toISOString().split('T')[0]
+        });
+      });
+
+      saveState();
+      renderSOP();
+      showToast(`${files.length} PDF SOP document(s) uploaded successfully!`);
+    });
+  }
 
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
