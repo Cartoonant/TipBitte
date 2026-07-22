@@ -6,28 +6,25 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
-  // 1. ÉTAT INITIAL ET DONNÉES DU PERSONNEL RÉEL
+  // 1. ÉTAT INITIAL ET DONNÉES DU PERSONNEL RÉEL (AOÛT 2026)
   // ==========================================
 
   const DEFAULT_STAFF = [
     // Équipe Front (Salle / Bar)
-    { id: 'emp-1', name: 'Vinod', role: 'FRONT', color: '#3b82f6', avatar: 'VN' },
-    { id: 'emp-2', name: 'Siri', role: 'FRONT', color: '#8b5cf6', avatar: 'SR' },
-    { id: 'emp-3', name: 'Bruno', role: 'FRONT', color: '#06b6d4', avatar: 'BR' },
+    { id: 'emp-1', name: 'Bruno Hennion', role: 'FRONT', title: 'Floor Manager', color: '#06b6d4', avatar: 'BH' },
+    { id: 'emp-2', name: 'Vinod Pal', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VP' },
+    { id: 'emp-3', name: 'Siri Vennela Puppala', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SV' },
     
     // Équipe Kitchen (Cuisine)
-    { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', color: '#ec4899', avatar: 'AD' },
-    { id: 'emp-5', name: 'Bhanu', role: 'KITCHEN', color: '#f59e0b', avatar: 'BH' },
-    { id: 'emp-6', name: 'Karthik', role: 'KITCHEN', color: '#10b981', avatar: 'KR' },
-    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', color: '#6366f1', avatar: 'MT' }
+    { id: 'emp-4', name: 'Aadhi Dammanapeta', role: 'KITCHEN', title: 'Cuisine', color: '#ec4899', avatar: 'AD' },
+    { id: 'emp-5', name: 'Karthik Nallathambi', role: 'KITCHEN', title: 'Cuisine', color: '#10b981', avatar: 'KN' },
+    { id: 'emp-6', name: 'Bhanu Reddy Palem', role: 'KITCHEN', title: 'Cuisine', color: '#f59e0b', avatar: 'BP' },
+    { id: 'emp-7', name: 'Muthyam Reddy Thembareni', role: 'KITCHEN', title: 'Cuisine', color: '#6366f1', avatar: 'MT' }
   ];
 
-  // Helper pour générer un mois au format YYYY-MM
+  // Helper pour générer un mois au format YYYY-MM (Défaut sur Août 2026)
   const getCurrentMonthKey = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    return '2026-08';
   };
 
   const getDaysInMonth = (monthKey) => {
@@ -37,13 +34,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // State global
   let appState = {
-    currentMonth: getCurrentMonthKey(),
+    currentMonth: '2026-08',
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
-    schedules: {}, // { "2026-07": { "emp-1": { 1: true, 2: false, ... } } }
+    schedules: {}, // { "2026-08": { "emp-1": { 1: true, 2: false, ... } } }
     tasks: [],     // [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', date } ]
-    tipsConfig: {} // { "2026-07": { totalAmount: 1850, rule: 'RATIO_60_40' } }
+    tipsConfig: {} // { "2026-08": { totalAmount: 2600, rule: 'VALUE_POINTS' } }
+  };
+
+  // Rôle et jours de repos hebdomadaires réels récurrents pour chaque employé
+  // JS Date.getDay(): 0=Dimanche, 1=Lundi, 2=Mardi, 3=Mercredi, 4=Jeudi, 5=Vendredi, 6=Samedi
+  const DEFAULT_OFF_DAYS_CONFIG = {
+    'emp-1': [1],       // Bruno Hennion -> Lundi
+    'emp-2': [4],       // Vinod Pal -> Jeudi
+    'emp-3': [2, 3],    // Siri Vennela Puppala -> Mardi, Mercredi
+    'emp-4': [4],       // Aadhi Dammanapeta -> Jeudi
+    'emp-5': [1],       // Karthik Nallathambi -> Lundi
+    'emp-6': [2],       // Bhanu Reddy Palem -> Mardi
+    'emp-7': [3]        // Muthyam Reddy Thembareni -> Mercredi
+  };
+
+  const getDayOfWeekAbbr = (year, month, day) => {
+    const date = new Date(year, month - 1, day);
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return days[date.getDay()];
   };
 
   // ==========================================
@@ -55,9 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved) {
       try {
         appState = JSON.parse(saved);
-        if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
-        // Vérifier si le staff et les plannings sont au format avec les jours OFF réels
-        if (!appState.staff || appState.staff.length === 0 || !appState.staff.some(s => s.name === 'Vinod')) {
+        if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
+        // Recharger les données si le staff ne correspond pas à Août 2026
+        if (!appState.staff || appState.staff.length === 0 || !appState.staff.some(s => s.name === 'Bruno Hennion')) {
           initDefaultState();
         }
       } catch (e) {
@@ -81,26 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.tipsConfig = {};
     appState.theme = 'dark';
     
-    // Génération automatique d'un jeu de données réalistes pour le staff du restaurant
     generateDemoData();
-  };
-
-  // Rôle et jours de repos hebdomadaires réels pour chaque employé
-  // JS Date.getDay(): 0=Dimanche, 1=Lundi, 2=Mardi, 3=Mercredi, 4=Jeudi, 5=Vendredi, 6=Samedi
-  const DEFAULT_OFF_DAYS_CONFIG = {
-    'emp-1': [4],       // Vinod -> Jeudi
-    'emp-2': [2, 3],    // Siri -> Mardi, Mercredi
-    'emp-3': [1],       // Bruno -> Lundi
-    'emp-4': [4],       // Aadhi -> Jeudi
-    'emp-5': [2],       // Bhanu -> Mardi
-    'emp-6': [1],       // Karthik -> Lundi
-    'emp-7': [3]        // Muthyam -> Mercredi
-  };
-
-  const getDayOfWeekAbbr = (year, month, day) => {
-    const date = new Date(year, month - 1, day);
-    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-    return days[date.getDay()];
   };
 
   const generateDemoData = () => {
@@ -108,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const daysCount = getDaysInMonth(mKey);
     const [year, month] = mKey.split('-').map(Number);
 
-    // Initialiser les plannings avec les repos hebdomadaires réels transmis
+    // Initialiser les plannings avec les repos hebdomadaires récurrents
     if (!appState.schedules[mKey]) {
       appState.schedules[mKey] = {};
       appState.staff.forEach((emp) => {
@@ -118,41 +114,40 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let d = 1; d <= daysCount; d++) {
           const date = new Date(year, month - 1, d);
           const dayOfWeek = date.getDay();
-          // Est OFF si le jour de la semaine correspond à son jour de repos fixe
           const isOff = empOffWeekdays.includes(dayOfWeek);
           appState.schedules[mKey][emp.id][d] = !isOff;
         }
       });
     }
 
-    // Config Tips par défaut (ex: 2450 € distribuer)
+    // Config Tips par défaut (ex: 2800 € pour le mois d'Août 2026)
     if (!appState.tipsConfig[mKey]) {
       appState.tipsConfig[mKey] = {
-        totalAmount: 2450,
-        rule: 'RATIO_60_40'
+        totalAmount: 2800,
+        rule: 'VALUE_POINTS'
       };
     }
 
-    // Tâches de démonstration attribuées au personnel réel
+    // Tâches de démonstration axées sur la création de valeur et les initiatives
     appState.tasks = [
-      { id: 't-1', employeeId: 'emp-1', desc: 'Front (Vinod): Clôture caisse & rangement bar (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 36000000 },
-      { id: 't-2', employeeId: 'emp-4', desc: 'Kitchen (Aadhi): Nettoyage approfondi cuisine & désinfection (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 32000000 },
-      { id: 't-3', employeeId: 'emp-2', desc: 'Front (Siri): Gestion de banquet 30 personnes avec zéro erreur', points: 25, status: 'APPROVED', timestamp: Date.now() - 24000000 },
-      { id: 't-4', employeeId: 'emp-5', desc: 'Kitchen (Bhanu): Préparation mise en place du soir exceptionnelle', points: 20, status: 'APPROVED', timestamp: Date.now() - 12000000 },
-      { id: 't-5', employeeId: 'emp-3', desc: 'Front (Bruno): Réassort complet des frigos & inventaire boisson (+10 pts)', points: 10, status: 'APPROVED', timestamp: Date.now() - 8000000 },
-      { id: 't-6', employeeId: 'emp-6', desc: 'Kitchen (Karthik): Remplacement d\'un collègue sur repos (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
-      { id: 't-7', employeeId: 'emp-7', desc: 'Kitchen (Muthyam): Optimisation du poste de grillade pendant le rush', points: 20, status: 'PENDING', timestamp: Date.now() - 3600000 },
-      { id: 't-8', employeeId: 'emp-1', desc: 'Front (Vinod): Compliment client rédigé sur Google Avis (+20 pts)', points: 20, status: 'PENDING', timestamp: Date.now() - 1800000 }
+      { id: 't-1', employeeId: 'emp-2', desc: 'Vinod Pal (Front Lead): Anticipation rush & réorganisation fluide de la terrasse (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 36000000 },
+      { id: 't-2', employeeId: 'emp-4', desc: 'Aadhi Dammanapeta (Kitchen): Préparation accélérée et zéro gâchis d\'ingrédients (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 32000000 },
+      { id: 't-3', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Accueil d\'excellence & avis 5 étoiles client (+30 pts)', points: 30, status: 'APPROVED', timestamp: Date.now() - 24000000 },
+      { id: 't-4', employeeId: 'emp-6', desc: 'Bhanu Reddy Palem (Kitchen): Nettoyage profond & désinfection complète poste friteuse (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 12000000 },
+      { id: 't-5', employeeId: 'emp-1', desc: 'Bruno Hennion (Manager): Optimisation du stock vins & boissons haut de gamme (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 8000000 },
+      { id: 't-6', employeeId: 'emp-5', desc: 'Karthik Nallathambi (Kitchen): Entretien préventif du four à pizza & grill (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
+      { id: 't-7', employeeId: 'emp-7', desc: 'Muthyam Reddy T. (Kitchen): Initiative dressage assiettes signature (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 3600000 },
+      { id: 't-8', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Vente additionnelle desserts & cafés gourmands (+15 pts)', points: 15, status: 'PENDING', timestamp: Date.now() - 1800000 }
     ];
 
     saveState();
   };
 
   // ==========================================
-  // 3. MOTEUR DE CALCULS & MÉTRIQUES
+  // 3. MOTEUR DE CALCULS - AXÉ CRÉATION DE VALEUR
   // ==========================================
 
-  // Calcul du nombre de jours travaillés et des heures (11h/shift) pour un employé
+  // Présences (Informatives uniquement)
   const getEmployeeAttendance = (empId, monthKey = appState.currentMonth) => {
     const daysMap = appState.schedules[monthKey]?.[empId] || {};
     const workedDays = Object.values(daysMap).filter(isWorked => isWorked === true).length;
@@ -162,91 +157,75 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   };
 
-  // Calcul du total des points de tâches validées pour un employé
+  // Points de Création de Valeur accumulés (Tâches validées)
   const getEmployeePoints = (empId) => {
     return appState.tasks
       .filter(t => t.employeeId === empId && t.status === 'APPROVED')
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Calculateur général des Tips par Employé
+  // Calculateur Méritocratique de Tips (Basé 100% sur les Points de Valeur)
   const calculateTipDistribution = () => {
     const mKey = appState.currentMonth;
-    const config = appState.tipsConfig[mKey] || { totalAmount: 0, rule: 'RATIO_60_40' };
+    const config = appState.tipsConfig[mKey] || { totalAmount: 0, rule: 'VALUE_POINTS' };
     const totalAmount = parseFloat(config.totalAmount) || 0;
-    const rule = config.rule;
+    const rule = config.rule || 'VALUE_POINTS';
 
-    let totalFrontHours = 0;
-    let totalKitchenHours = 0;
+    let totalFrontPoints = 0;
+    let totalKitchenPoints = 0;
 
     const empStats = appState.staff.map(emp => {
       const att = getEmployeeAttendance(emp.id, mKey);
-      if (emp.role === 'FRONT') totalFrontHours += att.workedHours;
-      if (emp.role === 'KITCHEN') totalKitchenHours += att.workedHours;
+      const points = getEmployeePoints(emp.id);
+      
+      if (emp.role === 'FRONT') totalFrontPoints += points;
+      if (emp.role === 'KITCHEN') totalKitchenPoints += points;
+
       return {
         ...emp,
         workedDays: att.workedDays,
         workedHours: att.workedHours,
-        points: getEmployeePoints(emp.id),
+        points: points,
         tipAmount: 0,
         tipSharePercent: 0
       };
     });
 
-    const grandTotalHours = totalFrontHours + totalKitchenHours;
+    const grandTotalPoints = totalFrontPoints + totalKitchenPoints;
 
-    if (totalAmount <= 0 || grandTotalHours <= 0) {
-      return { empStats, totalFrontHours, totalKitchenHours, grandTotalHours, frontPool: 0, kitchenPool: 0 };
+    if (totalAmount <= 0 || grandTotalPoints <= 0) {
+      return { empStats, totalFrontPoints, totalKitchenPoints, grandTotalPoints, frontPool: 0, kitchenPool: 0 };
     }
 
     let frontPool = 0;
     let kitchenPool = 0;
 
-    if (rule === 'EQUAL_HOURLY') {
-      const hourlyRate = totalAmount / grandTotalHours;
-      empStats.forEach(stat => {
-        stat.tipAmount = stat.workedHours * hourlyRate;
-      });
-      frontPool = totalFrontHours * hourlyRate;
-      kitchenPool = totalKitchenHours * hourlyRate;
-
-    } else if (rule.startsWith('RATIO_')) {
+    if (rule.startsWith('VALUE_POINTS_RATIO_')) {
       let frontRatio = 0.60;
       let kitchenRatio = 0.40;
 
-      if (rule === 'RATIO_65_35') { frontRatio = 0.65; kitchenRatio = 0.35; }
-      if (rule === 'RATIO_70_30') { frontRatio = 0.70; kitchenRatio = 0.30; }
+      if (rule === 'VALUE_POINTS_RATIO_65_35') { frontRatio = 0.65; kitchenRatio = 0.35; }
+      if (rule === 'VALUE_POINTS_RATIO_70_30') { frontRatio = 0.70; kitchenRatio = 0.30; }
 
       frontPool = totalAmount * frontRatio;
       kitchenPool = totalAmount * kitchenRatio;
 
-      const frontHourlyRate = totalFrontHours > 0 ? frontPool / totalFrontHours : 0;
-      const kitchenHourlyRate = totalKitchenHours > 0 ? kitchenPool / totalKitchenHours : 0;
-
       empStats.forEach(stat => {
-        if (stat.role === 'FRONT') stat.tipAmount = stat.workedHours * frontHourlyRate;
-        if (stat.role === 'KITCHEN') stat.tipAmount = stat.workedHours * kitchenHourlyRate;
-      });
-
-    } else if (rule === 'PERFORMANCE_BONUS') {
-      // 90% aux heures, 10% cagnotte top 3
-      const basePool = totalAmount * 0.90;
-      const bonusPool = totalAmount * 0.10;
-      const baseHourlyRate = basePool / grandTotalHours;
-
-      // Classer temporairement par points
-      const sortedByPoints = [...empStats].sort((a, b) => b.points - a.points);
-      const top3 = sortedByPoints.slice(0, 3);
-      const bonusShares = [0.50, 0.30, 0.20]; // 50% au 1er, 30% au 2e, 20% au 3e
-
-      empStats.forEach(stat => {
-        let tip = stat.workedHours * baseHourlyRate;
-        const topIndex = top3.findIndex(t => t.id === stat.id);
-        if (topIndex !== -1 && bonusShares[topIndex]) {
-          tip += bonusPool * bonusShares[topIndex];
+        if (stat.role === 'FRONT') {
+          stat.tipAmount = totalFrontPoints > 0 ? (stat.points / totalFrontPoints) * frontPool : 0;
         }
-        stat.tipAmount = tip;
+        if (stat.role === 'KITCHEN') {
+          stat.tipAmount = totalKitchenPoints > 0 ? (stat.points / totalKitchenPoints) * kitchenPool : 0;
+        }
       });
+
+    } else {
+      // VALUE_POINTS (Prorata direct sur l'ensemble des points de valeur créés)
+      empStats.forEach(stat => {
+        stat.tipAmount = (stat.points / grandTotalPoints) * totalAmount;
+      });
+      frontPool = (totalFrontPoints / grandTotalPoints) * totalAmount;
+      kitchenPool = (totalKitchenPoints / grandTotalPoints) * totalAmount;
     }
 
     // Calcul du % de chaque employé
@@ -254,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stat.tipSharePercent = totalAmount > 0 ? ((stat.tipAmount / totalAmount) * 100).toFixed(1) : 0;
     });
 
-    return { empStats, totalFrontHours, totalKitchenHours, grandTotalHours, frontPool, kitchenPool };
+    return { empStats, totalFrontPoints, totalKitchenPoints, grandTotalPoints, frontPool, kitchenPool };
   };
 
   // ==========================================
@@ -290,22 +269,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Rendu de l'onglet Dashboard & Leaderboard
   const renderDashboard = () => {
-    const { empStats, grandTotalHours, totalFrontHours, totalKitchenHours } = calculateTipDistribution();
+    const { empStats, grandTotalPoints } = calculateTipDistribution();
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
     const totalTips = parseFloat(config.totalAmount) || 0;
 
     // Mise à jour des cartes de métriques
     document.getElementById('stat-total-tips').textContent = `${totalTips.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`;
-    const hourlyTipsRate = grandTotalHours > 0 ? (totalTips / grandTotalHours).toFixed(2) : '0.00';
-    document.getElementById('stat-tips-rate').textContent = `${hourlyTipsRate} € / heure travaillée`;
+    const ratePerPoint = grandTotalPoints > 0 ? (totalTips / grandTotalPoints).toFixed(2) : '0.00';
+    document.getElementById('stat-tips-rate').textContent = `${ratePerPoint} € / point de valeur`;
 
-    document.getElementById('stat-total-hours').textContent = `${grandTotalHours} h`;
-    document.getElementById('stat-total-shifts').textContent = `${Math.round(grandTotalHours / 11)} shifts de 11h`;
+    document.getElementById('stat-total-hours').textContent = `${grandTotalPoints} pts`;
 
     const approvedTasks = appState.tasks.filter(t => t.status === 'APPROVED');
-    const totalPoints = approvedTasks.reduce((sum, t) => sum + (t.points || 0), 0);
     document.getElementById('stat-completed-tasks').textContent = approvedTasks.length;
-    document.getElementById('stat-points-earned').textContent = `${totalPoints} pts accumulés`;
+    document.getElementById('stat-points-earned').textContent = `${approvedTasks.length} tâches accomplies`;
 
     const frontCount = appState.staff.filter(s => s.role === 'FRONT').length;
     const kitchenCount = appState.staff.filter(s => s.role === 'KITCHEN').length;
@@ -318,12 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
       filteredList = filteredList.filter(e => e.role === appState.activeFilter);
     }
 
-    // Tri par score total (Points + Bonus présence)
-    filteredList.sort((a, b) => {
-      const scoreA = a.points + (a.workedDays * 2);
-      const scoreB = b.points + (b.workedDays * 2);
-      return scoreB - scoreA;
-    });
+    // Tri 100% sur les points de création de valeur
+    filteredList.sort((a, b) => b.points - a.points);
 
     // Rendu du Podium (Top 3)
     const podiumContainer = document.getElementById('podium-container');
@@ -343,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ${emp.avatar}
             </div>
             <div class="podium-name">${emp.name}</div>
-            <div class="podium-pts">${emp.points} pts</div>
+            <div class="podium-pts">${emp.points} pts de valeur</div>
             <div class="podium-pillar">${rank}</div>
           </div>
         `;
@@ -371,7 +344,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
               ${emp.avatar}
             </div>
-            <strong>${emp.name}</strong>
+            <div>
+              <strong>${emp.name}</strong>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
+            </div>
           </div>
         </td>
         <td>
@@ -379,10 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ${emp.role === 'FRONT' ? 'Front (Salle)' : 'Kitchen (Cuisine)'}
           </span>
         </td>
+        <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} pts</strong></td>
         <td>${emp.workedDays} jours</td>
-        <td>${emp.workedHours} h</td>
-        <td><strong class="text-gold">${emp.points} pts</strong></td>
-        <td><strong>${emp.tipAmount.toFixed(2)} €</strong> (${emp.tipSharePercent}%)</td>
+        <td><strong>${emp.tipSharePercent}%</strong></td>
+        <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
       `;
       tbody.appendChild(tr);
     });
@@ -651,17 +627,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Rendu de l'onglet Tips Calculator
   const renderTips = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0, rule: 'RATIO_60_40' };
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0, rule: 'VALUE_POINTS' };
     document.getElementById('input-total-tips').value = config.totalAmount || '';
-    document.getElementById('tip-distribution-rule').value = config.rule || 'RATIO_60_40';
+    document.getElementById('tip-distribution-rule').value = config.rule || 'VALUE_POINTS';
 
-    const { empStats, frontPool, kitchenPool, totalFrontHours, totalKitchenHours } = calculateTipDistribution();
+    const { empStats, frontPool, kitchenPool, totalFrontPoints, totalKitchenPoints } = calculateTipDistribution();
 
     document.getElementById('summary-front-amount').textContent = `${frontPool.toFixed(2)} €`;
-    document.getElementById('summary-front-sub').textContent = `${totalFrontHours}h cumulées salle & bar`;
+    document.getElementById('summary-front-sub').textContent = `${totalFrontPoints} pts de valeur cumulés (Front)`;
 
     document.getElementById('summary-kitchen-amount').textContent = `${kitchenPool.toFixed(2)} €`;
-    document.getElementById('summary-kitchen-sub').textContent = `${totalKitchenHours}h cumulées cuisine`;
+    document.getElementById('summary-kitchen-sub').textContent = `${totalKitchenPoints} pts de valeur cumulés (Kitchen)`;
 
     const tbody = document.getElementById('tips-detail-tbody');
     tbody.innerHTML = '';
@@ -669,14 +645,17 @@ document.addEventListener('DOMContentLoaded', () => {
     empStats.forEach(emp => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${emp.name}</strong></td>
+        <td>
+          <strong>${emp.name}</strong>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
+        </td>
         <td>
           <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
             ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'}
           </span>
         </td>
-        <td>${emp.workedDays} jours</td>
-        <td>${emp.workedHours} h</td>
+        <td><strong class="text-gold">${emp.points} pts</strong></td>
+        <td>${emp.workedDays} j (${emp.workedHours}h)</td>
         <td><strong>${emp.tipSharePercent}%</strong></td>
         <td><strong class="text-green" style="font-size:1.1rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
       `;

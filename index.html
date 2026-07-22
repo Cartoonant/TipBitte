@@ -96,8 +96,8 @@
         <div class="hero-banner">
           <div class="hero-text">
             <div class="hero-tag"><i data-lucide="award"></i> Concours du Mois</div>
-            <h2>Employé du Mois <span id="hero-month-name">Juillet 2026</span></h2>
-            <p>Engagez-vous, réalisez vos tâches fixes & d'initiative et partagez équitablement les pourboires !</p>
+            <h2>Employé du Mois <span id="hero-month-name">Août 2026</span></h2>
+            <p>Le classement et la répartition des tips reposent à 100% sur la <strong>création de valeur et l'initiative</strong> pendant vos shifts !</p>
           </div>
           <button id="btn-reveal-winner" class="btn btn-gold glow">
             <i data-lucide="crown"></i> Célébrer le Vainqueur
@@ -111,25 +111,25 @@
             <div class="stat-info">
               <span class="stat-label">Tips du Mois</span>
               <strong id="stat-total-tips" class="stat-value">0,00 €</strong>
-              <span id="stat-tips-rate" class="stat-sub">0.00 € / heure travaillée</span>
+              <span id="stat-tips-rate" class="stat-sub">0.00 € / point de valeur</span>
             </div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon icon-blue"><i data-lucide="clock"></i></div>
+            <div class="stat-icon icon-purple"><i data-lucide="sparkles"></i></div>
             <div class="stat-info">
-              <span class="stat-label">Total Heures Effectives</span>
-              <strong id="stat-total-hours" class="stat-value">0 h</strong>
-              <span id="stat-total-shifts" class="stat-sub">0 shifts de 11h</span>
+              <span class="stat-label">Total Points de Valeur</span>
+              <strong id="stat-total-hours" class="stat-value">0 pts</strong>
+              <span id="stat-total-shifts" class="stat-sub">Cumul de l'équipe</span>
             </div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon icon-purple"><i data-lucide="star"></i></div>
+            <div class="stat-icon icon-blue"><i data-lucide="star"></i></div>
             <div class="stat-info">
               <span class="stat-label">Tâches Validées</span>
               <strong id="stat-completed-tasks" class="stat-value">0</strong>
-              <span id="stat-points-earned" class="stat-sub">0 points accumulés</span>
+              <span id="stat-points-earned" class="stat-sub">0 tâches accomplies</span>
             </div>
           </div>
 
@@ -147,8 +147,8 @@
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="trophy" class="text-gold"></i> Classement Général</h3>
-              <p class="text-muted">Calculé sur la combinaison des tâches accomplies et du taux de présence.</p>
+              <h3><i data-lucide="trophy" class="text-gold"></i> Classement Général de la Valeur Créée</h3>
+              <p class="text-muted">Calculé à 100% sur les tâches fixes accomplies et les initiatives prises en service.</p>
             </div>
             <div class="filter-pills">
               <button class="pill-btn active" data-filter="ALL">Tous</button>
@@ -170,10 +170,10 @@
                   <th>Rang</th>
                   <th>Employé</th>
                   <th>Équipe</th>
-                  <th>Jours Travaillés</th>
-                  <th>Heures (11h/j)</th>
-                  <th>Score Points</th>
-                  <th>Parts Tips Est.</th>
+                  <th>Points de Valeur</th>
+                  <th>Jours Présents</th>
+                  <th>Part du Magot (%)</th>
+                  <th>Parts Tips Est. (€)</th>
                 </tr>
               </thead>
               <tbody id="leaderboard-tbody">
@@ -344,21 +344,20 @@
             </div>
 
             <div class="form-group">
-              <label>Règle de Répartition Front / Kitchen</label>
+              <label>Règle de Répartition des Tips</label>
               <select id="tip-distribution-rule" class="form-control">
-                <option value="EQUAL_HOURLY">100% au Prorata des Heures Travaillées (Taux horaire unique)</option>
-                <option value="RATIO_60_40" selected>Ratio Fixe : 60% Front / 40% Kitchen (Proratisé par heures de chaque pôle)</option>
-                <option value="RATIO_65_35">Ratio Fixe : 65% Front / 35% Kitchen</option>
-                <option value="RATIO_70_30">Ratio Fixe : 70% Front / 30% Kitchen</option>
-                <option value="PERFORMANCE_BONUS">90% Prorata Heures + 10% Cagnotte Bonus "Employé du Mois"</option>
+                <option value="VALUE_POINTS" selected>100% au Prorata des Points de Valeur & Initiatives (Modèle Méritocratique)</option>
+                <option value="VALUE_POINTS_RATIO_60_40">Ratio Pôle : 60% Front / 40% Kitchen (Proratisé par points de valeur du pôle)</option>
+                <option value="VALUE_POINTS_RATIO_65_35">Ratio Pôle : 65% Front / 35% Kitchen (Proratisé par points de valeur du pôle)</option>
+                <option value="VALUE_POINTS_RATIO_70_30">Ratio Pôle : 70% Front / 30% Kitchen (Proratisé par points de valeur du pôle)</option>
               </select>
             </div>
 
             <div class="info-box">
-              <i data-lucide="info"></i>
+              <i data-lucide="sparkles" class="text-gold"></i>
               <div>
-                <strong>Shift Fixe : 11 heures par jour travaillé.</strong>
-                <p>Les employés en congé effectuent moins d'heures et reçoivent automatiquement leur prorata exact selon leur nombre réel de jours de travail.</p>
+                <strong>Modèle axé sur la Création de Valeur :</strong>
+                <p>Le temps de présence brute ne détermine plus le partage. La cagnotte est répartie au prorata exact des points gagnés grâce aux tâches d'excellence et aux initiatives pendant les shifts.</p>
               </div>
             </div>
 
