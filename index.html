@@ -243,6 +243,15 @@
 
       <!-- TAB 3: TASKS & INITIATIVES -->
       <section id="tab-tasks" class="tab-content">
+        <!-- Bannière d'Information Gamification -->
+        <div class="info-box margin-bottom">
+          <i data-lucide="sparkles" class="text-gold"></i>
+          <div>
+            <strong>Système de Points & Création de Valeur :</strong>
+            <p>Déclarez vos tâches accomplies et vos initiatives pour accumuler des points. Le manager valide les demandes pour attribuer les points et calculer le classement du mois !</p>
+          </div>
+        </div>
+
         <div class="grid-2col">
           <!-- Col 1: Tâches Récurrentes Fixes -->
           <div class="section-card">
@@ -257,17 +266,27 @@
                 <select id="task-fixed-employee" class="form-control"></select>
               </div>
               <div class="form-group">
-                <label>Tâche effectuée</label>
+                <label>Catégorie & Tâche effectuée</label>
                 <select id="task-fixed-preset" class="form-control">
-                  <option value="Nettoyage et désinfection cuisine (+15 pts)">Cuisine: Nettoyage approfondi & désinfection (+15 pts)</option>
-                  <option value="Préparation mise en place du midi (+10 pts)">Cuisine: Préparation mise en place service (+10 pts)</option>
-                  <option value="Clôture et nettoyage bar / salle (+15 pts)">Front: Clôture caisse & rangement bar (+15 pts)</option>
-                  <option value="Accueil & gestion des stocks liquides (+10 pts)">Front: Réassort frigos & inventaire boisson (+10 pts)</option>
-                  <option value="Remplacement d'urgence au shift (+25 pts)">Général: Remplacement d'un collègue sur repos (+25 pts)</option>
+                  <optgroup label="Cuisine (Kitchen)">
+                    <option value="Nettoyage approfondi & désinfection cuisine (+20 pts)">Kitchen: Nettoyage approfondi & désinfection poste (+20 pts)</option>
+                    <option value="Préparation mise en place service (+15 pts)">Kitchen: Préparation accélérée mise en place (+15 pts)</option>
+                    <option value="Entretien préventif des équipements (+25 pts)">Kitchen: Entretien préventif four/friteuse/grill (+25 pts)</option>
+                    <option value="Gestion des stocks & zéro gâchis (+20 pts)">Kitchen: Contrôle DLC & zéro gâchis d'ingrédients (+20 pts)</option>
+                  </optgroup>
+                  <optgroup label="Salle & Bar (Front)">
+                    <option value="Clôture caisse & rangement bar (+20 pts)">Front: Clôture caisse & rangement bar complet (+20 pts)</option>
+                    <option value="Accueil d'excellence & gestion de banquet (+25 pts)">Front: Service d'excellence & banquet (+25 pts)</option>
+                    <option value="Réassort frigos & inventaire boissons (+15 pts)">Front: Réassort frigos & inventaire boissons (+15 pts)</option>
+                    <option value="Vente additionnelle & conseil client (+15 pts)">Front: Vente additionnelle desserts/cafés (+15 pts)</option>
+                  </optgroup>
+                  <optgroup label="Général">
+                    <option value="Remplacement d'urgence d'un collègue (+30 pts)">Général: Remplacement d'urgence d'un collègue sur repos (+30 pts)</option>
+                  </optgroup>
                 </select>
               </div>
               <button id="btn-submit-fixed-task" class="btn btn-primary btn-block">
-                <i data-lucide="send"></i> Soumettre la tâche
+                <i data-lucide="send"></i> Déclarer la tâche accomplie
               </button>
             </div>
           </div>
@@ -275,9 +294,9 @@
           <!-- Col 2: Déclaration d'Initiative / Bonus -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="sparkles" class="text-gold"></i> Initiative / Action Bonus</h3>
+              <h3><i data-lucide="sparkles" class="text-gold"></i> Soumettre une Initiative / Action Bonus</h3>
             </div>
-            <p class="text-muted small-margin">Vous avez fait une super initiative ? Déclarez-la pour obtenir des points bonus !</p>
+            <p class="text-muted small-margin">Vous avez pris une super initiative pendant le shift ? Rédigez une courte description !</p>
             
             <form id="form-bonus-task" class="task-form">
               <div class="form-group">
@@ -285,19 +304,19 @@
                 <select id="task-bonus-employee" class="form-control" required></select>
               </div>
               <div class="form-group">
-                <label>Description de l'action / initiative</label>
-                <input type="text" id="task-bonus-desc" class="form-control" placeholder="ex: Compliment client exceptionnel, réparation rapide de la glace..." required />
+                <label>Description courte de l'initiative</label>
+                <input type="text" id="task-bonus-desc" class="form-control" placeholder="ex: Compliment client Google Avis, réorganisation terrasse rush..." required />
               </div>
               <div class="form-group">
                 <label>Points suggérés</label>
                 <select id="task-bonus-pts" class="form-control">
-                  <option value="10">+10 pts (Petite attention / Aide)</option>
-                  <option value="20" selected>+20 pts (Initiative remarquable)</option>
-                  <option value="35">+35 pts (Action exceptionnelle)</option>
+                  <option value="15">+15 pts (Petite attention / Entraide)</option>
+                  <option value="25" selected>+25 pts (Initiative remarquable)</option>
+                  <option value="35">+35 pts (Action exceptionnelle & impact client)</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-gold btn-block">
-                <i data-lucide="plus-circle"></i> Déclarer l'initiative
+                <i data-lucide="plus-circle"></i> Soumettre l'initiative
               </button>
             </form>
           </div>
@@ -306,7 +325,10 @@
         <!-- Section Validation Manager -->
         <div class="section-card margin-top">
           <div class="section-header">
-            <h3><i data-lucide="shield-check" class="text-purple"></i> Espace Manager : Tâches à Valider</h3>
+            <div>
+              <h3><i data-lucide="shield-check" class="text-purple"></i> Espace Manager : Validation des Tâches en Attente</h3>
+              <p class="text-muted">Validez ou refusez les tâches déclarées pour créditer les points de valeur en temps réel.</p>
+            </div>
             <span class="badge badge-purple" id="pending-count-badge">0 en attente</span>
           </div>
           
@@ -315,10 +337,13 @@
           </div>
         </div>
 
-        <!-- Historique Récent -->
+        <!-- Historique des Tâches Validées -->
         <div class="section-card margin-top">
           <div class="section-header">
-            <h3><i data-lucide="history"></i> Historique des Tâches Validées Ce Mois</h3>
+            <div>
+              <h3><i data-lucide="history"></i> Historique des Tâches & Initiatives Validées Ce Mois</h3>
+              <p class="text-muted">Consultez les points de valeur crédités récemment à chaque membre du personnel.</p>
+            </div>
           </div>
           <div id="validated-tasks-list" class="history-list">
             <!-- Dynamique -->
