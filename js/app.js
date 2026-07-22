@@ -22,15 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const DEFAULT_MASTER_CATALOGUE = [
-    { id: 'cat-1', title: 'Front: Register closure & bar organization', scope: 'FRONT', points: 20 },
-    { id: 'cat-2', title: 'Front: Fridge restocking & beverage audit', scope: 'FRONT', points: 15 },
-    { id: 'cat-3', title: 'Front: Upselling gourmet wines & dessert combos', scope: 'FRONT', points: 15 },
-    { id: 'cat-4', title: 'Front: Guest reception & table floor lead', scope: 'FRONT', points: 25 },
-    { id: 'cat-5', title: 'Kitchen: Deep cleaning & station sanitization', scope: 'KITCHEN', points: 20 },
-    { id: 'cat-6', title: 'Kitchen: Equipment maintenance & grill care', scope: 'KITCHEN', points: 25 },
-    { id: 'cat-7', title: 'Kitchen: Accelerated prep list completion', scope: 'KITCHEN', points: 15 },
-    { id: 'cat-8', title: 'Kitchen: Stock control & zero food waste', scope: 'KITCHEN', points: 20 },
-    { id: 'cat-9', title: 'General: Emergency shift cover for teammate', scope: 'EVERYONE', points: 30 }
+    { id: 'cat-1', title: 'Front: Register closure & bar organization', scope: 'FRONT', points: 15, recurrence: 'DAILY' },
+    { id: 'cat-2', title: 'Front: Fridge restocking & beverage audit', scope: 'FRONT', points: 10, recurrence: 'DAILY' },
+    { id: 'cat-3', title: 'Front: Upselling gourmet wines & dessert combos', scope: 'FRONT', points: 10, recurrence: 'DAILY' },
+    { id: 'cat-4', title: 'Front: Deep clean beverage dispenser & bar floor', scope: 'FRONT', points: 25, recurrence: 'WEEKLY' },
+    { id: 'cat-5', title: 'Kitchen: Station sanitization & line setup', scope: 'KITCHEN', points: 15, recurrence: 'DAILY' },
+    { id: 'cat-6', title: 'Kitchen: Deep oven & fryer maintenance', scope: 'KITCHEN', points: 25, recurrence: 'WEEKLY' },
+    { id: 'cat-7', title: 'Kitchen: Prep list completion & label audit', scope: 'KITCHEN', points: 10, recurrence: 'DAILY' },
+    { id: 'cat-8', title: 'Kitchen: Zero food waste & stock rotation', scope: 'KITCHEN', points: 15, recurrence: 'DAILY' },
+    { id: 'cat-9', title: 'General: Hero shift lead & emergency cover', scope: 'EVERYONE', points: 50, recurrence: 'ONEOFF' },
+    { id: 'cat-10', title: 'General: Quick floor table wipe / assist', scope: 'EVERYONE', points: 1, recurrence: 'DAILY' }
   ];
 
   const getCurrentMonthKey = () => {
@@ -574,10 +575,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.scope === 'KITCHEN') scopeBadge = `<span class="badge badge-kitchen">Kitchen Only</span>`;
             if (item.scope === 'EVERYONE') scopeBadge = `<span class="badge badge-purple">Everyone</span>`;
 
+            let recBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">📅 Daily</span>`;
+            if (item.recurrence === 'WEEKLY') recBadge = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">🗓️ Weekly</span>`;
+            if (item.recurrence === 'ONEOFF') recBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⚡ One-Off</span>`;
+
             row.innerHTML = `
               <div>
                 <div class="task-user">${item.title}</div>
-                <div style="margin-top:0.25rem;">${scopeBadge}</div>
+                <div style="margin-top:0.25rem; display:flex; gap:0.35rem; align-items:center;">${scopeBadge} ${recBadge}</div>
               </div>
               <div style="display:flex; align-items:center; gap:1rem;">
                 <span class="task-pts">+${item.points} Coins</span>
@@ -670,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rankEl = document.getElementById('emp-profile-rank');
       if (rankEl) rankEl.textContent = `#${rank > 0 ? rank : 1}`;
 
-      // Render Employee Personal Assigned Tasks (My Shift Schedule)
+      // Render Employee Personal Assigned Tasks (My Shift Schedule) with Pending Workflow
       const empAssignedGrid = document.getElementById('employee-assigned-tasks-list');
       if (empAssignedGrid) {
         empAssignedGrid.innerHTML = '';
@@ -682,16 +687,34 @@ document.addEventListener('DOMContentLoaded', () => {
           myTasks.forEach(task => {
             const row = document.createElement('div');
             row.className = 'task-item';
+
+            // Check if task completion submission exists
+            const existingSubmission = (appState.tasks || []).find(t => t.employeeId === activeEmp.id && t.desc === `Task Completed: ${task.title}`);
+
+            let statusAction = `
+              <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
+                <i data-lucide="check-circle"></i> Mark Done
+              </button>
+            `;
+
+            if (existingSubmission) {
+              if (existingSubmission.status === 'PENDING') {
+                statusAction = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Manager Approval</span>`;
+              } else if (existingSubmission.status === 'APPROVED') {
+                statusAction = `<span class="badge badge-purple">✔ Approved (+${task.points} Coins)</span>`;
+              } else if (existingSubmission.status === 'REJECTED') {
+                statusAction = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
+              }
+            }
+
             row.innerHTML = `
               <div>
                 <div class="task-user">${task.title}</div>
-                <div class="task-desc">Reward: +${task.points} Coins on approval</div>
+                <div class="task-desc">Reward: +${task.points} Coins upon manager validation</div>
               </div>
               <div style="display:flex; align-items:center; gap:1rem;">
                 <span class="task-pts">+${task.points} Coins</span>
-                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
-                  <i data-lucide="check-circle"></i> Mark Done
-                </button>
+                ${statusAction}
               </div>
             `;
             empAssignedGrid.appendChild(row);
@@ -713,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
               appState.tasks.push(newSubmission);
               saveState();
-              showToast("Task completed and submitted for manager validation!");
+              showToast("Task marked done! Submitted for manager approval.");
             });
           });
         }
@@ -1116,6 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = document.getElementById('cat-task-title').value.trim();
       const scope = document.getElementById('cat-task-scope').value;
       const points = parseInt(document.getElementById('cat-task-coins').value);
+      const recurrence = document.getElementById('cat-task-recurrence').value;
 
       if (!title) return;
 
@@ -1123,7 +1147,8 @@ document.addEventListener('DOMContentLoaded', () => {
         id: 'cat-' + Date.now(),
         title,
         scope,
-        points
+        points,
+        recurrence
       };
 
       if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
@@ -1131,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.getElementById('cat-task-title').value = '';
       saveState();
-      showToast("New task added to Master Catalogue!");
+      showToast("New task added to Master Catalogue with recurrence rule!");
     });
   }
 

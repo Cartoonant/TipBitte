@@ -259,15 +259,26 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>Coin Value</label>
+                <label>Coin Value Scale</label>
                 <select id="cat-task-coins" class="form-control">
-                  <option value="15">+15 Coins (Standard Task)</option>
-                  <option value="20" selected>+20 Coins (Important Task)</option>
-                  <option value="25">+25 Coins (Major Shift Task)</option>
-                  <option value="30">+30 Coins (Critical Task)</option>
+                  <option value="1">1 Coin (Micro Action)</option>
+                  <option value="5">5 Coins (Minor Task)</option>
+                  <option value="10" selected>10 Coins (Standard Task)</option>
+                  <option value="15">15 Coins (Important Task)</option>
+                  <option value="20">20 Coins (Major Shift Task)</option>
+                  <option value="25">25 Coins (High Priority Task)</option>
+                  <option value="50">50 Coins (Master / Hero Task)</option>
                 </select>
               </div>
-              <div style="display:flex; align-items:flex-end;">
+              <div class="form-group">
+                <label>Recurrence Rule</label>
+                <select id="cat-task-recurrence" class="form-control">
+                  <option value="DAILY" selected>Daily (Every Shift)</option>
+                  <option value="WEEKLY">Weekly (Once a Week)</option>
+                  <option value="ONEOFF">One-Off / As Needed</option>
+                </select>
+              </div>
+              <div style="grid-column: 1 / -1;">
                 <button type="submit" class="btn btn-primary btn-block">
                   <i data-lucide="plus-circle"></i> Add Task to Master Catalogue
                 </button>
@@ -383,9 +394,13 @@
               <div class="form-group">
                 <label>Suggested Coin Value</label>
                 <select id="task-bonus-pts" class="form-control">
-                  <option value="15">+15 Coins (Courteous action / Team help)</option>
-                  <option value="25" selected>+25 Coins (Remarkable Initiative)</option>
-                  <option value="30">+30 Coins (Exceptional Contribution)</option>
+                  <option value="1">1 Coin (Micro Action)</option>
+                  <option value="5">5 Coins (Minor Action)</option>
+                  <option value="10" selected>10 Coins (Standard Initiative)</option>
+                  <option value="15">15 Coins (Important Initiative)</option>
+                  <option value="20">20 Coins (Major Shift Initiative)</option>
+                  <option value="25">25 Coins (High Impact Initiative)</option>
+                  <option value="50">50 Coins (Master / Hero Initiative)</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-gold btn-block">
