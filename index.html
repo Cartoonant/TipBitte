@@ -248,40 +248,51 @@
           <div id="manager-task-scheduler" class="section-card manager-only-block margin-bottom">
             <div class="section-header">
               <div>
-                <h3><i data-lucide="plus-circle" class="text-blue"></i> Manager Task Scheduler</h3>
-                <p class="text-muted">Create and assign recurring or daily shift tasks for Front and Kitchen team members.</p>
+                <h3><i data-lucide="plus-circle" class="text-blue"></i> Manager Task Scheduler & Catalogue</h3>
+                <p class="text-muted">Nominatively assign recurring shift tasks to Front and Kitchen team members to ensure individual accountability and avoid oversights.</p>
               </div>
             </div>
             
             <form id="form-schedule-task" class="grid-2col">
               <div class="form-group">
-                <label>Assign to Team Member</label>
+                <label>Nominative Responsibility (Assignee)</label>
                 <select id="sched-task-employee" class="form-control" required></select>
               </div>
               <div class="form-group">
                 <label>Task Title / Description</label>
-                <input type="text" id="sched-task-title" class="form-control" placeholder="e.g. Deep fryers cleaning, Terrace setup..." required />
+                <input type="text" id="sched-task-title" class="form-control" placeholder="e.g. Register closure, Deep fryers cleaning, Terrace setup..." required />
               </div>
               <div class="form-group">
-                <label>Category</label>
+                <label>Category (Team Scope)</label>
                 <select id="sched-task-category" class="form-control">
-                  <option value="KITCHEN">Kitchen (Cuisine)</option>
-                  <option value="FRONT">Front (Floor / Bar)</option>
-                  <option value="GENERAL">General</option>
+                  <option value="FRONT">Front Only (Floor / Bar)</option>
+                  <option value="KITCHEN">Kitchen Only (Cuisine)</option>
+                  <option value="GENERAL">General (Everyone)</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Coin Reward</label>
+                <label>Coin Value Scale</label>
                 <select id="sched-task-coins" class="form-control">
-                  <option value="15">+15 Coins (Standard Task)</option>
-                  <option value="20" selected>+20 Coins (Important Task)</option>
-                  <option value="25">+25 Coins (Major Shift Task)</option>
-                  <option value="30">+30 Coins (Critical Task)</option>
+                  <option value="1">1 Coin (Micro Action)</option>
+                  <option value="5">5 Coins (Minor Task)</option>
+                  <option value="10" selected>10 Coins (Standard Task)</option>
+                  <option value="15">15 Coins (Important Task)</option>
+                  <option value="20">20 Coins (Major Shift Task)</option>
+                  <option value="25">25 Coins (High Priority Task)</option>
+                  <option value="50">50 Coins (Master / Hero Task)</option>
                 </select>
               </div>
-              <div style="grid-column: 1 / -1;">
+              <div class="form-group">
+                <label>Recurrence Rule</label>
+                <select id="sched-task-recurrence" class="form-control">
+                  <option value="DAILY" selected>Daily (Every Shift)</option>
+                  <option value="WEEKLY">Weekly (Once a Week)</option>
+                  <option value="ONEOFF">One-Off / As Needed</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:flex-end;">
                 <button type="submit" class="btn btn-primary btn-block">
-                  <i data-lucide="plus"></i> Add & Assign Task to Schedule
+                  <i data-lucide="plus"></i> Add Nominative Task
                 </button>
               </div>
             </form>
@@ -346,9 +357,13 @@
               <div class="form-group">
                 <label>Suggested Coin Value</label>
                 <select id="task-bonus-pts" class="form-control">
-                  <option value="15">+15 Coins (Courteous action / Team help)</option>
-                  <option value="25" selected>+25 Coins (Remarkable Initiative)</option>
-                  <option value="35">+35 Coins (Exceptional Guest Impact)</option>
+                  <option value="1">1 Coin (Micro Action)</option>
+                  <option value="5">5 Coins (Minor Action)</option>
+                  <option value="10" selected>10 Coins (Standard Initiative)</option>
+                  <option value="15">15 Coins (Important Initiative)</option>
+                  <option value="20">20 Coins (Major Shift Initiative)</option>
+                  <option value="25">25 Coins (High Impact Initiative)</option>
+                  <option value="50">50 Coins (Master / Hero Initiative)</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-gold btn-block">

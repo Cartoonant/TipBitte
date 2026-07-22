@@ -559,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = document.getElementById('sched-task-title').value.trim();
       const category = document.getElementById('sched-task-category').value;
       const points = parseInt(document.getElementById('sched-task-coins').value);
+      const recurrence = document.getElementById('sched-task-recurrence') ? document.getElementById('sched-task-recurrence').value : 'DAILY';
 
       if (!title) return;
 
@@ -567,7 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
         employeeId: empId,
         title: title,
         category: category,
-        points: points
+        points: points,
+        recurrence: recurrence
       };
 
       if (!appState.scheduledDailyTasks) appState.scheduledDailyTasks = [];
@@ -575,11 +577,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       saveState();
       form.reset();
-      showToast("Task assigned to employee daily schedule!");
+      showToast(`Task nominatively assigned to team member schedule!`);
     });
   };
 
-  // Tasks & Initiatives Renderer (Sub-Tabs & Employee Privacy)
+  // Tasks & Initiatives Renderer (Sub-Tabs & Employee Privacy & Nominative Accountability)
   const renderTasks = () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
@@ -598,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
       bonusEmpSelect.disabled = false;
     }
 
-    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER
+    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER (NOMINATIVE ASSIGNMENT)
     const dailyGrid = document.getElementById('daily-tasks-grid');
     if (dailyGrid) {
       dailyGrid.innerHTML = '';
@@ -609,25 +611,46 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (visibleScheduledTasks.length === 0) {
-        dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily tasks scheduled ${!isManager ? 'for you' : ''} yet. ${isManager ? 'Use the form above to assign tasks!' : ''}</p>`;
+        dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily shift tasks assigned ${!isManager ? 'specifically to you' : ''} yet. ${isManager ? 'Use the form above to assign nominative tasks!' : ''}</p>`;
       } else {
         visibleScheduledTasks.forEach(task => {
-          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', title: '' };
           const item = document.createElement('div');
           item.className = 'task-item';
+
+          // Check if task completion submission exists for this employee
+          const existingSubmission = (appState.tasks || []).find(t => t.employeeId === task.employeeId && t.desc === `Daily Task Completed: ${task.title}`);
+
+          let statusAction = `
+            <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
+              <i data-lucide="check-circle"></i> Mark Done
+            </button>
+          `;
+
+          if (existingSubmission) {
+            if (existingSubmission.status === 'PENDING') {
+              statusAction = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Manager Approval</span>`;
+            } else if (existingSubmission.status === 'APPROVED') {
+              statusAction = `<span class="badge badge-purple">✔ Approved (+${task.points} Coins)</span>`;
+            } else if (existingSubmission.status === 'REJECTED') {
+              statusAction = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
+            }
+          }
           
           item.innerHTML = `
             <div>
-              <div class="task-user">${task.title}</div>
-              <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <strong class="task-user" style="font-size:1.05rem;">${task.title}</strong>
+                ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Responsibility</span>` : ''}
+              </div>
+              <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                <div class="avatar" style="background-color: ${emp.color}; width:22px; height:22px; font-size:0.65rem;">${emp.avatar}</div>
+                <span>Nominatively assigned to: <strong>${emp.name}</strong> (${emp.title || emp.role})</span>
+              </div>
             </div>
             <div style="display:flex; align-items:center; gap:1rem;">
               <span class="task-pts">+${task.points} Coins</span>
-              ${!isManager ? `
-                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
-                  <i data-lucide="check-circle"></i> Complete Task
-                </button>
-              ` : `
+              ${!isManager ? statusAction : `
                 <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
                   <i data-lucide="trash-2"></i> Remove
                 </button>
