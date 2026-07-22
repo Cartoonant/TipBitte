@@ -37,9 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
-    schedules: {}, // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
-    tasks: [],     // [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', date } ]
-    tipsConfig: {} // { "2026-08": { totalAmount: 2600, rule: 'VALUE_POINTS' } }
+    schedules: {},           // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
+    scheduledDailyTasks: [], // [ { id, employeeId, title, category, points, frequency } ]
+    tasks: [],               // Submissions: [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', timestamp } ]
+    tipsConfig: {},          // { "2026-08": { totalAmount: 2600 } }
+    manualTipOverrides: {}   // { "emp-2": { percent: 25, amount: 650 } }
   };
 
   // Recurring weekly rest days (JS Date.getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
@@ -121,10 +123,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default tip configuration (e.g. 2600 € pool)
     if (!appState.tipsConfig[mKey]) {
       appState.tipsConfig[mKey] = {
-        totalAmount: 2600,
-        rule: 'VALUE_POINTS'
+        totalAmount: 2600
       };
     }
+
+    // Default Scheduled Daily Tasks
+    if (!appState.scheduledDailyTasks || appState.scheduledDailyTasks.length === 0) {
+      appState.scheduledDailyTasks = [
+        { id: 'st-1', employeeId: 'emp-2', title: 'Front: Register closure & bar organization', category: 'FRONT', points: 20 },
+        { id: 'st-2', employeeId: 'emp-3', title: 'Front: Fridge restocking & beverage audit', category: 'FRONT', points: 15 },
+        { id: 'st-3', employeeId: 'emp-4', title: 'Kitchen: Deep cleaning & station sanitization', category: 'KITCHEN', points: 20 },
+        { id: 'st-4', employeeId: 'emp-5', title: 'Kitchen: Equipment maintenance & grill care', category: 'KITCHEN', points: 25 },
+        { id: 'st-5', employeeId: 'emp-6', title: 'Kitchen: Accelerated prep list completion', category: 'KITCHEN', points: 15 },
+        { id: 'st-6', employeeId: 'emp-7', title: 'Kitchen: Stock control & zero food waste', category: 'KITCHEN', points: 20 }
+      ];
+    }
+
+    if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
 
     // Tasks list empty by default until defined together
     appState.tasks = [];
@@ -151,78 +166,57 @@ document.addEventListener('DOMContentLoaded', () => {
     return appState.tasks
       .filter(t => t.employeeId === empId && t.status === 'APPROVED')
       .reduce((sum, t) => sum + (t.points || 0), 0);
-  };
-
-  // Tip distribution calculation based on Coins
+  };  // Tip distribution calculation based on Coins (Hybrid Model)
   const calculateTipDistribution = () => {
-    const mKey = appState.currentMonth;
-    const config = appState.tipsConfig[mKey] || { totalAmount: 0, rule: 'VALUE_POINTS' };
-    const totalAmount = parseFloat(config.totalAmount) || 0;
-    const rule = config.rule || 'VALUE_POINTS';
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
+    const totalTips = parseFloat(config.totalAmount) || 0;
 
-    let totalFrontPoints = 0;
-    let totalKitchenPoints = 0;
-
-    const empStats = appState.staff.map(emp => {
-      const att = getEmployeeAttendance(emp.id, mKey);
+    let empStats = appState.staff.map(emp => {
       const points = getEmployeePoints(emp.id);
-      
-      if (emp.role === 'FRONT') totalFrontPoints += points;
-      if (emp.role === 'KITCHEN') totalKitchenPoints += points;
-
+      const att = getEmployeeAttendance(emp.id, appState.currentMonth);
       return {
-        ...emp,
+        id: emp.id,
+        name: emp.name,
+        role: emp.role,
+        title: emp.title,
+        color: emp.color,
+        avatar: emp.avatar,
         workedDays: att.workedDays,
         workedHours: att.workedHours,
         points: points,
-        tipAmount: 0,
-        tipSharePercent: 0
+        baselinePercent: 0,
+        manualPercent: null,
+        tipSharePercent: 0,
+        tipAmount: 0
       };
     });
 
-    const grandTotalPoints = totalFrontPoints + totalKitchenPoints;
+    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
 
-    if (totalAmount <= 0 || grandTotalPoints <= 0) {
-      return { empStats, totalFrontPoints, totalKitchenPoints, grandTotalPoints, frontPool: 0, kitchenPool: 0 };
-    }
+    // Baseline Coin-Proportions calculation
+    empStats.forEach(emp => {
+      if (grandTotalPoints > 0) {
+        emp.baselinePercent = parseFloat(((emp.points / grandTotalPoints) * 100).toFixed(2));
+      } else {
+        emp.baselinePercent = appState.staff.length > 0 ? parseFloat((100 / appState.staff.length).toFixed(2)) : 0;
+      }
 
-    let frontPool = 0;
-    let kitchenPool = 0;
+      // Check for manual overrides from Manager
+      const override = appState.manualTipOverrides ? appState.manualTipOverrides[emp.id] : null;
+      if (override && override.percent !== undefined && override.percent !== null) {
+        emp.manualPercent = parseFloat(override.percent);
+        emp.tipSharePercent = emp.manualPercent;
+      } else {
+        emp.tipSharePercent = emp.baselinePercent;
+      }
 
-    if (rule.startsWith('VALUE_POINTS_RATIO_')) {
-      let frontRatio = 0.60;
-      let kitchenRatio = 0.40;
-
-      if (rule === 'VALUE_POINTS_RATIO_65_35') { frontRatio = 0.65; kitchenRatio = 0.35; }
-      if (rule === 'VALUE_POINTS_RATIO_70_30') { frontRatio = 0.70; kitchenRatio = 0.30; }
-
-      frontPool = totalAmount * frontRatio;
-      kitchenPool = totalAmount * kitchenRatio;
-
-      empStats.forEach(stat => {
-        if (stat.role === 'FRONT') {
-          stat.tipAmount = totalFrontPoints > 0 ? (stat.points / totalFrontPoints) * frontPool : 0;
-        }
-        if (stat.role === 'KITCHEN') {
-          stat.tipAmount = totalKitchenPoints > 0 ? (stat.points / totalKitchenPoints) * kitchenPool : 0;
-        }
-      });
-
-    } else {
-      // Direct pro-rata of Coins earned
-      empStats.forEach(stat => {
-        stat.tipAmount = (stat.points / grandTotalPoints) * totalAmount;
-      });
-      frontPool = (totalFrontPoints / grandTotalPoints) * totalAmount;
-      kitchenPool = (totalKitchenPoints / grandTotalPoints) * totalAmount;
-    }
-
-    // Percentage share per employee
-    empStats.forEach(stat => {
-      stat.tipSharePercent = totalAmount > 0 ? ((stat.tipAmount / totalAmount) * 100).toFixed(1) : 0;
+      emp.tipAmount = (emp.tipSharePercent / 100) * totalTips;
     });
 
-    return { empStats, totalFrontPoints, totalKitchenPoints, grandTotalPoints, frontPool, kitchenPool };
+    const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
+    const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
+
+    return { empStats, grandTotalPoints, totalTips, frontPool, kitchenPool };
   };
 
   // ==========================================
@@ -470,36 +464,165 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Tasks & Initiatives Renderer (Role-Based Access)
+  // Sub-Tab Switching Handler
+  let activeSubtab = 'daily-tasks';
+
+  const initSubtabs = () => {
+    document.querySelectorAll('.subtab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.subtab-content').forEach(c => c.classList.remove('active'));
+
+        const target = e.currentTarget.dataset.subtab;
+        activeSubtab = target;
+
+        e.currentTarget.classList.add('active');
+        const content = document.getElementById(`subtab-${target}`);
+        if (content) content.classList.add('active');
+
+        renderTasks();
+      });
+    });
+  };
+
+  // Manager Task Scheduler Submit Listener
+  const initSchedulerForm = () => {
+    const form = document.getElementById('form-schedule-task');
+    if (!form) return;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const empId = document.getElementById('sched-task-employee').value;
+      const title = document.getElementById('sched-task-title').value.trim();
+      const category = document.getElementById('sched-task-category').value;
+      const points = parseInt(document.getElementById('sched-task-coins').value);
+
+      if (!title) return;
+
+      const newTask = {
+        id: 'st-' + Date.now(),
+        employeeId: empId,
+        title: title,
+        category: category,
+        points: points
+      };
+
+      if (!appState.scheduledDailyTasks) appState.scheduledDailyTasks = [];
+      appState.scheduledDailyTasks.push(newTask);
+
+      saveState();
+      form.reset();
+      showToast("Task assigned to employee daily schedule!");
+    });
+  };
+
+  // Tasks & Initiatives Renderer (Sub-Tabs & Employee Privacy)
   const renderTasks = () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    const selectFixed = document.getElementById('task-fixed-employee');
-    const selectBonus = document.getElementById('task-bonus-employee');
+    // Populate Manager Task Scheduler Select Dropdown
+    const schedEmpSelect = document.getElementById('sched-task-employee');
+    const bonusEmpSelect = document.getElementById('task-bonus-employee');
 
     const optionsHTML = appState.staff.map(s => `<option value="${s.id}">${s.name} (${s.title || s.role})</option>`).join('');
-    selectFixed.innerHTML = optionsHTML;
-    selectBonus.innerHTML = optionsHTML;
+    if (schedEmpSelect) schedEmpSelect.innerHTML = optionsHTML;
+    if (bonusEmpSelect) bonusEmpSelect.innerHTML = optionsHTML;
 
-    // View Adapters for Manager vs Employee
+    if (!isManager && activeEmp && bonusEmpSelect) {
+      bonusEmpSelect.value = activeEmp.id;
+      bonusEmpSelect.disabled = true;
+    } else if (bonusEmpSelect) {
+      bonusEmpSelect.disabled = false;
+    }
+
+    // ==========================================
+    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER
+    // ==========================================
+    const dailyGrid = document.getElementById('daily-tasks-grid');
+    dailyGrid.innerHTML = '';
+
+    let visibleScheduledTasks = [...(appState.scheduledDailyTasks || [])];
+    if (!isManager && activeEmp) {
+      visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
+    }
+
+    if (visibleScheduledTasks.length === 0) {
+      dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily tasks scheduled ${!isManager ? 'for you' : ''} yet. ${isManager ? 'Use the form above to assign tasks!' : ''}</p>`;
+    } else {
+      visibleScheduledTasks.forEach(task => {
+        const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+        const item = document.createElement('div');
+        item.className = 'task-item';
+        
+        item.innerHTML = `
+          <div>
+            <div class="task-user">${task.title}</div>
+            <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <span class="task-pts">+${task.points} Coins</span>
+            ${!isManager ? `
+              <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
+                <i data-lucide="check-circle"></i> Complete Task
+              </button>
+            ` : `
+              <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
+                <i data-lucide="trash-2"></i> Remove
+              </button>
+            `}
+          </div>
+        `;
+        dailyGrid.appendChild(item);
+      });
+    }
+
+    // Employee claim task listener
+    dailyGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const desc = e.currentTarget.dataset.desc;
+        const pts = parseInt(e.currentTarget.dataset.pts);
+
+        const newSubmission = {
+          id: 't-' + Date.now(),
+          employeeId: appState.activeRole,
+          desc: `Daily Task Completed: ${desc}`,
+          points: pts,
+          status: 'PENDING',
+          timestamp: Date.now()
+        };
+
+        appState.tasks.push(newSubmission);
+        saveState();
+        showToast("Task completed and submitted for manager approval!");
+      });
+    });
+
+    // Manager remove scheduled task listener
+    dailyGrid.querySelectorAll('.btn-delete-sched').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        appState.scheduledDailyTasks = appState.scheduledDailyTasks.filter(t => t.id !== id);
+        saveState();
+        showToast("Scheduled task removed.");
+      });
+    });
+
+    // ==========================================
+    // SUB-TAB 2: SUBMISSIONS & INITIATIVES (PRIVACY ENFORCED)
+    // ==========================================
     const managerBlock = document.getElementById('manager-tasks-dashboard');
     const empProfileCard = document.getElementById('employee-profile-card');
     const empSubmissionsBlock = document.getElementById('employee-submissions-block');
 
     if (isManager) {
-      // Manager View
-      managerBlock.classList.remove('hidden');
-      empProfileCard.classList.add('hidden');
-      empSubmissionsBlock.classList.add('hidden');
-
-      selectFixed.disabled = false;
-      selectBonus.disabled = false;
+      if (managerBlock) managerBlock.classList.remove('hidden');
+      if (empProfileCard) empProfileCard.classList.add('hidden');
+      if (empSubmissionsBlock) empSubmissionsBlock.classList.add('hidden');
     } else if (activeEmp) {
-      // Employee View
-      managerBlock.classList.add('hidden');
-      empProfileCard.classList.remove('hidden');
-      empSubmissionsBlock.classList.remove('hidden');
+      if (managerBlock) managerBlock.classList.add('hidden');
+      if (empProfileCard) empProfileCard.classList.remove('hidden');
+      if (empSubmissionsBlock) empSubmissionsBlock.classList.remove('hidden');
 
       // Populate Employee Profile Card
       document.getElementById('emp-profile-avatar').textContent = activeEmp.avatar;
@@ -511,25 +634,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const empCoins = getEmployeePoints(activeEmp.id);
       document.getElementById('emp-profile-coins').textContent = `${empCoins} Coins`;
 
-      // Calculate Rank
       const { empStats } = calculateTipDistribution();
       const sorted = [...empStats].sort((a, b) => b.points - a.points);
       const rank = sorted.findIndex(s => s.id === activeEmp.id) + 1;
       document.getElementById('emp-profile-rank').textContent = `#${rank > 0 ? rank : 1}`;
 
-      // Auto-set and lock employee selection
-      selectFixed.value = activeEmp.id;
-      selectBonus.value = activeEmp.id;
-      selectFixed.disabled = true;
-      selectBonus.disabled = true;
-
-      // Render Employee Submitted Entries List
+      // Render STRICTLY PRIVATE Submissions for Logged In Employee ONLY
       const empSubmissionsList = document.getElementById('employee-submissions-list');
       empSubmissionsList.innerHTML = '';
 
       const myEntries = appState.tasks.filter(t => t.employeeId === activeEmp.id).reverse();
       if (myEntries.length === 0) {
-        empSubmissionsList.innerHTML = `<p class="text-muted" style="padding:1rem; text-align:center;">You haven't submitted any tasks or initiatives yet this month.</p>`;
+        empSubmissionsList.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">You haven't submitted any initiatives yet this month.</p>`;
       } else {
         myEntries.forEach(task => {
           const item = document.createElement('div');
@@ -554,96 +670,203 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manager View: Pending Approvals Feed
     const pendingTasks = appState.tasks.filter(t => t.status === 'PENDING');
     const pendingBadge = document.getElementById('pending-badge');
+    const pendingBadgeSubtab = document.getElementById('pending-badge-subtab');
     const pendingCountBadge = document.getElementById('pending-count-badge');
     const mobilePendingDot = document.getElementById('mobile-pending-dot');
 
     if (pendingTasks.length > 0) {
-      pendingBadge.textContent = pendingTasks.length;
-      pendingBadge.classList.remove('hidden');
-      pendingCountBadge.textContent = `${pendingTasks.length} pending`;
-      mobilePendingDot.classList.remove('hidden');
+      if (pendingBadge) { pendingBadge.textContent = pendingTasks.length; pendingBadge.classList.remove('hidden'); }
+      if (pendingBadgeSubtab) { pendingBadgeSubtab.textContent = pendingTasks.length; pendingBadgeSubtab.classList.remove('hidden'); }
+      if (pendingCountBadge) pendingCountBadge.textContent = `${pendingTasks.length} pending`;
+      if (mobilePendingDot) mobilePendingDot.classList.remove('hidden');
     } else {
-      pendingBadge.classList.add('hidden');
-      pendingCountBadge.textContent = `0 pending`;
-      mobilePendingDot.classList.add('hidden');
+      if (pendingBadge) pendingBadge.classList.add('hidden');
+      if (pendingBadgeSubtab) pendingBadgeSubtab.classList.add('hidden');
+      if (pendingCountBadge) pendingCountBadge.textContent = `0 pending`;
+      if (mobilePendingDot) mobilePendingDot.classList.add('hidden');
     }
 
     const pendingList = document.getElementById('pending-tasks-list');
-    pendingList.innerHTML = '';
-
-    if (pendingTasks.length === 0) {
-      pendingList.innerHTML = `<p class="text-muted" style="padding:1rem; text-align:center;">No pending task requests for manager approval. 👍</p>`;
-    } else {
-      pendingTasks.forEach(task => {
-        const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
-        const item = document.createElement('div');
-        item.className = 'task-item';
-        item.innerHTML = `
-          <div>
-            <div class="task-user">${emp.name} (${emp.title || emp.role})</div>
-            <div class="task-desc">${task.desc}</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <span class="task-pts">+${task.points} Coins</span>
-            <div class="task-actions">
-              <button class="btn btn-success btn-sm btn-approve" data-id="${task.id}"><i data-lucide="check"></i> Approve</button>
-              <button class="btn btn-danger-outline btn-sm btn-reject" data-id="${task.id}"><i data-lucide="x"></i> Reject</button>
+    if (pendingList) {
+      pendingList.innerHTML = '';
+      if (pendingTasks.length === 0) {
+        pendingList.innerHTML = `<p class="text-muted" style="padding:1rem; text-align:center;">No pending task requests for manager approval. 👍</p>`;
+      } else {
+        pendingTasks.forEach(task => {
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+          const item = document.createElement('div');
+          item.className = 'task-item';
+          item.innerHTML = `
+            <div>
+              <div class="task-user">${emp.name} (${emp.title || emp.role})</div>
+              <div class="task-desc">${task.desc}</div>
             </div>
-          </div>
-        `;
-        pendingList.appendChild(item);
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <span class="task-pts">+${task.points} Coins</span>
+              <div class="task-actions">
+                <button class="btn btn-success btn-sm btn-approve" data-id="${task.id}"><i data-lucide="check"></i> Approve</button>
+                <button class="btn btn-danger-outline btn-sm btn-reject" data-id="${task.id}"><i data-lucide="x"></i> Reject</button>
+              </div>
+            </div>
+          `;
+          pendingList.appendChild(item);
+        });
+      }
+
+      pendingList.querySelectorAll('.btn-approve').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const taskId = e.currentTarget.dataset.id;
+          const task = appState.tasks.find(t => t.id === taskId);
+          if (task) {
+            task.status = 'APPROVED';
+            saveState();
+            showToast("Task entry approved! Coins awarded.");
+          }
+        });
+      });
+
+      pendingList.querySelectorAll('.btn-reject').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const taskId = e.currentTarget.dataset.id;
+          const task = appState.tasks.find(t => t.id === taskId);
+          if (task) {
+            task.status = 'REJECTED';
+            saveState();
+            showToast("Task entry rejected.");
+          }
+        });
       });
     }
 
     // Manager View: Approved Tasks History
-    const validatedTasks = appState.tasks.filter(t => t.status === 'APPROVED').reverse();
     const historyList = document.getElementById('validated-tasks-list');
-    historyList.innerHTML = '';
+    if (historyList) {
+      const validatedTasks = appState.tasks.filter(t => t.status === 'APPROVED').reverse();
+      historyList.innerHTML = '';
 
-    if (validatedTasks.length === 0) {
-      historyList.innerHTML = `<p class="text-muted">No approved tasks yet this month.</p>`;
-    } else {
-      validatedTasks.slice(0, 8).forEach(task => {
-        const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
-        const item = document.createElement('div');
-        item.className = 'task-item';
-        item.style.opacity = '0.85';
-        item.innerHTML = `
-          <div>
-            <div class="task-user">${emp.name}</div>
-            <div class="task-desc">${task.desc}</div>
-          </div>
-          <span class="badge badge-purple">+${task.points} Coins awarded</span>
-        `;
-        historyList.appendChild(item);
-      });
+      if (validatedTasks.length === 0) {
+        historyList.innerHTML = `<p class="text-muted">No approved tasks yet this month.</p>`;
+      } else {
+        validatedTasks.slice(0, 8).forEach(task => {
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+          const item = document.createElement('div');
+          item.className = 'task-item';
+          item.style.opacity = '0.85';
+          item.innerHTML = `
+            <div>
+              <div class="task-user">${emp.name}</div>
+              <div class="task-desc">${task.desc}</div>
+            </div>
+            <span class="badge badge-purple">+${task.points} Coins awarded</span>
+          `;
+          historyList.appendChild(item);
+        });
+      }
     }
 
-    pendingList.querySelectorAll('.btn-approve').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const taskId = e.currentTarget.dataset.id;
-        const task = appState.tasks.find(t => t.id === taskId);
-        if (task) {
-          task.status = 'APPROVED';
-          saveState();
-          showToast("Task entry approved! Coins awarded.");
-        }
-      });
-    });
-
-    pendingList.querySelectorAll('.btn-reject').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const taskId = e.currentTarget.dataset.id;
-        const task = appState.tasks.find(t => t.id === taskId);
-        if (task) {
-          task.status = 'REJECTED';
-          saveState();
-          showToast("Task entry rejected.");
-        }
-      });
-    });
-
     if (window.lucide) lucide.createIcons();
+  };
+
+  // Hybrid Tip Calculator Renderer (Coin Proportions + Manual Overrides & % Inputs)
+  const renderTips = () => {
+    const mKey = appState.currentMonth;
+    const config = appState.tipsConfig[mKey] || { totalAmount: 2600 };
+
+    const inputPool = document.getElementById('input-total-tips');
+    if (inputPool) inputPool.value = config.totalAmount;
+
+    const { empStats, totalTips, frontPool, kitchenPool } = calculateTipDistribution();
+
+    document.getElementById('summary-front-amount').textContent = `${frontPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+    document.getElementById('summary-kitchen-amount').textContent = `${kitchenPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+
+    const frontCoins = empStats.filter(e => e.role === 'FRONT').reduce((s, e) => s + e.points, 0);
+    const kitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((s, e) => s + e.points, 0);
+
+    document.getElementById('summary-front-sub').textContent = `${frontCoins} Coins earned (Front)`;
+    document.getElementById('summary-kitchen-sub').textContent = `${kitchenCoins} Coins earned (Kitchen)`;
+
+    // Detailed Editable Table
+    const tbody = document.getElementById('tips-detail-tbody');
+    tbody.innerHTML = '';
+
+    empStats.forEach(emp => {
+      const tr = document.createElement('tr');
+      const hasOverride = emp.manualPercent !== null;
+
+      tr.innerHTML = `
+        <td>
+          <div class="staff-info">
+            <div class="avatar" style="background-color: ${emp.color}; width: 32px; height: 32px; font-size: 0.85rem;">
+              ${emp.avatar}
+            </div>
+            <div>
+              <strong>${emp.name}</strong>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
+            ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'} - ${emp.title}
+          </span>
+        </td>
+        <td><strong class="text-gold">${emp.points} Coins</strong></td>
+        <td><span class="text-muted">${emp.baselinePercent.toFixed(2)}%</span></td>
+        <td>
+          <div style="display:flex; align-items:center; gap:0.25rem;">
+            <input type="number" 
+                   class="form-control editable-percent-input" 
+                   data-emp="${emp.id}" 
+                   value="${emp.tipSharePercent.toFixed(2)}" 
+                   step="0.5" min="0" max="100" />
+            <span>%</span>
+            ${hasOverride ? `<span class="badge badge-purple" style="font-size:0.65rem; padding:0.1rem 0.3rem;" title="Manually edited share">Custom</span>` : ''}
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; align-items:center; gap:0.25rem;">
+            <input type="number" 
+                   class="form-control editable-amount-input" 
+                   data-emp="${emp.id}" 
+                   value="${emp.tipAmount.toFixed(2)}" 
+                   step="5" min="0" />
+            <strong class="text-green">€</strong>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Percentage Input Listener
+    tbody.querySelectorAll('.editable-percent-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const empId = e.currentTarget.dataset.emp;
+        const newPct = parseFloat(e.currentTarget.value) || 0;
+
+        if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
+        appState.manualTipOverrides[empId] = { percent: newPct };
+
+        saveState();
+        showToast("Custom tip share percentage updated!");
+      });
+    });
+
+    // Amount Input Listener
+    tbody.querySelectorAll('.editable-amount-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const empId = e.currentTarget.dataset.emp;
+        const newAmt = parseFloat(e.currentTarget.value) || 0;
+        const totalPool = parseFloat(appState.tipsConfig[appState.currentMonth]?.totalAmount) || 2600;
+
+        const newPct = totalPool > 0 ? parseFloat(((newAmt / totalPool) * 100).toFixed(2)) : 0;
+
+        if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
+        appState.manualTipOverrides[empId] = { percent: newPct };
+
+        saveState();
+        showToast("Custom payable tip amount updated!");
+      });
+    });
   };
 
   // Tip Calculator Renderer
@@ -1040,8 +1263,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
   };
 
-  // Initial Run
+  // Reset Tip Overrides Listener
+  const btnResetTips = document.getElementById('btn-reset-tip-overrides');
+  if (btnResetTips) {
+    btnResetTips.addEventListener('click', () => {
+      appState.manualTipOverrides = {};
+      saveState();
+      showToast("Reset all tip shares to clean Coin proportions!");
+    });
+  }
+
+  // App Initialization
   loadState();
+  initSubtabs();
+  initSchedulerForm();
   renderAll();
 
 });

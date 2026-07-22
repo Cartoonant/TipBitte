@@ -657,9 +657,58 @@ button, input, select, textarea {
   gap: 0.5rem;
 }
 
-.shift-cell-readonly {
-  cursor: default !important;
-  opacity: 0.9;
+/* Sub-Tab Navigation for Tasks & Initiatives */
+.subtab-navigation {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card-solid);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.subtab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.subtab-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.subtab-content {
+  display: none;
+  animation: fadeIn 0.25s ease;
+}
+
+.subtab-content.active {
+  display: block;
+}
+
+/* Editable Tip Table Inputs */
+.editable-percent-input, .editable-amount-input {
+  width: 90px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 700;
+  text-align: right;
 }
 
 .planning-quick-actions {
