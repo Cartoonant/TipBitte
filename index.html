@@ -321,6 +321,55 @@
             </div>
           </div>
 
+          <!-- Employee View: Quick Action Opening / Closing Process Validation Block -->
+          <div id="opening-closing-validation-block" class="section-card employee-only-card margin-bottom" data-employee-only="true" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid var(--border-color);">
+            <div class="section-header" style="margin-bottom:1rem;">
+              <div>
+                <h3><i data-lucide="shield-check" class="text-gold"></i> Shift Opening & Closing Process Validation</h3>
+                <p class="text-muted">Complete global opening or closing procedures for the restaurant to earn an instant <strong>+30 Coins</strong> shift bonus!</p>
+              </div>
+            </div>
+
+            <!-- Opening & Closing Shift Action Cards -->
+            <div class="grid-2col">
+              <!-- Opening Process Card -->
+              <div class="section-card" style="background:var(--bg-input); border:1px solid var(--border-color); padding:1.25rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i data-lucide="sun" class="text-gold" style="width:24px; height:24px;"></i>
+                    <strong style="font-size:1.05rem; color:var(--text-main);">🌅 Opening Shift Process</strong>
+                  </div>
+                  <span id="badge-status-opening" class="badge badge-gold">Ready</span>
+                </div>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Complete opening checklist (keyhandover, lights, equipment setup & line prep).</p>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                  <strong class="text-gold">+30 Coins Bonus</strong>
+                  <button id="btn-validate-opening" class="btn btn-gold btn-sm">
+                    <i data-lucide="check-circle"></i> Validate Opening Shift
+                  </button>
+                </div>
+              </div>
+
+              <!-- Closing Process Card -->
+              <div class="section-card" style="background:var(--bg-input); border:1px solid var(--border-color); padding:1.25rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i data-lucide="moon" class="text-purple" style="width:24px; height:24px;"></i>
+                    <strong style="font-size:1.05rem; color:var(--text-main);">🌙 Closing Shift Process</strong>
+                  </div>
+                  <span id="badge-status-closing" class="badge badge-gold">Ready</span>
+                </div>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Complete closing checklist (POS register closure, alarm lockup & sanitization).</p>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                  <strong class="text-gold">+30 Coins Bonus</strong>
+                  <button id="btn-validate-closing" class="btn btn-primary btn-sm">
+                    <i data-lucide="check-circle"></i> Validate Closing Shift
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Daily Tasks List (Employee View ONLY: Personal Roadmap) -->
           <div class="section-card employee-only-card" data-employee-only="true">
             <div class="section-header">

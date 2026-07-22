@@ -1292,6 +1292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderPlanning();
     renderTasks();
+    renderOpeningClosingStatus();
     renderSOP();
     if (isManager) {
       renderTips();
@@ -1533,6 +1534,118 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
+
+  // Opening & Closing Shift Process Validation Handler
+  const renderOpeningClosingStatus = () => {
+    const isManager = appState.activeRole === 'MANAGER';
+    if (isManager) return;
+
+    const currentEmpId = appState.activeRole;
+    const emp = appState.staff.find(s => s.id === currentEmpId);
+    if (!emp) return;
+
+    // Check existing opening submission for today
+    const openingTask = appState.tasks.find(t => t.employeeId === currentEmpId && t.desc.includes('[Opening Shift Process]'));
+    const badgeOpening = document.getElementById('badge-status-opening');
+    const btnOpening = document.getElementById('btn-validate-opening');
+
+    if (badgeOpening && btnOpening) {
+      if (!openingTask) {
+        badgeOpening.textContent = 'Ready';
+        badgeOpening.className = 'badge badge-gold';
+        btnOpening.disabled = false;
+        btnOpening.innerHTML = `<i data-lucide="check-circle"></i> Validate Opening Shift`;
+      } else if (openingTask.status === 'PENDING') {
+        badgeOpening.textContent = '⏳ Pending Approval';
+        badgeOpening.className = 'badge badge-front';
+        btnOpening.disabled = true;
+        btnOpening.innerHTML = `<i data-lucide="clock"></i> Pending Manager Approval`;
+      } else if (openingTask.status === 'APPROVED') {
+        badgeOpening.textContent = '✅ Approved (+30 Coins)';
+        badgeOpening.className = 'badge badge-kitchen';
+        btnOpening.disabled = true;
+        btnOpening.innerHTML = `<i data-lucide="check-check"></i> Opening Completed`;
+      }
+    }
+
+    // Check existing closing submission for today
+    const closingTask = appState.tasks.find(t => t.employeeId === currentEmpId && t.desc.includes('[Closing Shift Process]'));
+    const badgeClosing = document.getElementById('badge-status-closing');
+    const btnClosing = document.getElementById('btn-validate-closing');
+
+    if (badgeClosing && btnClosing) {
+      if (!closingTask) {
+        badgeClosing.textContent = 'Ready';
+        badgeClosing.className = 'badge badge-gold';
+        btnClosing.disabled = false;
+        btnClosing.innerHTML = `<i data-lucide="check-circle"></i> Validate Closing Shift`;
+      } else if (closingTask.status === 'PENDING') {
+        badgeClosing.textContent = '⏳ Pending Approval';
+        badgeClosing.className = 'badge badge-front';
+        btnClosing.disabled = true;
+        btnClosing.innerHTML = `<i data-lucide="clock"></i> Pending Manager Approval`;
+      } else if (closingTask.status === 'APPROVED') {
+        badgeClosing.textContent = '✅ Approved (+30 Coins)';
+        badgeClosing.className = 'badge badge-kitchen';
+        btnClosing.disabled = true;
+        btnClosing.innerHTML = `<i data-lucide="check-check"></i> Closing Completed`;
+      }
+    }
+
+    if (window.lucide) lucide.createIcons();
+  };
+
+  // Validate Opening Shift Listener
+  const btnOpening = document.getElementById('btn-validate-opening');
+  if (btnOpening) {
+    btnOpening.addEventListener('click', () => {
+      const currentEmpId = appState.activeRole;
+      const emp = appState.staff.find(s => s.id === currentEmpId);
+      if (!emp) {
+        showToast("Please select an active employee account.");
+        return;
+      }
+
+      appState.tasks.unshift({
+        id: 'shift-open-' + Date.now(),
+        employeeId: currentEmpId,
+        desc: `[Opening Shift Process] Keyhandover, lights & morning line setup completed by ${emp.name}`,
+        points: 30,
+        status: 'PENDING',
+        timestamp: Date.now()
+      });
+
+      saveState();
+      renderAll();
+      showToast(`Opening shift process submitted for Manager approval (+30 Coins pending)!`);
+    });
+  }
+
+  // Validate Closing Shift Listener
+  const btnClosing = document.getElementById('btn-validate-closing');
+  if (btnClosing) {
+    btnClosing.addEventListener('click', () => {
+      const currentEmpId = appState.activeRole;
+      const emp = appState.staff.find(s => s.id === currentEmpId);
+      if (!emp) {
+        showToast("Please select an active employee account.");
+        return;
+      }
+
+      appState.tasks.unshift({
+        id: 'shift-close-' + Date.now(),
+        employeeId: currentEmpId,
+        desc: `[Closing Shift Process] POS register closure, sanitization & alarm lockup completed by ${emp.name}`,
+        points: 30,
+        status: 'PENDING',
+        timestamp: Date.now()
+      });
+
+      saveState();
+      renderAll();
+      showToast(`Closing shift process submitted for Manager approval (+30 Coins pending)!`);
+    });
+  }
 
   const btnTheme = document.getElementById('btn-theme-toggle');
   if (btnTheme) {
