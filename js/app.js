@@ -34,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let appState = {
     currentMonth: '2026-08',
     activeRole: 'MANAGER', // 'MANAGER' or employee ID (e.g. 'emp-2')
+    eotmWinnerId: null,     // Employee ID crowned as Employee of the Month
+    eotmBonusAmount: 100,   // Fixed bonus in € for Employee of the Month
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
@@ -80,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appState = JSON.parse(saved);
         if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
         if (!appState.activeRole) appState.activeRole = 'MANAGER';
+        if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
         if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
@@ -95,6 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const initDefaultState = () => {
     appState.staff = JSON.parse(JSON.stringify(DEFAULT_STAFF));
     appState.activeRole = 'MANAGER';
+    appState.eotmWinnerId = null;
+    appState.eotmBonusAmount = 100;
     appState.tasks = [];
     appState.schedules = {};
     appState.tipsConfig = {};
@@ -150,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // 3. CALCULATION ENGINE (COIN-BASED MERITOCRACY)
+  // 3. CALCULATION ENGINE (COIN-BASED MERITOCRACY + EOTM BONUS)
   // ==========================================
 
   // Attendance metrics (Informative)
@@ -170,10 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Tip distribution calculation based on Coins (Hybrid Model)
+  // Tip distribution calculation based on Coins + EOTM Bonus (Hybrid Model)
   const calculateTipDistribution = () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
+    const bonusAmount = parseFloat(appState.eotmBonusAmount) || 0;
+    const winnerId = appState.eotmWinnerId;
 
     let empStats = appState.staff.map(emp => {
       const points = getEmployeePoints(emp.id);
@@ -191,11 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
         baselinePercent: 0,
         manualPercent: null,
         tipSharePercent: 0,
-        tipAmount: 0
+        tipAmount: 0,
+        isWinner: emp.id === winnerId
       };
     });
 
     const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
+
+    // Amount pool left to distribute pro-rata after deducting winner bonus
+    const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
 
     // Baseline Coin-Proportions calculation
     empStats.forEach(emp => {
@@ -214,7 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
         emp.tipSharePercent = emp.baselinePercent;
       }
 
-      emp.tipAmount = (emp.tipSharePercent / 100) * totalTips;
+      // Base pro-rata share amount
+      let baseTipAmt = (emp.tipSharePercent / 100) * poolForProRata;
+      
+      // Add EOTM fixed bonus to winner
+      if (emp.id === winnerId) {
+        baseTipAmt += bonusAmount;
+      }
+
+      emp.tipAmount = baseTipAmt;
     });
 
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
@@ -253,6 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
 
+    // Populate Manager Employee of the Month Dropdown
+    const selectEotm = document.getElementById('select-eotm-winner');
+    if (selectEotm) {
+      let optsHTML = `<option value="">-- Select Winner --</option>`;
+      appState.staff.forEach(s => {
+        optsHTML += `<option value="${s.id}" ${appState.eotmWinnerId === s.id ? 'selected' : ''}>👑 ${s.name} (${s.title || s.role})</option>`;
+      });
+      selectEotm.innerHTML = optsHTML;
+    }
+
     // Overview Cards
     const elTips = document.getElementById('stat-total-tips');
     if (elTips) elTips.textContent = `${totalTips.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
@@ -280,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const elTeamBreakdown = document.getElementById('stat-team-breakdown');
     if (elTeamBreakdown) elTeamBreakdown.textContent = `${frontCount} Front / ${kitchenCount} Kitchen`;
 
-    // Unified Global Ranking (No team filters on Leaderboard tab)
+    // Unified Global Ranking
     let filteredList = [...empStats];
     filteredList.sort((a, b) => b.points - a.points);
 
@@ -296,13 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const createPodiumStep = (emp, rank, stepClass) => {
           if (!emp) return '';
+          const isCrownWinner = emp.id === appState.eotmWinnerId;
           return `
             <div class="podium-step ${stepClass}">
-              ${rank === 1 ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
+              ${rank === 1 || isCrownWinner ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
               <div class="podium-avatar" style="background-color: ${emp.color}">
                 ${emp.avatar}
               </div>
-              <div class="podium-name">${emp.name}</div>
+              <div class="podium-name">${emp.name} ${isCrownWinner ? '👑' : ''}</div>
               <div class="podium-pts">${emp.points} Coins</div>
               <div class="podium-pillar">${rank}</div>
             </div>
@@ -328,7 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>Employee</th>
           <th>Team & Role</th>
           <th>Coins Earned</th>
-          ${isManager ? `<th>Tip Share (%)</th><th>Estimated Tip (€)</th>` : ''}
+          ${isManager ? `<th>Tip Share (%)</th>` : ''}
+          <th>Estimated Tip (€)</th>
         </tr>
       `;
     }
@@ -339,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.innerHTML = '';
 
       filteredList.forEach((emp, index) => {
+        const isCrownWinner = emp.id === appState.eotmWinnerId;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>#${index + 1}</strong></td>
@@ -348,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${emp.avatar}
               </div>
               <div>
-                <strong>${emp.name}</strong>
+                <strong>${emp.name} ${isCrownWinner ? '<span title="Employee of the Month" style="margin-left:0.25rem; font-size:1.15rem;">👑</span>' : ''}</strong>
                 <div style="font-size:0.75rem; color:var(--text-muted);">${emp.title || ''}</div>
               </div>
             </div>
@@ -359,10 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </td>
           <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} Coins</strong></td>
-          ${isManager ? `
-            <td><strong>${emp.tipSharePercent.toFixed(2)}%</strong></td>
-            <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
-          ` : ''}
+          ${isManager ? `<td><strong>${emp.tipSharePercent.toFixed(2)}%</strong></td>` : ''}
+          <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} € ${isCrownWinner ? '<span style="font-size:0.75rem; color:var(--color-gold);">(incl. 👑 bonus)</span>' : ''}</strong></td>
         `;
         tbody.appendChild(tr);
       });
@@ -798,13 +828,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Hybrid Tip Calculator Renderer (Coin Proportions + Manual Overrides & % Inputs)
+  // Tip Calculator Renderer
   const renderTips = () => {
     const mKey = appState.currentMonth;
     const config = appState.tipsConfig[mKey] || { totalAmount: 2600 };
 
     const inputPool = document.getElementById('input-total-tips');
     if (inputPool) inputPool.value = config.totalAmount;
+
+    const inputBonus = document.getElementById('input-eotm-bonus');
+    if (inputBonus) inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
 
     const { empStats, totalTips, frontPool, kitchenPool } = calculateTipDistribution();
 
@@ -831,6 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
       empStats.forEach(emp => {
         const tr = document.createElement('tr');
         const hasOverride = emp.manualPercent !== null;
+        const isCrownWinner = emp.id === appState.eotmWinnerId;
 
         tr.innerHTML = `
           <td>
@@ -839,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${emp.avatar}
               </div>
               <div>
-                <strong>${emp.name}</strong>
+                <strong>${emp.name} ${isCrownWinner ? '👑' : ''}</strong>
               </div>
             </div>
           </td>
@@ -997,6 +1031,33 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const roleName = e.target.options[e.target.selectedIndex].text;
       showToast(`Switched active account to: ${roleName}`);
+    });
+  }
+
+  // Employee of the Month Selection Listener (Manager Only Dropdown)
+  const selectEotm = document.getElementById('select-eotm-winner');
+  if (selectEotm) {
+    selectEotm.addEventListener('change', (e) => {
+      const selectedId = e.target.value;
+      appState.eotmWinnerId = selectedId || null;
+
+      if (selectedId) {
+        const emp = appState.staff.find(s => s.id === selectedId);
+        showToast(`👑 ${emp ? emp.name : 'Team member'} crowned as Employee of the Month! Bonus applied.`);
+        launchConfetti();
+      }
+
+      saveState();
+    });
+  }
+
+  // Employee of the Month Bonus Input Listener
+  const inputEotmBonus = document.getElementById('input-eotm-bonus');
+  if (inputEotmBonus) {
+    inputEotmBonus.addEventListener('change', (e) => {
+      appState.eotmBonusAmount = parseFloat(e.target.value) || 0;
+      saveState();
+      showToast("Employee of the Month bonus updated!");
     });
   }
 

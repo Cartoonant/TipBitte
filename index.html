@@ -108,16 +108,24 @@
 
       <!-- TAB 1: DASHBOARD & LEADERBOARD -->
       <section id="tab-dashboard" class="tab-content active">
-        <!-- Hero Banner -->
+        <!-- Hero Banner: Employee of the Month -->
         <div class="hero-banner">
-          <div class="hero-text">
-            <div class="hero-tag"><i data-lucide="award"></i> Monthly Contest</div>
-            <h2>Employee of the Month <span id="hero-month-name">August 2026</span></h2>
-            <p>Earn <strong>Coins</strong> by completing tasks and logging shift initiatives to share monthly tips fairly!</p>
+          <div class="hero-content">
+            <span class="badge badge-gold margin-bottom"><i data-lucide="award"></i> Monthly Recognition</span>
+            <h2>Employee of the Month — <span id="hero-month-name">August 2026</span></h2>
+            <p>100% Coin-Based Meritocracy. The top performer earns recognition, a gold 👑 crown, and a dedicated monthly tip bonus.</p>
+
+            <!-- Manager Dropdown to Select & Crown Employee of the Month -->
+            <div class="eotm-manager-box manager-only-nav" data-manager-only="true" style="margin-top: 1rem;">
+              <label style="font-size:0.85rem; color:var(--color-gold); display:block; font-weight:700; margin-bottom:0.35rem;">
+                👑 Select & Crown Employee of the Month:
+              </label>
+              <select id="select-eotm-winner" class="form-control" style="max-width: 320px; font-weight: 700; border-color: var(--color-gold);">
+                <option value="">-- Select Winner --</option>
+                <!-- Dynamic Employee Options -->
+              </select>
+            </div>
           </div>
-          <button id="btn-reveal-winner" class="btn btn-gold glow manager-only-nav" data-manager-only="true">
-            <i data-lucide="crown"></i> Crown the Winner
-          </button>
         </div>
 
         <!-- Metrics Overview Cards -->
@@ -409,6 +417,14 @@
               <label>Total Monthly Tips Amount (€)</label>
               <div class="input-currency">
                 <input type="number" id="input-total-tips" class="form-control input-lg" placeholder="e.g. 2600.00" step="10" min="0" />
+                <span class="currency-symbol">€</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Employee of the Month Fixed Bonus (€)</label>
+              <div class="input-currency">
+                <input type="number" id="input-eotm-bonus" class="form-control" placeholder="100.00" step="10" min="0" value="100" />
                 <span class="currency-symbol">€</span>
               </div>
             </div>
