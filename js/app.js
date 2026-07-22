@@ -103,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
         if (!appState.activeRole) appState.activeRole = 'MANAGER';
         if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
+        
+        // Ensure legacy mock PDF files are cleared
+        if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
+          appState.sopDocuments = [];
+        }
+
         if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
@@ -123,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.tasks = [];
     appState.schedules = {};
     appState.tipsConfig = {};
+    appState.sopDocuments = [];
     appState.theme = 'dark';
     
     generateDemoData();
@@ -1120,9 +1127,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSopFilter = 'ALL';
 
   const renderSOP = () => {
-    if (!appState.sopDocuments) {
-      appState.sopDocuments = [];
-    }
+    // Filter out any legacy mock PDF documents
+    appState.sopDocuments = (appState.sopDocuments || []).filter(d => !d.id.startsWith('pdf-'));
 
     const isManager = appState.activeRole === 'MANAGER';
 
@@ -1196,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tasksContainer = document.getElementById('sop-tasks-list');
     if (tasksContainer) {
       tasksContainer.innerHTML = '';
-      const catalogue = appState.masterTaskCatalogue || DEFAULT_MASTER_CATALOGUE;
+      const catalogue = (appState.masterTaskCatalogue || []).filter(t => t.sopDesc && t.sopDesc.trim());
       
       const filtered = catalogue.filter(t => {
         if (activeSopFilter === 'ALL') return true;
@@ -1204,7 +1210,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (filtered.length === 0) {
-        tasksContainer.innerHTML = `<p class="text-muted">No procedures found for this category filter.</p>`;
+        tasksContainer.innerHTML = `
+          <div style="background:var(--bg-input); padding:1.5rem; border-radius:var(--radius-md); border:1px dashed var(--border-color); text-align:center;">
+            <i data-lucide="list-checks" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
+            <p class="text-muted" style="margin:0; font-size:0.88rem;">No written task SOP procedures added yet. Import your task file or add procedures to populate this section.</p>
+          </div>
+        `;
       } else {
         filtered.forEach((task, index) => {
           const card = document.createElement('div');
@@ -1232,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </h4>
               <p style="margin:0; font-size:0.88rem; color:var(--text-muted); line-height:1.5; background:var(--bg-input); padding:0.65rem 0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
                 <strong style="color:var(--text-main); display:block; margin-bottom:0.25rem;">📋 Standard Operating Procedure / Detailed Instructions:</strong>
-                ${task.desc || 'Standard operational procedure and checklist guidelines for shift execution.'}
+                ${task.sopDesc}
               </p>
             </div>
           `;
