@@ -21,6 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
   ];
 
+  const DEFAULT_MASTER_CATALOGUE = [
+    { id: 'cat-1', title: 'Front: Register closure & bar organization', scope: 'FRONT', points: 20 },
+    { id: 'cat-2', title: 'Front: Fridge restocking & beverage audit', scope: 'FRONT', points: 15 },
+    { id: 'cat-3', title: 'Front: Upselling gourmet wines & dessert combos', scope: 'FRONT', points: 15 },
+    { id: 'cat-4', title: 'Front: Guest reception & table floor lead', scope: 'FRONT', points: 25 },
+    { id: 'cat-5', title: 'Kitchen: Deep cleaning & station sanitization', scope: 'KITCHEN', points: 20 },
+    { id: 'cat-6', title: 'Kitchen: Equipment maintenance & grill care', scope: 'KITCHEN', points: 25 },
+    { id: 'cat-7', title: 'Kitchen: Accelerated prep list completion', scope: 'KITCHEN', points: 15 },
+    { id: 'cat-8', title: 'Kitchen: Stock control & zero food waste', scope: 'KITCHEN', points: 20 },
+    { id: 'cat-9', title: 'General: Emergency shift cover for teammate', scope: 'EVERYONE', points: 30 }
+  ];
+
   const getCurrentMonthKey = () => {
     return '2026-08';
   };
@@ -39,8 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
+    masterTaskCatalogue: [], // Master catalogue [ { id, title, scope: 'FRONT'|'KITCHEN'|'EVERYONE', points } ]
     schedules: {},           // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
-    scheduledDailyTasks: [], // [ { id, employeeId, title, category, points, frequency } ]
+    scheduledDailyTasks: [], // Shift Schedule: [ { id, employeeId, title, category, points } ]
     tasks: [],               // Submissions: [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', timestamp } ]
     tipsConfig: {},          // { "2026-08": { totalAmount: 2600 } }
     manualTipOverrides: {}   // { "emp-2": { percent: 25, amount: 650 } }
@@ -134,6 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
       appState.tipsConfig[mKey] = {
         totalAmount: 2600
       };
+    }
+
+    // Default Master Task Catalogue
+    if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
+      appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
     }
 
     // Default Scheduled Daily Tasks
@@ -527,164 +545,106 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Sub-Tab Switching Handler
-  let activeSubtab = 'daily-tasks';
-
-  const initSubtabs = () => {
-    document.querySelectorAll('.subtab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.subtab-content').forEach(c => c.classList.remove('active'));
-
-        const target = e.currentTarget.dataset.subtab;
-        activeSubtab = target;
-
-        e.currentTarget.classList.add('active');
-        const content = document.getElementById(`subtab-${target}`);
-        if (content) content.classList.add('active');
-
-        renderTasks();
-      });
-    });
-  };
-
-  // Manager Task Scheduler Submit Listener
-  const initSchedulerForm = () => {
-    const form = document.getElementById('form-schedule-task');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const empId = document.getElementById('sched-task-employee').value;
-      const title = document.getElementById('sched-task-title').value.trim();
-      const category = document.getElementById('sched-task-category').value;
-      const points = parseInt(document.getElementById('sched-task-coins').value);
-
-      if (!title) return;
-
-      const newTask = {
-        id: 'st-' + Date.now(),
-        employeeId: empId,
-        title: title,
-        category: category,
-        points: points
-      };
-
-      if (!appState.scheduledDailyTasks) appState.scheduledDailyTasks = [];
-      appState.scheduledDailyTasks.push(newTask);
-
-      saveState();
-      form.reset();
-      showToast("Task assigned to employee daily schedule!");
-    });
-  };
-
-  // Tasks & Initiatives Renderer (Sub-Tabs & Employee Privacy)
+  // Master Task Catalogue & Smart Fair Rotation Renderer
   const renderTasks = () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    const schedEmpSelect = document.getElementById('sched-task-employee');
-    const bonusEmpSelect = document.getElementById('task-bonus-employee');
-
-    const optionsHTML = appState.staff.map(s => `<option value="${s.id}">${s.name} (${s.title || s.role})</option>`).join('');
-    if (schedEmpSelect) schedEmpSelect.innerHTML = optionsHTML;
-    if (bonusEmpSelect) bonusEmpSelect.innerHTML = optionsHTML;
-
-    if (!isManager && activeEmp && bonusEmpSelect) {
-      bonusEmpSelect.value = activeEmp.id;
-      bonusEmpSelect.disabled = true;
-    } else if (bonusEmpSelect) {
-      bonusEmpSelect.disabled = false;
-    }
-
-    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER
-    const dailyGrid = document.getElementById('daily-tasks-grid');
-    if (dailyGrid) {
-      dailyGrid.innerHTML = '';
-
-      let visibleScheduledTasks = [...(appState.scheduledDailyTasks || [])];
-      if (!isManager && activeEmp) {
-        visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
-      }
-
-      if (visibleScheduledTasks.length === 0) {
-        dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily tasks scheduled ${!isManager ? 'for you' : ''} yet. ${isManager ? 'Use the form above to assign tasks!' : ''}</p>`;
-      } else {
-        visibleScheduledTasks.forEach(task => {
-          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
-          const item = document.createElement('div');
-          item.className = 'task-item';
-          
-          item.innerHTML = `
-            <div>
-              <div class="task-user">${task.title}</div>
-              <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
-            </div>
-            <div style="display:flex; align-items:center; gap:1rem;">
-              <span class="task-pts">+${task.points} Coins</span>
-              ${!isManager ? `
-                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
-                  <i data-lucide="check-circle"></i> Complete Task
-                </button>
-              ` : `
-                <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
-                  <i data-lucide="trash-2"></i> Remove
-                </button>
-              `}
-            </div>
-          `;
-          dailyGrid.appendChild(item);
-        });
-      }
-
-      // Employee claim task listener
-      dailyGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const desc = e.currentTarget.dataset.desc;
-          const pts = parseInt(e.currentTarget.dataset.pts);
-
-          const newSubmission = {
-            id: 't-' + Date.now(),
-            employeeId: appState.activeRole,
-            desc: `Daily Task Completed: ${desc}`,
-            points: pts,
-            status: 'PENDING',
-            timestamp: Date.now()
-          };
-
-          appState.tasks.push(newSubmission);
-          saveState();
-          showToast("Task completed and submitted for manager approval!");
-        });
-      });
-
-      // Manager remove scheduled task listener
-      dailyGrid.querySelectorAll('.btn-delete-sched').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = e.currentTarget.dataset.id;
-          appState.scheduledDailyTasks = appState.scheduledDailyTasks.filter(t => t.id !== id);
-          saveState();
-          showToast("Scheduled task removed.");
-        });
-      });
-    }
-
-    // SUB-TAB 2: SUBMISSIONS & INITIATIVES (PRIVACY ENFORCED)
     const managerBlock = document.getElementById('manager-tasks-dashboard');
-    const empProfileCard = document.getElementById('employee-profile-card');
-    const empSubmissionsBlock = document.getElementById('employee-submissions-block');
+    const empDashboard = document.getElementById('employee-tasks-dashboard');
 
     if (isManager) {
       if (managerBlock) managerBlock.classList.remove('hidden');
-      if (empProfileCard) empProfileCard.classList.add('hidden');
-      if (empSubmissionsBlock) empSubmissionsBlock.classList.add('hidden');
+      if (empDashboard) empDashboard.classList.add('hidden');
+
+      // 1. Render Master Task Catalogue Grid (Manager)
+      const catList = document.getElementById('master-catalogue-list');
+      if (catList) {
+        catList.innerHTML = '';
+        const catalogue = appState.masterTaskCatalogue || [];
+
+        if (catalogue.length === 0) {
+          catList.innerHTML = `<p class="text-muted" style="padding:1rem; text-align:center;">No tasks in master catalogue. Add one above!</p>`;
+        } else {
+          catalogue.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'task-item';
+            
+            let scopeBadge = `<span class="badge badge-front">Front Only</span>`;
+            if (item.scope === 'KITCHEN') scopeBadge = `<span class="badge badge-kitchen">Kitchen Only</span>`;
+            if (item.scope === 'EVERYONE') scopeBadge = `<span class="badge badge-purple">Everyone</span>`;
+
+            row.innerHTML = `
+              <div>
+                <div class="task-user">${item.title}</div>
+                <div style="margin-top:0.25rem;">${scopeBadge}</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem;">
+                <span class="task-pts">+${item.points} Coins</span>
+                <button class="btn-icon btn-delete-cat-task" data-id="${item.id}" title="Remove from Catalogue" style="color:var(--color-danger)">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            `;
+            catList.appendChild(row);
+          });
+
+          // Delete catalogue task listener
+          catList.querySelectorAll('.btn-delete-cat-task').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const id = e.currentTarget.dataset.id;
+              appState.masterTaskCatalogue = appState.masterTaskCatalogue.filter(t => t.id !== id);
+              saveState();
+              showToast("Task removed from master catalogue.");
+            });
+          });
+        }
+      }
+
+      // 2. Render Scheduled Daily Tasks Grid (Manager)
+      const schedGrid = document.getElementById('manager-scheduled-tasks-grid');
+      if (schedGrid) {
+        schedGrid.innerHTML = '';
+        const scheduled = appState.scheduledDailyTasks || [];
+
+        if (scheduled.length === 0) {
+          schedGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No tasks scheduled for today's shift yet. Tap "✨ Generate Fair Task Rotation" above!</p>`;
+        } else {
+          scheduled.forEach(task => {
+            const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned' };
+            const row = document.createElement('div');
+            row.className = 'task-item';
+            row.innerHTML = `
+              <div>
+                <div class="task-user">${task.title}</div>
+                <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem;">
+                <span class="task-pts">+${task.points} Coins</span>
+                <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
+                  <i data-lucide="trash-2"></i> Remove
+                </button>
+              </div>
+            `;
+            schedGrid.appendChild(row);
+          });
+
+          schedGrid.querySelectorAll('.btn-delete-sched').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const id = e.currentTarget.dataset.id;
+              appState.scheduledDailyTasks = appState.scheduledDailyTasks.filter(t => t.id !== id);
+              saveState();
+              showToast("Scheduled task removed.");
+            });
+          });
+        }
+      }
+
     } else if (activeEmp) {
       if (managerBlock) managerBlock.classList.add('hidden');
-      if (empProfileCard) empProfileCard.classList.remove('hidden');
-      if (empSubmissionsBlock) empSubmissionsBlock.classList.remove('hidden');
+      if (empDashboard) empDashboard.classList.remove('hidden');
 
-      // Populate Employee Profile Card
+      // Populate Employee Personal Summary Card
       const avatarEl = document.getElementById('emp-profile-avatar');
       if (avatarEl) {
         avatarEl.textContent = activeEmp.avatar;
@@ -710,7 +670,56 @@ document.addEventListener('DOMContentLoaded', () => {
       const rankEl = document.getElementById('emp-profile-rank');
       if (rankEl) rankEl.textContent = `#${rank > 0 ? rank : 1}`;
 
-      // Render STRICTLY PRIVATE Submissions for Logged In Employee ONLY
+      // Render Employee Personal Assigned Tasks (My Shift Schedule)
+      const empAssignedGrid = document.getElementById('employee-assigned-tasks-list');
+      if (empAssignedGrid) {
+        empAssignedGrid.innerHTML = '';
+        const myTasks = (appState.scheduledDailyTasks || []).filter(t => t.employeeId === activeEmp.id);
+
+        if (myTasks.length === 0) {
+          empAssignedGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No shift tasks assigned to you right now. Great job!</p>`;
+        } else {
+          myTasks.forEach(task => {
+            const row = document.createElement('div');
+            row.className = 'task-item';
+            row.innerHTML = `
+              <div>
+                <div class="task-user">${task.title}</div>
+                <div class="task-desc">Reward: +${task.points} Coins on approval</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem;">
+                <span class="task-pts">+${task.points} Coins</span>
+                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
+                  <i data-lucide="check-circle"></i> Mark Done
+                </button>
+              </div>
+            `;
+            empAssignedGrid.appendChild(row);
+          });
+
+          empAssignedGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const desc = e.currentTarget.dataset.desc;
+              const pts = parseInt(e.currentTarget.dataset.pts);
+
+              const newSubmission = {
+                id: 't-' + Date.now(),
+                employeeId: activeEmp.id,
+                desc: `Task Completed: ${desc}`,
+                points: pts,
+                status: 'PENDING',
+                timestamp: Date.now()
+              };
+
+              appState.tasks.push(newSubmission);
+              saveState();
+              showToast("Task completed and submitted for manager validation!");
+            });
+          });
+        }
+      }
+
+      // Render Employee STRICTLY PRIVATE Submissions & History
       const empSubmissionsList = document.getElementById('employee-submissions-list');
       if (empSubmissionsList) {
         empSubmissionsList.innerHTML = '';
@@ -743,18 +752,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manager View: Pending Approvals Feed
     const pendingTasks = appState.tasks.filter(t => t.status === 'PENDING');
     const pendingBadge = document.getElementById('pending-badge');
-    const pendingBadgeSubtab = document.getElementById('pending-badge-subtab');
     const pendingCountBadge = document.getElementById('pending-count-badge');
     const mobilePendingDot = document.getElementById('mobile-pending-dot');
 
     if (pendingTasks.length > 0) {
       if (pendingBadge) { pendingBadge.textContent = pendingTasks.length; pendingBadge.classList.remove('hidden'); }
-      if (pendingBadgeSubtab) { pendingBadgeSubtab.textContent = pendingTasks.length; pendingBadgeSubtab.classList.remove('hidden'); }
       if (pendingCountBadge) pendingCountBadge.textContent = `${pendingTasks.length} pending`;
       if (mobilePendingDot) mobilePendingDot.classList.remove('hidden');
     } else {
       if (pendingBadge) pendingBadge.classList.add('hidden');
-      if (pendingBadgeSubtab) pendingBadgeSubtab.classList.add('hidden');
       if (pendingCountBadge) pendingCountBadge.textContent = `0 pending`;
       if (mobilePendingDot) mobilePendingDot.classList.add('hidden');
     }
@@ -1033,6 +1039,101 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // 5. EVENT HANDLERS & NAVIGATION
   // ==========================================
+
+  // Automated Fair Task Rotation Engine
+  const generateFairRotation = () => {
+    if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
+      showToast("Master task catalogue is empty. Add tasks first!");
+      return;
+    }
+
+    const activeStaff = [...appState.staff];
+    if (activeStaff.length === 0) {
+      showToast("No active team members found.");
+      return;
+    }
+
+    const frontStaff = activeStaff.filter(s => s.role === 'FRONT');
+    const kitchenStaff = activeStaff.filter(s => s.role === 'KITCHEN');
+
+    const frontTasks = appState.masterTaskCatalogue.filter(t => t.scope === 'FRONT' || t.scope === 'EVERYONE');
+    const kitchenTasks = appState.masterTaskCatalogue.filter(t => t.scope === 'KITCHEN' || t.scope === 'EVERYONE');
+
+    const newScheduledTasks = [];
+
+    // Assign tasks to Front staff
+    if (frontStaff.length > 0 && frontTasks.length > 0) {
+      let taskIdx = 0;
+      frontStaff.forEach((emp) => {
+        for (let i = 0; i < 2; i++) {
+          const task = frontTasks[taskIdx % frontTasks.length];
+          newScheduledTasks.push({
+            id: 'st-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            employeeId: emp.id,
+            title: task.title,
+            category: task.scope,
+            points: task.points
+          });
+          taskIdx++;
+        }
+      });
+    }
+
+    // Assign tasks to Kitchen staff
+    if (kitchenStaff.length > 0 && kitchenTasks.length > 0) {
+      let taskIdx = 0;
+      kitchenStaff.forEach((emp) => {
+        for (let i = 0; i < 2; i++) {
+          const task = kitchenTasks[taskIdx % kitchenTasks.length];
+          newScheduledTasks.push({
+            id: 'st-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            employeeId: emp.id,
+            title: task.title,
+            category: task.scope,
+            points: task.points
+          });
+          taskIdx++;
+        }
+      });
+    }
+
+    appState.scheduledDailyTasks = newScheduledTasks;
+    saveState();
+    showToast("✨ Generated automated, fair task rotation across team!");
+  };
+
+  // Generate Fair Rotation Button Listener
+  const btnRotation = document.getElementById('btn-generate-rotation');
+  if (btnRotation) {
+    btnRotation.addEventListener('click', generateFairRotation);
+  }
+
+  // Create New Catalogue Task Listener
+  const formCreateCat = document.getElementById('form-create-catalogue-task');
+  if (formCreateCat) {
+    formCreateCat.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('cat-task-title').value.trim();
+      const scope = document.getElementById('cat-task-scope').value;
+      const points = parseInt(document.getElementById('cat-task-coins').value);
+
+      if (!title) return;
+
+      const newTask = {
+        id: 'cat-' + Date.now(),
+        title,
+        scope,
+        points
+      };
+
+      if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
+      appState.masterTaskCatalogue.push(newTask);
+
+      document.getElementById('cat-task-title').value = '';
+      saveState();
+      showToast("New task added to Master Catalogue!");
+    });
+  }
 
   // Account / Role Switcher Listener
   const roleSelect = document.getElementById('active-role-select');
@@ -1353,8 +1454,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // App Initialization
   loadState();
-  initSubtabs();
-  initSchedulerForm();
   isInitialized = true;
   renderAll();
 

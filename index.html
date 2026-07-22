@@ -229,83 +229,110 @@
         </div>
       </section>
 
-      <!-- TAB 3: TASKS & INITIATIVES (SPLIT INTO 2 SUB-TABS) -->
+      <!-- TAB 3: TASKS & INITIATIVES (SMART CATALOGUE, FAIR ROTATION & PRIVACY) -->
       <section id="tab-tasks" class="tab-content">
-        <!-- Sub-Tab Navigation Bar -->
-        <div class="subtab-navigation">
-          <button class="subtab-btn active" data-subtab="daily-tasks">
-            <i data-lucide="calendar-check"></i> 1. Daily Tasks & Schedule
-          </button>
-          <button class="subtab-btn" data-subtab="submissions">
-            <i data-lucide="sparkles"></i> 2. Submissions & Initiatives
-            <span id="pending-badge-subtab" class="badge-count hidden">0</span>
-          </button>
-        </div>
-
-        <!-- SUB-TAB 1: DAILY TASKS (SCHEDULER & CHECKLIST) -->
-        <div id="subtab-daily-tasks" class="subtab-content active">
-          <!-- Manager Scheduler Form (Visible ONLY to Manager) -->
-          <div id="manager-task-scheduler" class="section-card manager-only-block margin-bottom">
+        
+        <!-- MANAGER VIEW: TASK CATALOGUE, AUTOMATED ROTATION & VALIDATION DASHBOARD -->
+        <div id="manager-tasks-dashboard" class="manager-only-block">
+          
+          <!-- Section 1: Master Task Catalogue & Creation Form -->
+          <div class="section-card margin-bottom">
             <div class="section-header">
               <div>
-                <h3><i data-lucide="plus-circle" class="text-blue"></i> Manager Task Scheduler</h3>
-                <p class="text-muted">Create and assign recurring or daily shift tasks for Front and Kitchen team members.</p>
+                <h3><i data-lucide="book-open" class="text-blue"></i> Master Task Catalogue</h3>
+                <p class="text-muted">Global list of reusable tasks categorized by team scope (Front / Kitchen / Everyone) with Coin values.</p>
               </div>
             </div>
-            
-            <form id="form-schedule-task" class="grid-2col">
-              <div class="form-group">
-                <label>Assign to Team Member</label>
-                <select id="sched-task-employee" class="form-control" required></select>
-              </div>
+
+            <!-- Create New Catalogue Task Form -->
+            <form id="form-create-catalogue-task" class="grid-2col margin-bottom" style="background:var(--bg-input); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
               <div class="form-group">
                 <label>Task Title / Description</label>
-                <input type="text" id="sched-task-title" class="form-control" placeholder="e.g. Deep fryers cleaning, Terrace setup..." required />
+                <input type="text" id="cat-task-title" class="form-control" placeholder="e.g. Terrace rush setup, Deep fryer cleaning..." required />
               </div>
               <div class="form-group">
-                <label>Category</label>
-                <select id="sched-task-category" class="form-control">
-                  <option value="KITCHEN">Kitchen (Cuisine)</option>
-                  <option value="FRONT">Front (Floor / Bar)</option>
-                  <option value="GENERAL">General</option>
+                <label>Team Scope (Eligibility Filter)</label>
+                <select id="cat-task-scope" class="form-control">
+                  <option value="FRONT">Front Only (Floor / Bar)</option>
+                  <option value="KITCHEN">Kitchen Only (Cuisine)</option>
+                  <option value="EVERYONE">Everyone (General / All Team)</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Coin Reward</label>
-                <select id="sched-task-coins" class="form-control">
+                <label>Coin Value</label>
+                <select id="cat-task-coins" class="form-control">
                   <option value="15">+15 Coins (Standard Task)</option>
                   <option value="20" selected>+20 Coins (Important Task)</option>
                   <option value="25">+25 Coins (Major Shift Task)</option>
                   <option value="30">+30 Coins (Critical Task)</option>
                 </select>
               </div>
-              <div style="grid-column: 1 / -1;">
+              <div style="display:flex; align-items:flex-end;">
                 <button type="submit" class="btn btn-primary btn-block">
-                  <i data-lucide="plus"></i> Add & Assign Task to Schedule
+                  <i data-lucide="plus-circle"></i> Add Task to Master Catalogue
                 </button>
               </div>
             </form>
+
+            <!-- Master Task Catalogue Grid -->
+            <div id="master-catalogue-list" class="tasks-feed">
+              <!-- Dynamic Catalogue Items -->
+            </div>
           </div>
 
-          <!-- Daily Tasks List -->
+          <!-- Section 2: Automated Fair Rotation & Shift Scheduler -->
+          <div class="section-card margin-bottom">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="shuffle" class="text-gold"></i> Smart Fair Task Rotation & Daily Schedule</h3>
+                <p class="text-muted">Generate an automated, equal rotation of catalogue tasks to scheduled staff according to team scope.</p>
+              </div>
+              <button id="btn-generate-rotation" class="btn btn-gold">
+                <i data-lucide="sparkles"></i> ✨ Generate Fair Task Rotation
+              </button>
+            </div>
+
+            <!-- Scheduled Tasks List for Current Shift -->
+            <div id="manager-scheduled-tasks-grid" class="tasks-feed margin-top">
+              <!-- Dynamic Scheduled Shift Tasks -->
+            </div>
+          </div>
+
+          <!-- Section 3: Manager Validation Feed & History -->
+          <div class="section-card margin-bottom">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="shield-check" class="text-purple"></i> Pending Approvals & Validation Feed</h3>
+                <p class="text-muted">Approve or reject completed tasks and employee bonus initiatives to award Coins.</p>
+              </div>
+              <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
+            </div>
+            
+            <div id="pending-tasks-list" class="tasks-feed">
+              <!-- Dynamic Pending Approvals List -->
+            </div>
+          </div>
+
+          <!-- Approved Tasks History -->
           <div class="section-card">
             <div class="section-header">
               <div>
-                <h3><i data-lucide="list-checks" class="text-green"></i> Assigned Shift Tasks & Checklists</h3>
-                <p class="text-muted" id="daily-tasks-note">Check off tasks completed during your shift to request Coin rewards.</p>
+                <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
+                <p class="text-muted">Log of all approved tasks and awarded Coins across the entire team.</p>
               </div>
             </div>
-
-            <div id="daily-tasks-grid" class="tasks-feed">
-              <!-- Dynamic Daily Tasks Checklist -->
+            <div id="validated-tasks-list" class="history-list">
+              <!-- Dynamic History List -->
             </div>
           </div>
+
         </div>
 
-        <!-- SUB-TAB 2: SUBMISSIONS & INITIATIVES -->
-        <div id="subtab-submissions" class="subtab-content">
+        <!-- EMPLOYEE VIEW: DEDICATED PERSONAL SCHEDULE, INITIATIVES & PRIVATE HISTORY -->
+        <div id="employee-tasks-dashboard" class="employee-only-card hidden">
+          
           <!-- Employee Personal Summary Card -->
-          <div id="employee-profile-card" class="section-card employee-only-card hidden" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: var(--color-gold);">
+          <div class="section-card margin-bottom" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: var(--color-gold);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
               <div style="display:flex; align-items:center; gap:1rem;">
                 <div id="emp-profile-avatar" class="avatar" style="width:54px; height:54px; font-size:1.3rem;">EP</div>
@@ -327,80 +354,61 @@
             </div>
           </div>
 
-          <!-- Bonus Initiative Submission Form -->
+          <!-- Section 1: Assigned Shift Tasks (Personal Schedule) -->
           <div class="section-card margin-bottom">
             <div class="section-header">
-              <h3><i data-lucide="sparkles" class="text-gold"></i> Submit Initiative / Bonus Action</h3>
+              <div>
+                <h3><i data-lucide="list-checks" class="text-green"></i> Your Assigned Shift Schedule</h3>
+                <p class="text-muted">Tasks assigned to you for today's shift via fair team rotation. Tap "Mark Done" upon completion.</p>
+              </div>
             </div>
-            <p class="text-muted small-margin">Took an extra initiative during shift? Submit a short description to request Coins!</p>
+
+            <div id="employee-assigned-tasks-list" class="tasks-feed">
+              <!-- Dynamic Personal Shift Tasks -->
+            </div>
+          </div>
+
+          <!-- Section 2: Submit Bonus Initiative Form -->
+          <div class="section-card margin-bottom">
+            <div class="section-header">
+              <h3><i data-lucide="sparkles" class="text-gold"></i> Submit Extra Initiative / Bonus Action</h3>
+            </div>
+            <p class="text-muted small-margin">Took a spontaneous extra initiative during shift? Write a short description to request Coins!</p>
             
             <form id="form-bonus-task" class="task-form">
               <div class="form-group">
-                <label>Team Member</label>
-                <select id="task-bonus-employee" class="form-control" required></select>
-              </div>
-              <div class="form-group">
                 <label>Short Description of Initiative</label>
-                <input type="text" id="task-bonus-desc" class="form-control" placeholder="e.g. Guest compliment, terrace rush setup, quick fridge repair..." required />
+                <input type="text" id="task-bonus-desc" class="form-control" placeholder="e.g. Terrace rush setup, extra fridge repair, 5-star Google review..." required />
               </div>
               <div class="form-group">
                 <label>Suggested Coin Value</label>
                 <select id="task-bonus-pts" class="form-control">
                   <option value="15">+15 Coins (Courteous action / Team help)</option>
                   <option value="25" selected>+25 Coins (Remarkable Initiative)</option>
-                  <option value="35">+35 Coins (Exceptional Guest Impact)</option>
+                  <option value="30">+30 Coins (Exceptional Contribution)</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-gold btn-block">
-                <i data-lucide="plus-circle"></i> Submit Initiative
+                <i data-lucide="plus-circle"></i> Submit Initiative for Approval
               </button>
             </form>
           </div>
 
-          <!-- Manager Tasks Dashboard Container (Visible ONLY to Manager) -->
-          <div id="manager-tasks-dashboard" class="manager-only-block">
-            <!-- Manager Validation Section -->
-            <div class="section-card margin-top">
-              <div class="section-header">
-                <div>
-                  <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Dashboard: Pending Approvals</h3>
-                  <p class="text-muted">Approve or reject submitted entries to award Coins in real time.</p>
-                </div>
-                <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
-              </div>
-              
-              <div id="pending-tasks-list" class="tasks-feed">
-                <!-- Dynamic Pending List -->
-              </div>
-            </div>
-
-            <!-- Approved Tasks History -->
-            <div class="section-card margin-top">
-              <div class="section-header">
-                <div>
-                  <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
-                  <p class="text-muted">Review recently awarded Coins for all team members this month.</p>
-                </div>
-              </div>
-              <div id="validated-tasks-list" class="history-list">
-                <!-- Dynamic History List -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Employee Submitted Entries List (STRICTLY PRIVATE TO LOGGED IN EMPLOYEE) -->
-          <div id="employee-submissions-block" class="section-card margin-top employee-only-card hidden">
+          <!-- Section 3: Private Submissions & Coins History -->
+          <div class="section-card">
             <div class="section-header">
               <div>
-                <h3><i data-lucide="lock" class="text-gold"></i> Your Private Submissions & History</h3>
-                <p class="text-muted">Only you and the manager can view your submitted entries and approval status.</p>
+                <h3><i data-lucide="lock" class="text-gold"></i> Your Private Submissions & Approved History</h3>
+                <p class="text-muted">Strictly confidential log of your submitted entries and earned Coins.</p>
               </div>
             </div>
             <div id="employee-submissions-list" class="tasks-feed">
               <!-- Dynamic Private Submissions List -->
             </div>
           </div>
+
         </div>
+
       </section>
 
       <!-- TAB 4: TIP CALCULATOR (HYBRID: COIN-PROPORTIONS + MANUAL OVERRIDES & PERCENTAGES) -->
