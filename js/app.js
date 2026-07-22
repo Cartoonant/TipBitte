@@ -1084,8 +1084,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleSelect = document.getElementById('active-role-select');
     if (roleSelect) roleSelect.value = appState.activeRole;
 
-    document.querySelectorAll('[data-manager-only="true"]').forEach(el => {
+    document.querySelectorAll('[data-manager-only="true"], .manager-only-block').forEach(el => {
       if (isManager) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+
+    document.querySelectorAll('[data-employee-only="true"], .employee-only-card').forEach(el => {
+      if (!isManager) {
         el.style.display = '';
       } else {
         el.style.display = 'none';

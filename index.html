@@ -235,21 +235,20 @@
 
       <!-- TAB 3: TASKS & INITIATIVES (SPLIT INTO 2 SUB-TABS) -->
       <section id="tab-tasks" class="tab-content">
-        <!-- Sub-Tab Navigation Bar -->
-        <div class="subtab-navigation">
+        <!-- Sub-tabs navigation (Employee Only: Daily Tasks vs Submissions) -->
+        <div class="subtab-navigation margin-bottom employee-only-card" data-employee-only="true">
           <button class="subtab-btn active" data-subtab="daily-tasks">
-            <i data-lucide="calendar-check"></i> 1. Daily Tasks & Schedule
+            <i data-lucide="calendar-check"></i> 1. My Daily Task Roadmap
           </button>
           <button class="subtab-btn" data-subtab="submissions">
-            <i data-lucide="sparkles"></i> 2. Submissions & Initiatives
-            <span id="pending-badge-subtab" class="badge-count hidden">0</span>
+            <i data-lucide="sparkles"></i> 2. Submit Bonus Initiative
           </button>
         </div>
 
         <!-- SUB-TAB 1: DAILY TASKS (SCHEDULER & CHECKLIST) -->
         <div id="subtab-daily-tasks" class="subtab-content active">
           <!-- Manager Task Import & Schedule Generation Header (Visible ONLY to Manager) -->
-          <div id="manager-task-scheduler" class="section-card manager-only-block margin-bottom" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid var(--color-gold);">
+          <div id="manager-task-scheduler" class="section-card manager-only-block margin-bottom" data-manager-only="true" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid var(--color-gold);">
             <div class="section-header" style="margin-bottom:1rem;">
               <div>
                 <h3><i data-lucide="file-spreadsheet" class="text-gold"></i> Master Task Management & Schedule Generator</h3>
@@ -280,8 +279,8 @@
             </div>
           </div>
 
-          <!-- Manager View: Global Schedule Grid Table -->
-          <div id="manager-global-schedule-block" class="section-card manager-only-block margin-bottom">
+          <!-- Manager View: Global Schedule Grid Table (Visible ONLY to Manager) -->
+          <div id="manager-global-schedule-block" class="section-card manager-only-block margin-bottom" data-manager-only="true">
             <div class="section-header">
               <div>
                 <h3><i data-lucide="calendar" class="text-blue"></i> Global Monthly Task Schedule Grid</h3>
@@ -312,8 +311,8 @@
             </div>
           </div>
 
-          <!-- Daily Tasks List (Employee View: Personal Roadmap / Manager Day Checklist) -->
-          <div class="section-card">
+          <!-- Daily Tasks List (Employee View ONLY: Personal Roadmap) -->
+          <div class="section-card employee-only-card" data-employee-only="true">
             <div class="section-header">
               <div>
                 <h3><i data-lucide="list-checks" class="text-green"></i> <span id="daily-tasks-title">Today's Assigned Task Roadmap</span></h3>
@@ -327,8 +326,8 @@
           </div>
         </div>
 
-        <!-- SUB-TAB 2: SUBMISSIONS & INITIATIVES -->
-        <div id="subtab-submissions" class="subtab-content">
+        <!-- SUB-TAB 2: SUBMISSIONS & INITIATIVES (Employee View ONLY) -->
+        <div id="subtab-submissions" class="subtab-content employee-only-card" data-employee-only="true">
           <!-- Employee Personal Summary Card -->
           <div id="employee-profile-card" class="section-card employee-only-card hidden" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: var(--color-gold);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
