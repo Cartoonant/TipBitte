@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Global State
   let appState = {
     currentMonth: '2026-08',
+    activeRole: 'MANAGER', // 'MANAGER' or employee ID (e.g. 'emp-2')
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
@@ -67,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         appState = JSON.parse(saved);
         if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
-        // Reset if staff has family names or needs update
+        if (!appState.activeRole) appState.activeRole = 'MANAGER';
         if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
@@ -87,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const initDefaultState = () => {
     appState.staff = JSON.parse(JSON.stringify(DEFAULT_STAFF));
+    appState.activeRole = 'MANAGER';
     appState.tasks = [];
     appState.schedules = {};
     appState.tipsConfig = {};
@@ -436,8 +438,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Tasks & Initiatives Renderer
+  // Tasks & Initiatives Renderer (Role-Based Access)
   const renderTasks = () => {
+    const isManager = appState.activeRole === 'MANAGER';
+    const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
+
     const selectFixed = document.getElementById('task-fixed-employee');
     const selectBonus = document.getElementById('task-bonus-employee');
 
@@ -445,6 +450,76 @@ document.addEventListener('DOMContentLoaded', () => {
     selectFixed.innerHTML = optionsHTML;
     selectBonus.innerHTML = optionsHTML;
 
+    // View Adapters for Manager vs Employee
+    const managerBlock = document.getElementById('manager-tasks-dashboard');
+    const empProfileCard = document.getElementById('employee-profile-card');
+    const empSubmissionsBlock = document.getElementById('employee-submissions-block');
+
+    if (isManager) {
+      // Manager View
+      managerBlock.classList.remove('hidden');
+      empProfileCard.classList.add('hidden');
+      empSubmissionsBlock.classList.add('hidden');
+
+      selectFixed.disabled = false;
+      selectBonus.disabled = false;
+    } else if (activeEmp) {
+      // Employee View
+      managerBlock.classList.add('hidden');
+      empProfileCard.classList.remove('hidden');
+      empSubmissionsBlock.classList.remove('hidden');
+
+      // Populate Employee Profile Card
+      document.getElementById('emp-profile-avatar').textContent = activeEmp.avatar;
+      document.getElementById('emp-profile-avatar').style.backgroundColor = activeEmp.color;
+      document.getElementById('emp-profile-name').textContent = activeEmp.name;
+      document.getElementById('emp-profile-role').textContent = `${activeEmp.role === 'FRONT' ? 'Front (Floor/Bar)' : 'Kitchen'} - ${activeEmp.title}`;
+      document.getElementById('emp-profile-role').className = `badge ${activeEmp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}`;
+
+      const empCoins = getEmployeePoints(activeEmp.id);
+      document.getElementById('emp-profile-coins').textContent = `${empCoins} Coins`;
+
+      // Calculate Rank
+      const { empStats } = calculateTipDistribution();
+      const sorted = [...empStats].sort((a, b) => b.points - a.points);
+      const rank = sorted.findIndex(s => s.id === activeEmp.id) + 1;
+      document.getElementById('emp-profile-rank').textContent = `#${rank > 0 ? rank : 1}`;
+
+      // Auto-set and lock employee selection
+      selectFixed.value = activeEmp.id;
+      selectBonus.value = activeEmp.id;
+      selectFixed.disabled = true;
+      selectBonus.disabled = true;
+
+      // Render Employee Submitted Entries List
+      const empSubmissionsList = document.getElementById('employee-submissions-list');
+      empSubmissionsList.innerHTML = '';
+
+      const myEntries = appState.tasks.filter(t => t.employeeId === activeEmp.id).reverse();
+      if (myEntries.length === 0) {
+        empSubmissionsList.innerHTML = `<p class="text-muted" style="padding:1rem; text-align:center;">You haven't submitted any tasks or initiatives yet this month.</p>`;
+      } else {
+        myEntries.forEach(task => {
+          const item = document.createElement('div');
+          item.className = 'task-item';
+          
+          let statusBadge = `<span class="badge badge-purple">+${task.points} Coins Approved</span>`;
+          if (task.status === 'PENDING') statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Approval (+${task.points} Coins)</span>`;
+          if (task.status === 'REJECTED') statusBadge = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
+
+          item.innerHTML = `
+            <div>
+              <div class="task-user">${task.desc}</div>
+              <div class="task-desc">${new Date(task.timestamp).toLocaleDateString()}</div>
+            </div>
+            ${statusBadge}
+          `;
+          empSubmissionsList.appendChild(item);
+        });
+      }
+    }
+
+    // Manager View: Pending Approvals Feed
     const pendingTasks = appState.tasks.filter(t => t.status === 'PENDING');
     const pendingBadge = document.getElementById('pending-badge');
     const pendingCountBadge = document.getElementById('pending-count-badge');
@@ -473,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.className = 'task-item';
         item.innerHTML = `
           <div>
-            <div class="task-user">${emp.name}</div>
+            <div class="task-user">${emp.name} (${emp.title || emp.role})</div>
             <div class="task-desc">${task.desc}</div>
           </div>
           <div style="display:flex; align-items:center; gap:1rem;">
@@ -488,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Manager View: Approved Tasks History
     const validatedTasks = appState.tasks.filter(t => t.status === 'APPROVED').reverse();
     const historyList = document.getElementById('validated-tasks-list');
     historyList.innerHTML = '';
@@ -620,19 +696,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const renderAll = () => {
     applyTheme();
+
+    // Role-Based Navigation & Visibility Adapter
+    const isManager = appState.activeRole === 'MANAGER';
+    const roleSelect = document.getElementById('active-role-select');
+    if (roleSelect) roleSelect.value = appState.activeRole;
+
+    document.querySelectorAll('[data-manager-only="true"]').forEach(el => {
+      if (isManager) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+
+    // Auto-redirect if employee is trying to view a manager-only tab
+    const activeTabBtn = document.querySelector('.nav-btn.active, .bottom-nav-btn.active');
+    if (!isManager && activeTabBtn && activeTabBtn.dataset.managerOnly === "true") {
+      switchTab('dashboard');
+      return;
+    }
+
     renderMonthSelector();
     renderDashboard();
     renderPlanning();
     renderTasks();
-    renderTips();
-    renderStaff();
+    if (isManager) {
+      renderTips();
+      renderStaff();
+    }
   };
 
   // ==========================================
   // 5. EVENT HANDLERS & NAVIGATION
   // ==========================================
 
+  // Account / Role Switcher Listener
+  const roleSelect = document.getElementById('active-role-select');
+  if (roleSelect) {
+    roleSelect.addEventListener('change', (e) => {
+      appState.activeRole = e.target.value;
+      saveState();
+      
+      const roleName = e.target.options[e.target.selectedIndex].text;
+      showToast(`Switched active account to: ${roleName}`);
+    });
+  }
+
   const switchTab = (tabId) => {
+    const isManager = appState.activeRole === 'MANAGER';
+    // Prevent employee from navigating to restricted tabs
+    if (!isManager && (tabId === 'tips' || tabId === 'staff' || tabId === 'deploy')) {
+      showToast("Access restricted: Manager account required for this section.");
+      tabId = 'dashboard';
+    }
+
     document.querySelectorAll('.nav-btn, .bottom-nav-btn').forEach(btn => {
       if (btn.dataset.tab === tabId) {
         btn.classList.add('active');
@@ -652,8 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabId === 'dashboard') renderDashboard();
     if (tabId === 'planning') renderPlanning();
     if (tabId === 'tasks') renderTasks();
-    if (tabId === 'tips') renderTips();
-    if (tabId === 'staff') renderStaff();
+    if (tabId === 'tips' && isManager) renderTips();
+    if (tabId === 'staff' && isManager) renderStaff();
   };
 
   document.querySelectorAll('[data-tab]').forEach(btn => {

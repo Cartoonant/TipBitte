@@ -36,6 +36,22 @@
       </div>
 
       <div class="header-actions">
+        <!-- Role / Account Switcher -->
+        <div class="user-role-wrapper">
+          <i data-lucide="user-check" class="selector-icon text-gold"></i>
+          <select id="active-role-select" class="month-select role-select">
+            <option value="MANAGER">👑 Manager (Full Access)</option>
+            <optgroup label="Employee Accounts">
+              <option value="emp-2">👤 Vinod (Front)</option>
+              <option value="emp-3">👤 Siri (Front)</option>
+              <option value="emp-4">👤 Aadhi (Kitchen)</option>
+              <option value="emp-5">👤 Karthik (Kitchen)</option>
+              <option value="emp-6">👤 Bhanu (Kitchen)</option>
+              <option value="emp-7">👤 Muthyam (Kitchen)</option>
+            </optgroup>
+          </select>
+        </div>
+
         <button id="btn-theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
           <i data-lucide="sun" class="icon-sun"></i>
           <i data-lucide="moon" class="icon-moon"></i>
@@ -66,15 +82,15 @@
           <span>Tasks & Initiatives</span>
           <span id="pending-badge" class="badge-count hidden">0</span>
         </button>
-        <button class="nav-btn" data-tab="tips">
+        <button class="nav-btn manager-only-nav" data-tab="tips" data-manager-only="true">
           <i data-lucide="coins"></i>
           <span>Tip Calculator</span>
         </button>
-        <button class="nav-btn" data-tab="staff">
+        <button class="nav-btn manager-only-nav" data-tab="staff" data-manager-only="true">
           <i data-lucide="users"></i>
           <span>Team & Roles</span>
         </button>
-        <button class="nav-btn nav-btn-deploy" data-tab="deploy">
+        <button class="nav-btn nav-btn-deploy manager-only-nav" data-tab="deploy" data-manager-only="true">
           <i data-lucide="globe"></i>
           <span>Deploy Free</span>
         </button>
@@ -226,6 +242,29 @@
 
       <!-- TAB 3: TASKS & INITIATIVES -->
       <section id="tab-tasks" class="tab-content">
+        <!-- Employee Personal Summary Card (Visible only when logged in as an Employee) -->
+        <div id="employee-profile-card" class="section-card employee-only-card hidden" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: var(--color-gold);">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <div id="emp-profile-avatar" class="avatar" style="width:54px; height:54px; font-size:1.3rem;">EP</div>
+              <div>
+                <h3 id="emp-profile-name" style="margin:0;">Employee Name</h3>
+                <span id="emp-profile-role" class="badge badge-front">Front (Floor/Bar)</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:1.5rem; background:var(--bg-input); padding:0.75rem 1.25rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Your Coin Balance</span>
+                <strong id="emp-profile-coins" class="text-gold" style="font-size:1.25rem;">0 Coins</strong>
+              </div>
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Leaderboard Rank</span>
+                <strong id="emp-profile-rank" class="text-blue" style="font-size:1.25rem;">#1</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Gamification Banner -->
         <div class="info-box margin-bottom">
           <i data-lucide="sparkles" class="text-gold"></i>
@@ -305,31 +344,47 @@
           </div>
         </div>
 
-        <!-- Manager Validation Section -->
-        <div class="section-card margin-top">
-          <div class="section-header">
-            <div>
-              <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Dashboard: Pending Approvals</h3>
-              <p class="text-muted">Approve or reject submitted entries to award Coins in real time.</p>
+        <!-- Manager Tasks Dashboard Container (Visible ONLY to Manager) -->
+        <div id="manager-tasks-dashboard" class="manager-only-block">
+          <!-- Manager Validation Section -->
+          <div class="section-card margin-top">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Dashboard: Pending Approvals</h3>
+                <p class="text-muted">Approve or reject submitted entries to award Coins in real time.</p>
+              </div>
+              <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
             </div>
-            <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
+            
+            <div id="pending-tasks-list" class="tasks-feed">
+              <!-- Dynamic Pending List -->
+            </div>
           </div>
-          
-          <div id="pending-tasks-list" class="tasks-feed">
-            <!-- Dynamic Pending List -->
+
+          <!-- Approved Tasks History -->
+          <div class="section-card margin-top">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
+                <p class="text-muted">Review recently awarded Coins for all team members this month.</p>
+              </div>
+            </div>
+            <div id="validated-tasks-list" class="history-list">
+              <!-- Dynamic History List -->
+            </div>
           </div>
         </div>
 
-        <!-- Approved Tasks History -->
-        <div class="section-card margin-top">
+        <!-- Employee Submitted Entries List (Visible ONLY to active Employee) -->
+        <div id="employee-submissions-block" class="section-card margin-top employee-only-card hidden">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
-              <p class="text-muted">Review recently awarded Coins for all team members this month.</p>
+              <h3><i data-lucide="clock"></i> Your Submitted Tasks & Initiatives</h3>
+              <p class="text-muted">Status of entries you submitted for manager approval.</p>
             </div>
           </div>
-          <div id="validated-tasks-list" class="history-list">
-            <!-- Dynamic History List -->
+          <div id="employee-submissions-list" class="tasks-feed">
+            <!-- Dynamic List of entries for logged-in employee -->
           </div>
         </div>
       </section>
@@ -568,11 +623,11 @@
         <span>Tasks</span>
         <span id="mobile-pending-dot" class="dot-badge hidden"></span>
       </button>
-      <button class="bottom-nav-btn" data-tab="tips">
+      <button class="bottom-nav-btn manager-only-nav" data-tab="tips" data-manager-only="true">
         <i data-lucide="coins"></i>
         <span>Tips</span>
       </button>
-      <button class="bottom-nav-btn" data-tab="staff">
+      <button class="bottom-nav-btn manager-only-nav" data-tab="staff" data-manager-only="true">
         <i data-lucide="users"></i>
         <span>Team</span>
       </button>

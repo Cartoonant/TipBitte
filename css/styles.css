@@ -190,7 +190,7 @@ button, input, select, textarea {
 [data-theme="light"] .icon-sun { display: none; }
 [data-theme="light"] .icon-moon { display: block; }
 
-.month-selector-wrapper {
+.month-selector-wrapper, .user-role-wrapper {
   display: flex;
   align-items: center;
   background: var(--bg-input);
@@ -198,6 +198,16 @@ button, input, select, textarea {
   border-radius: var(--radius-md);
   padding: 0 0.75rem;
   gap: 0.5rem;
+}
+
+.role-select {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: transparent;
+  color: var(--text-main);
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
 }
 
 .selector-icon {
