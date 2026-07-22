@@ -246,8 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (heroMonth) heroMonth.textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
   };
 
-  // Dashboard & Leaderboard Renderer (Unified Global Ranking)
+  // Dashboard & Leaderboard Renderer (Unified Global Ranking & Role Permissions)
   const renderDashboard = () => {
+    const isManager = appState.activeRole === 'MANAGER';
     const { empStats, grandTotalPoints } = calculateTipDistribution();
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
@@ -318,7 +319,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Table Renderer (Unified Global Table)
+    // Table Header Renderer (Dynamic based on Manager vs Employee)
+    const thead = document.getElementById('leaderboard-thead');
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          <th>Rank</th>
+          <th>Employee</th>
+          <th>Team & Role</th>
+          <th>Coins Earned</th>
+          ${isManager ? `<th>Tip Share (%)</th><th>Estimated Tip (€)</th>` : ''}
+        </tr>
+      `;
+    }
+
+    // Table Body Renderer
     const tbody = document.getElementById('leaderboard-tbody');
     if (tbody) {
       tbody.innerHTML = '';
@@ -344,9 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </td>
           <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} Coins</strong></td>
-          <td>${emp.workedDays} days</td>
-          <td><strong>${emp.tipSharePercent.toFixed(2)}%</strong></td>
-          <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
+          ${isManager ? `
+            <td><strong>${emp.tipSharePercent.toFixed(2)}%</strong></td>
+            <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
+          ` : ''}
         `;
         tbody.appendChild(tr);
       });

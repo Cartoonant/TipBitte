@@ -115,7 +115,7 @@
             <h2>Employee of the Month <span id="hero-month-name">August 2026</span></h2>
             <p>Earn <strong>Coins</strong> by completing tasks and logging shift initiatives to share monthly tips fairly!</p>
           </div>
-          <button id="btn-reveal-winner" class="btn btn-gold glow">
+          <button id="btn-reveal-winner" class="btn btn-gold glow manager-only-nav" data-manager-only="true">
             <i data-lucide="crown"></i> Crown the Winner
           </button>
         </div>
@@ -176,19 +176,11 @@
           <!-- Ranking Table -->
           <div class="table-responsive">
             <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Employee</th>
-                  <th>Team & Role</th>
-                  <th>Coins Earned</th>
-                  <th>Days Worked</th>
-                  <th>Tip Share (%)</th>
-                  <th>Estimated Tip (€)</th>
-                </tr>
+              <thead id="leaderboard-thead">
+                <!-- Dynamic Header based on Manager vs Employee Role -->
               </thead>
               <tbody id="leaderboard-tbody">
-                <!-- Dynamic -->
+                <!-- Dynamic Rows -->
               </tbody>
             </table>
           </div>
