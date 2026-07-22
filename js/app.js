@@ -6,16 +6,20 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
-  // 1. ÉTAT INITIAL ET DONNÉES PAR DÉFAUT
+  // 1. ÉTAT INITIAL ET DONNÉES DU PERSONNEL RÉEL
   // ==========================================
 
   const DEFAULT_STAFF = [
-    { id: 'emp-1', name: 'Alexandre R.', role: 'FRONT', color: '#3b82f6', avatar: 'AR' },
-    { id: 'emp-2', name: 'Sarah B.', role: 'FRONT', color: '#8b5cf6', avatar: 'SB' },
-    { id: 'emp-3', name: 'Lucas M.', role: 'FRONT', color: '#06b6d4', avatar: 'LM' },
-    { id: 'emp-4', name: 'Julien K.', role: 'KITCHEN', color: '#ec4899', avatar: 'JK' },
-    { id: 'emp-5', name: 'Marie D.', role: 'KITCHEN', color: '#f59e0b', avatar: 'MD' },
-    { id: 'emp-6', name: 'Antoine P.', role: 'KITCHEN', color: '#10b981', avatar: 'AP' },
+    // Équipe Front (Salle / Bar)
+    { id: 'emp-1', name: 'Vinod', role: 'FRONT', color: '#3b82f6', avatar: 'VN' },
+    { id: 'emp-2', name: 'Siri', role: 'FRONT', color: '#8b5cf6', avatar: 'SR' },
+    { id: 'emp-3', name: 'Bruno', role: 'FRONT', color: '#06b6d4', avatar: 'BR' },
+    
+    // Équipe Kitchen (Cuisine)
+    { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', color: '#ec4899', avatar: 'AD' },
+    { id: 'emp-5', name: 'Bhanu', role: 'KITCHEN', color: '#f59e0b', avatar: 'BH' },
+    { id: 'emp-6', name: 'Karthik', role: 'KITCHEN', color: '#10b981', avatar: 'KR' },
+    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', color: '#6366f1', avatar: 'MT' }
   ];
 
   // Helper pour générer un mois au format YYYY-MM
@@ -52,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         appState = JSON.parse(saved);
         if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
+        // Vérifier si le staff est au nouveau format
+        if (!appState.staff || appState.staff.length === 0 || !appState.staff.some(s => s.name === 'Vinod')) {
+          initDefaultState();
+        }
       } catch (e) {
         console.error("Erreur de lecture du LocalStorage", e);
         initDefaultState();
@@ -67,13 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const initDefaultState = () => {
-    appState.staff = [...DEFAULT_STAFF];
+    appState.staff = JSON.parse(JSON.stringify(DEFAULT_STAFF));
     appState.tasks = [];
     appState.schedules = {};
     appState.tipsConfig = {};
     appState.theme = 'dark';
     
-    // Génération automatique d'un jeu de données réalistes
+    // Génération automatique d'un jeu de données réalistes pour le staff du restaurant
     generateDemoData();
   };
 
@@ -81,12 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mKey = appState.currentMonth;
     const daysCount = getDaysInMonth(mKey);
 
-    // Initialiser les plannings avec des jours de repos distribués
+    // Initialiser les plannings avec des jours de repos distribués (repos uniques par employé)
     if (!appState.schedules[mKey]) {
       appState.schedules[mKey] = {};
       appState.staff.forEach((emp, index) => {
         appState.schedules[mKey][emp.id] = {};
-        // Exemple : chaque employé a 6 à 8 jours OFF uniques par mois
+        // Exemple : repos hebdomadaires décalés pour chaque employé
         const offDays = [(index % 4) + 2, (index % 5) + 7, (index % 4) + 12, (index % 3) + 18, (index % 4) + 24, (index % 2) + 28];
         for (let d = 1; d <= daysCount; d++) {
           appState.schedules[mKey][emp.id][d] = !offDays.includes(d);
@@ -94,23 +102,24 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Config Tips par défaut
+    // Config Tips par défaut (ex: 2450 € distribuer)
     if (!appState.tipsConfig[mKey]) {
       appState.tipsConfig[mKey] = {
-        totalAmount: 2150,
+        totalAmount: 2450,
         rule: 'RATIO_60_40'
       };
     }
 
-    // Quelques tâches pré-chargées
+    // Tâches de démonstration attribuées au personnel réel
     appState.tasks = [
-      { id: 't-1', employeeId: 'emp-1', desc: 'Clôture caisse & rangement bar complet (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 36000000 },
-      { id: 't-2', employeeId: 'emp-4', desc: 'Cuisine: Nettoyage approfondi & désinfection (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 32000000 },
-      { id: 't-3', employeeId: 'emp-2', desc: 'Gestion de groupe de 25 personnes sans retard', points: 25, status: 'APPROVED', timestamp: Date.now() - 24000000 },
-      { id: 't-4', employeeId: 'emp-5', desc: 'Réparation rapide de la machine à glaçons', points: 20, status: 'APPROVED', timestamp: Date.now() - 12000000 },
-      { id: 't-5', employeeId: 'emp-3', desc: 'Accueil & gestion des stocks liquides (+10 pts)', points: 10, status: 'APPROVED', timestamp: Date.now() - 8000000 },
-      { id: 't-6', employeeId: 'emp-6', desc: 'Remplacement au pied levé le samedi 12', points: 25, status: 'PENDING', timestamp: Date.now() - 3600000 },
-      { id: 't-7', employeeId: 'emp-1', desc: 'Superbe initiative : création carte des cocktails été', points: 35, status: 'PENDING', timestamp: Date.now() - 1800000 }
+      { id: 't-1', employeeId: 'emp-1', desc: 'Front (Vinod): Clôture caisse & rangement bar (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 36000000 },
+      { id: 't-2', employeeId: 'emp-4', desc: 'Kitchen (Aadhi): Nettoyage approfondi cuisine & désinfection (+15 pts)', points: 15, status: 'APPROVED', timestamp: Date.now() - 32000000 },
+      { id: 't-3', employeeId: 'emp-2', desc: 'Front (Siri): Gestion de banquet 30 personnes avec zéro erreur', points: 25, status: 'APPROVED', timestamp: Date.now() - 24000000 },
+      { id: 't-4', employeeId: 'emp-5', desc: 'Kitchen (Bhanu): Préparation mise en place du soir exceptionnelle', points: 20, status: 'APPROVED', timestamp: Date.now() - 12000000 },
+      { id: 't-5', employeeId: 'emp-3', desc: 'Front (Bruno): Réassort complet des frigos & inventaire boisson (+10 pts)', points: 10, status: 'APPROVED', timestamp: Date.now() - 8000000 },
+      { id: 't-6', employeeId: 'emp-6', desc: 'Kitchen (Karthik): Remplacement d\'un collègue sur repos (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
+      { id: 't-7', employeeId: 'emp-7', desc: 'Kitchen (Muthyam): Optimisation du poste de grillade pendant le rush', points: 20, status: 'PENDING', timestamp: Date.now() - 3600000 },
+      { id: 't-8', employeeId: 'emp-1', desc: 'Front (Vinod): Compliment client rédigé sur Google Avis (+20 pts)', points: 20, status: 'PENDING', timestamp: Date.now() - 1800000 }
     ];
 
     saveState();
