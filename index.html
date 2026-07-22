@@ -20,8 +20,48 @@
 </head>
 <body>
 
+  <!-- Login Authentication Screen -->
+  <div id="login-screen" class="login-screen-overlay">
+    <div class="login-card glassmorphism">
+      <div class="login-header">
+        <div class="login-brand-icon">
+          <i data-lucide="hand-coins"></i>
+        </div>
+        <h2>TipBitte</h2>
+        <p class="text-muted">Meritocratic Tip Sharing & Team Gamification</p>
+      </div>
+
+      <form id="form-login" class="login-form">
+        <div id="login-error-alert" class="alert alert-danger hidden" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3); padding:0.65rem 1rem; border-radius:var(--radius-md); font-size:0.85rem; margin-bottom:1rem; text-align:center;">
+          <i data-lucide="alert-triangle"></i> Invalid username or password!
+        </div>
+
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="login-username" class="form-control input-lg" placeholder="e.g. manager, vinod, siri..." required />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" class="form-control input-lg" placeholder="••••••••" required />
+        </div>
+
+        <button type="submit" class="btn btn-gold btn-block btn-lg margin-top">
+          <i data-lucide="log-in"></i> Sign In to TipBitte
+        </button>
+
+        <div class="login-credentials-hint margin-top" style="background:var(--bg-input); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color); font-size:0.75rem; color:var(--text-muted);">
+          <strong style="color:var(--text-main); display:block; margin-bottom:0.35rem;">🔑 Demo Accounts & Credentials:</strong>
+          <div>👑 <strong>Manager:</strong> <code>manager</code> / <code>password123</code></div>
+          <div>👤 <strong>Front Staff:</strong> <code>vinod</code>, <code>siri</code> / <code>emp123</code></div>
+          <div>👨‍🍳 <strong>Kitchen Staff:</strong> <code>aadhi</code>, <code>karthik</code>, <code>bhanu</code>, <code>muthyam</code> / <code>emp123</code></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- App Wrapper -->
-  <div id="app" class="app-container">
+  <div id="app" class="app-container hidden">
     
     <!-- Top Header -->
     <header class="app-header">
@@ -35,20 +75,16 @@
       </div>
 
       <div class="header-actions">
-        <!-- Role / Account Switcher -->
-        <div class="user-role-wrapper">
-          <i data-lucide="user-check" class="selector-icon text-gold"></i>
-          <select id="active-role-select" class="month-select role-select">
-            <option value="MANAGER">👑 Manager (Full Access)</option>
-            <optgroup label="Employee Accounts">
-              <option value="emp-2">👤 Vinod (Front)</option>
-              <option value="emp-3">👤 Siri (Front)</option>
-              <option value="emp-4">👤 Aadhi (Kitchen)</option>
-              <option value="emp-5">👤 Karthik (Kitchen)</option>
-              <option value="emp-6">👤 Bhanu (Kitchen)</option>
-              <option value="emp-7">👤 Muthyam (Kitchen)</option>
-            </optgroup>
-          </select>
+        <!-- Logged In User Profile Card & Log Out -->
+        <div id="logged-user-bar" style="display:flex; align-items:center; gap:0.75rem; background:var(--bg-input); padding:0.35rem 0.75rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+          <div id="user-header-avatar" class="avatar" style="width:26px; height:26px; font-size:0.7rem; background-color:var(--color-gold);">MN</div>
+          <div>
+            <span id="user-header-name" style="font-weight:700; font-size:0.85rem; display:block; line-height:1.2;">Manager</span>
+            <span id="user-header-role" class="badge badge-gold" style="font-size:0.6rem; padding:0.05rem 0.3rem;">👑 Manager</span>
+          </div>
+          <button id="btn-logout" class="btn btn-danger-outline btn-sm" title="Log Out" style="padding:0.25rem 0.6rem; font-size:0.75rem; margin-left:0.35rem;">
+            <i data-lucide="log-out"></i> Log Out
+          </button>
         </div>
 
         <button id="btn-theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">

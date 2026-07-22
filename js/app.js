@@ -9,6 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. INITIAL STATE & REAL STAFF ROSTER (AUGUST 2026)
   // ==========================================
 
+  // Mock Credentials Registry for Authentication
+  const CREDENTIALS_REGISTRY = [
+    { username: 'manager', password: 'password123', id: 'MANAGER', name: 'Manager', role: 'MANAGER', avatar: 'MN', title: 'Restaurant Lead', color: '#f59e0b' },
+    { username: 'vinod', password: 'emp123', id: 'emp-2', name: 'Vinod', role: 'FRONT', avatar: 'VN', title: 'Service Lead', color: '#3b82f6' },
+    { username: 'siri', password: 'emp123', id: 'emp-3', name: 'Siri', role: 'FRONT', avatar: 'SR', title: 'Server', color: '#8b5cf6' },
+    { username: 'aadhi', password: 'emp123', id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', avatar: 'AD', title: 'Kitchen Lead', color: '#ec4899' },
+    { username: 'karthik', password: 'emp123', id: 'emp-5', name: 'Karthik', role: 'KITCHEN', avatar: 'KR', title: 'Kitchen', color: '#10b981' },
+    { username: 'bhanu', password: 'emp123', id: 'emp-6', name: 'Bhanu', role: 'KITCHEN', avatar: 'BH', title: 'Kitchen', color: '#f59e0b' },
+    { username: 'muthyam', password: 'emp123', id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', avatar: 'MT', title: 'Kitchen', color: '#6366f1' }
+  ];
+
   const DEFAULT_STAFF = [
     // Front Team (Floor / Bar)
     { id: 'emp-2', name: 'Vinod', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VN' },
@@ -1076,7 +1087,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
+  // Session & Authentication Handling
+  const checkSession = () => {
+    const sessionRaw = localStorage.getItem('tipbitte_session');
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app');
+
+    if (!sessionRaw) {
+      if (loginScreen) loginScreen.classList.remove('hidden');
+      if (appContainer) appContainer.classList.add('hidden');
+      return false;
+    }
+
+    try {
+      const sessionUser = JSON.parse(sessionRaw);
+      appState.activeRole = sessionUser.id;
+      
+      // Update top header bar user info
+      const avatarEl = document.getElementById('user-header-avatar');
+      const nameEl = document.getElementById('user-header-name');
+      const roleEl = document.getElementById('user-header-role');
+
+      if (avatarEl) {
+        avatarEl.textContent = sessionUser.avatar || 'US';
+        avatarEl.style.backgroundColor = sessionUser.color || 'var(--color-primary)';
+      }
+      if (nameEl) nameEl.textContent = sessionUser.name;
+      if (roleEl) {
+        if (sessionUser.role === 'MANAGER') {
+          roleEl.textContent = '👑 Manager';
+          roleEl.className = 'badge badge-gold';
+        } else {
+          roleEl.textContent = `👤 ${sessionUser.name} (${sessionUser.role})`;
+          roleEl.className = sessionUser.role === 'FRONT' ? 'badge badge-front' : 'badge badge-kitchen';
+        }
+      }
+
+      if (loginScreen) loginScreen.classList.add('hidden');
+      if (appContainer) appContainer.classList.remove('hidden');
+      return true;
+    } catch (e) {
+      localStorage.removeItem('tipbitte_session');
+      if (loginScreen) loginScreen.classList.remove('hidden');
+      if (appContainer) appContainer.classList.add('hidden');
+      return false;
+    }
+  };
+
   const renderAll = () => {
+    if (!checkSession()) return;
     applyTheme();
 
     // Role-Based Navigation & Visibility Adapter
@@ -1271,6 +1330,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
       reader.readAsText(file);
+    });
+  // Login Form Submission Listener
+  const formLogin = document.getElementById('form-login');
+  if (formLogin) {
+    formLogin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const usernameInput = document.getElementById('login-username').value.trim().toLowerCase();
+      const passwordInput = document.getElementById('login-password').value;
+      const errorAlert = document.getElementById('login-error-alert');
+
+      const match = CREDENTIALS_REGISTRY.find(c => c.username.toLowerCase() === usernameInput && c.password === passwordInput);
+
+      if (match) {
+        if (errorAlert) errorAlert.classList.add('hidden');
+        localStorage.setItem('tipbitte_session', JSON.stringify(match));
+        checkSession();
+        renderAll();
+        showToast(`Welcome back, ${match.name}!`);
+      } else {
+        if (errorAlert) errorAlert.classList.remove('hidden');
+      }
+    });
+  }
+
+  // Logout Button Listener
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('tipbitte_session');
+      checkSession();
+      showToast("Logged out successfully.");
     });
   }
 
