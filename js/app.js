@@ -359,12 +359,37 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Rendu de l'onglet Planning (Jours OFF)
+  let planningFilter = 'ALL';
+
   const renderPlanning = () => {
     const table = document.getElementById('planning-table');
     table.innerHTML = '';
 
     const daysCount = getDaysInMonth(appState.currentMonth);
     const monthSchedules = appState.schedules[appState.currentMonth] || {};
+
+    // Filtrage des employés selon le filtre du planning
+    let staffList = [...appState.staff];
+    if (planningFilter !== 'ALL') {
+      staffList = staffList.filter(s => s.role === planningFilter);
+    }
+
+    // Calcul des métriques globales de l'équipe
+    let totalTeamWorkedDays = 0;
+    let totalTeamHours = 0;
+
+    staffList.forEach(emp => {
+      const att = getEmployeeAttendance(emp.id, appState.currentMonth);
+      totalTeamWorkedDays += att.workedDays;
+      totalTeamHours += att.workedHours;
+    });
+
+    const avgDays = staffList.length > 0 ? (totalTeamWorkedDays / staffList.length).toFixed(1) : 0;
+    const avgHours = staffList.length > 0 ? Math.round(totalTeamHours / staffList.length) : 0;
+
+    document.getElementById('plan-total-staff').textContent = `${staffList.length} membres (${planningFilter === 'ALL' ? 'Front & Kitchen' : planningFilter})`;
+    document.getElementById('plan-total-team-hours').textContent = `${totalTeamHours} h (${totalTeamWorkedDays} shifts)`;
+    document.getElementById('plan-avg-days').textContent = `${avgDays} jours (${avgHours}h)`;
 
     // Header : Employé + Jours 1..N + Total Heures
     let headerHTML = `<thead><tr><th class="cell-name">Membre de l'Équipe</th>`;
@@ -375,38 +400,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let bodyHTML = `<tbody>`;
 
-    appState.staff.forEach(emp => {
-      const empSchedule = monthSchedules[emp.id] || {};
-      let workedDays = 0;
+    if (staffList.length === 0) {
+      bodyHTML += `<tr><td colspan="${daysCount + 3}" style="text-align:center; padding:2rem;" class="text-muted">Aucun employé dans cette catégorie.</td></tr>`;
+    } else {
+      staffList.forEach(emp => {
+        const empSchedule = monthSchedules[emp.id] || {};
+        let workedDays = 0;
 
-      let rowHTML = `<tr><td class="cell-name">
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          <span class="dot" style="background:${emp.color}"></span>
-          <span>${emp.name}</span>
-          <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}" style="font-size:0.65rem; padding:0.1rem 0.4rem;">
-            ${emp.role}
-          </span>
-        </div>
-      </td>`;
+        let rowHTML = `<tr><td class="cell-name">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="dot" style="background:${emp.color}"></span>
+            <span>${emp.name}</span>
+            <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}" style="font-size:0.65rem; padding:0.1rem 0.4rem;">
+              ${emp.role}
+            </span>
+          </div>
+        </td>`;
 
-      for (let d = 1; d <= daysCount; d++) {
-        const isWorked = empSchedule[d] !== false; // true par défaut
-        if (isWorked) workedDays++;
+        for (let d = 1; d <= daysCount; d++) {
+          const isWorked = empSchedule[d] !== false; // true par défaut
+          if (isWorked) workedDays++;
 
-        rowHTML += `
-          <td class="shift-cell ${isWorked ? 'is-work' : 'is-off'}" 
-              data-emp="${emp.id}" 
-              data-day="${d}" 
-              title="${isWorked ? 'Shift 11h30-22h30 (11h travaillées)' : 'Jour OFF (Repos)'}">
-            ${isWorked ? '11h' : 'OFF'}
-          </td>
-        `;
-      }
+          rowHTML += `
+            <td class="shift-cell ${isWorked ? 'is-work' : 'is-off'}" 
+                data-emp="${emp.id}" 
+                data-day="${d}" 
+                title="${isWorked ? 'Shift 11h30-22h30 (11h travaillées)' : 'Jour OFF (Repos)'}">
+              ${isWorked ? '11h' : 'OFF'}
+            </td>
+          `;
+        }
 
-      const totalHours = workedDays * 11;
-      rowHTML += `<td><strong>${workedDays} j</strong></td><td><strong class="text-blue">${totalHours} h</strong></td></tr>`;
-      bodyHTML += rowHTML;
-    });
+        const totalHours = workedDays * 11;
+        rowHTML += `<td><strong>${workedDays} j</strong></td><td><strong class="text-blue">${totalHours} h</strong></td></tr>`;
+        bodyHTML += rowHTML;
+      });
+    }
 
     bodyHTML += `</tbody>`;
     table.innerHTML = headerHTML + bodyHTML;
@@ -432,6 +461,48 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   };
+
+  // Event Listeners Spécifiques au Planning
+  document.querySelectorAll('.planning-filter').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.planning-filter').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      planningFilter = e.currentTarget.dataset.planFilter;
+      renderPlanning();
+    });
+  });
+
+  document.getElementById('btn-plan-all-work').addEventListener('click', () => {
+    const daysCount = getDaysInMonth(appState.currentMonth);
+    if (!appState.schedules[appState.currentMonth]) appState.schedules[appState.currentMonth] = {};
+    
+    appState.staff.forEach(emp => {
+      appState.schedules[appState.currentMonth][emp.id] = {};
+      for (let d = 1; d <= daysCount; d++) {
+        appState.schedules[appState.currentMonth][emp.id][d] = true;
+      }
+    });
+
+    saveState();
+    showToast("Tous les jours marqués comme travaillés !");
+  });
+
+  document.getElementById('btn-plan-standard-off').addEventListener('click', () => {
+    const daysCount = getDaysInMonth(appState.currentMonth);
+    if (!appState.schedules[appState.currentMonth]) appState.schedules[appState.currentMonth] = {};
+    
+    appState.staff.forEach((emp, index) => {
+      appState.schedules[appState.currentMonth][emp.id] = {};
+      // Assigne 6 jours OFF répartis de manière équilibrée
+      const offDays = [(index % 4) + 2, (index % 5) + 7, (index % 4) + 12, (index % 3) + 18, (index % 4) + 24, (index % 2) + 28];
+      for (let d = 1; d <= daysCount; d++) {
+        appState.schedules[appState.currentMonth][emp.id][d] = !offDays.includes(d);
+      }
+    });
+
+    saveState();
+    showToast("Planning de repos hebdomadaire équilibré appliqué !");
+  });
 
   // Rendu de l'onglet Tâches & Validation
   const renderTasks = () => {

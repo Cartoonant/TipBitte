@@ -189,12 +189,47 @@
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="calendar-range"></i> Planning des Jours OFF</h3>
-              <p class="text-muted">Cliquez sur une case pour basculer entre <strong>Travail (11h)</strong> et <strong>Jour OFF</strong> (shift fixe 11h30 - 22h30).</p>
+              <h3><i data-lucide="calendar-range" class="text-blue"></i> Planning des Jours OFF & Présences</h3>
+              <p class="text-muted">Cliquez/touchez une case pour basculer entre <strong>Travail (11h)</strong> et <strong>Jour OFF</strong> (shift fixe 11h30 - 22h30).</p>
             </div>
+            
             <div class="planning-legend">
               <span class="legend-item"><span class="dot dot-work"></span> Travaillé (11h)</span>
-              <span class="legend-item"><span class="dot dot-off"></span> Jour OFF</span>
+              <span class="legend-item"><span class="dot dot-off"></span> Jour OFF (Repos)</span>
+            </div>
+          </div>
+
+          <!-- Barre de Contrôles & Métriques du Planning -->
+          <div class="planning-controls">
+            <div class="filter-pills">
+              <button class="pill-btn planning-filter active" data-plan-filter="ALL">Toute l'Équipe</button>
+              <button class="pill-btn planning-filter" data-plan-filter="FRONT">Salle & Bar</button>
+              <button class="pill-btn planning-filter" data-plan-filter="KITCHEN">Cuisine</button>
+            </div>
+
+            <div class="planning-quick-actions">
+              <button id="btn-plan-all-work" class="btn btn-outline btn-sm" title="Marquer tous les jours en jours travaillés">
+                <i data-lucide="check-check"></i> 100% Travaillé
+              </button>
+              <button id="btn-plan-standard-off" class="btn btn-outline btn-sm" title="Assigner automatiquement les repos hebdomadaires">
+                <i data-lucide="wand-2"></i> Repos Hebdo Auto
+              </button>
+            </div>
+          </div>
+
+          <!-- Métriques Résumé Planning -->
+          <div class="planning-stats-bar">
+            <div class="p-stat">
+              <span>Effectif Total :</span>
+              <strong id="plan-total-staff">0 employés</strong>
+            </div>
+            <div class="p-stat">
+              <span>Heures Cumulées Équipe :</span>
+              <strong id="plan-total-team-hours" class="text-blue">0 h</strong>
+            </div>
+            <div class="p-stat">
+              <span>Moyenne par Employé :</span>
+              <strong id="plan-avg-days">0 jours (0h)</strong>
             </div>
           </div>
 
