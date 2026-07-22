@@ -1445,6 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!csvText || !csvText.trim()) return [];
     const lines = csvText.split(/\r?\n/);
     const imported = [];
+    let currentSectionScope = 'EVERYONE';
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
@@ -1455,7 +1456,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Find first non-empty column
       const firstCol = cleanParts.find(p => p.length > 0) || '';
-      if (!firstCol || firstCol.toLowerCase() === 'task name' || firstCol.toLowerCase() === 'dayly tasks') return;
+      if (!firstCol || firstCol.toLowerCase() === 'task name') return;
+
+      const lower = firstCol.toLowerCase();
+
+      // Track Section Headers in Google Sheet (e.g. "Roy Tasks", "Cleaner Tasks", "Front Tasks", "Kitchen Tasks")
+      if (lower.includes('roy') || lower.includes('cleaner') || lower.includes('cleaning tasks')) {
+        currentSectionScope = 'CLEANER';
+        return;
+      } else if (lower.includes('front tasks') || lower.includes('floor tasks') || lower.includes('service tasks')) {
+        currentSectionScope = 'FRONT';
+        return;
+      } else if (lower.includes('kitchen tasks') || lower.includes('cook tasks') || lower.includes('prep tasks')) {
+        currentSectionScope = 'KITCHEN';
+        return;
+      } else if (lower === 'dayly tasks' || lower.includes('general tasks')) {
+        currentSectionScope = 'EVERYONE';
+        return;
+      }
 
       let title = firstCol;
       let scope = cleanParts[2] ? cleanParts[2].toUpperCase() : '';
@@ -1466,15 +1484,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Smart Scope Auto-Detection if unassigned
       if (!scope || !['FRONT', 'KITCHEN', 'EVERYONE', 'CLEANER'].includes(scope)) {
-        const lower = title.toLowerCase();
-        if (lower.includes('thrash') || lower.includes('trash') || lower.includes('karton') || lower.includes('basement') || lower.includes('deliveries') || lower.includes('meat') || lower.includes('groceries') || lower.includes('fridge')) {
+        if (lower.includes('roy') || lower.includes('mop') || lower.includes('sweep') || lower.includes('cleaner')) {
+          scope = 'CLEANER';
+        } else if (lower.includes('thrash') || lower.includes('trash') || lower.includes('karton') || lower.includes('basement') || lower.includes('deliveries') || lower.includes('meat') || lower.includes('groceries') || lower.includes('freezer')) {
           scope = 'KITCHEN';
         } else if (lower.includes('dine-in') || lower.includes('carpet') || lower.includes('wall') || lower.includes('door') || lower.includes('wickelraum')) {
           scope = 'FRONT';
-        } else if (lower.includes('cleaner') || lower.includes('mop') || lower.includes('sweep')) {
-          scope = 'CLEANER';
         } else {
-          scope = 'EVERYONE';
+          scope = currentSectionScope;
         }
       }
 
@@ -2054,5 +2071,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSchedulerForm();
   isInitialized = true;
   renderAll();
+  syncGoogleSheetTasks(false);
 
 });
