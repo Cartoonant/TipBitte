@@ -18,7 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD', offDays: [4] },    // Thursday
     { id: 'emp-5', name: 'Karthik', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KR', offDays: [1] },    // Monday
     { id: 'emp-6', name: 'Bhanu', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BH', offDays: [2] },    // Tuesday
-    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT', offDays: [3] }    // Wednesday
+    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT', offDays: [3] },   // Wednesday
+
+    // Cleaning Team
+    { id: 'emp-8', name: 'Roy', role: 'CLEANER', title: 'Cleaner', color: '#14b8a6', avatar: 'RY', offDays: [] }
   ];
 
   const DEFAULT_MASTER_CATALOGUE = [
@@ -31,7 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'cat-7', title: 'Prep list completion & food label audit', scope: 'KITCHEN', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Complete prep list items, check FIFO expiry dates, apply date labels.' },
     { id: 'cat-8', title: 'Zero food waste & stock rotation lead', scope: 'KITCHEN', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Monitor portion sizes, record daily waste log, rotate walk-in cooler stock.' },
     { id: 'cat-9', title: 'Hero shift lead & emergency floor cover', scope: 'EVERYONE', period: 'ANYTIME', points: 50, recurrence: 'ONEOFF', desc: 'Cover unexpected busy rush, assist team members across kitchen and floor.' },
-    { id: 'cat-10', title: 'Quick table floor wipe & tray assist', scope: 'EVERYONE', period: 'ANYTIME', points: 1, recurrence: 'DAILY', desc: 'Assist floor team with clearing dining tables during peak rush.' }
+    { id: 'cat-10', title: 'Quick table floor wipe & tray assist', scope: 'EVERYONE', period: 'ANYTIME', points: 1, recurrence: 'DAILY', desc: 'Assist floor team with clearing dining tables during peak rush.' },
+    { id: 'cat-11', title: 'Deep restaurant floor sweep & mop', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Sweep and mop main dining room, bar area, hallway, and entrance floors.' },
+    { id: 'cat-12', title: 'Restroom sanitization & paper restock', scope: 'CLEANER', period: 'ANYTIME', points: 15, recurrence: 'DAILY', desc: 'Scrub toilets, sanitize sinks and mirrors, refill hand soap and paper towel dispensers.' },
+    { id: 'cat-13', title: 'Trash & recycling waste management', scope: 'CLEANER', period: 'EVENING', points: 10, recurrence: 'DAILY', desc: 'Empty all dining room and kitchen trash bins, replace liners, and drop waste in outdoor dumpsters.' }
   ];
 
   const getCurrentMonthKey = () => {
@@ -107,6 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ensure legacy mock PDF files are cleared
         if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
           appState.sopDocuments = [];
+        }
+
+        // Ensure Roy (Cleaner) is present in staff
+        if (appState.staff && !appState.staff.some(s => s.id === 'emp-8' || s.name === 'Roy')) {
+          appState.staff.push({ id: 'emp-8', name: 'Roy', role: 'CLEANER', title: 'Cleaner', color: '#14b8a6', avatar: 'RY', offDays: [] });
         }
 
         if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
@@ -1390,6 +1401,27 @@ document.addEventListener('DOMContentLoaded', () => {
             period: task.period || 'ANYTIME',
             points: task.points,
             desc: task.desc || ''
+          });
+        });
+      }
+
+      // Assign dedicated Cleaner tasks to Cleaner staff every single day (Roy)
+      const cleanerStaff = scheduledStaff.filter(s => s.role === 'CLEANER' || (s.title && s.title.toLowerCase() === 'cleaner'));
+      const cleanerTasks = catalogue.filter(t => t.scope === 'CLEANER');
+
+      if (cleanerStaff.length > 0 && cleanerTasks.length > 0) {
+        cleanerStaff.forEach((emp) => {
+          cleanerTasks.forEach((task, tIdx) => {
+            newScheduledTasks.push({
+              id: `st-${monthKey}-${day}-${emp.id}-c-${tIdx}`,
+              employeeId: emp.id,
+              day: day,
+              title: task.title,
+              category: 'CLEANER',
+              period: task.period || 'ANYTIME',
+              points: task.points,
+              desc: task.desc || ''
+            });
           });
         });
       }
