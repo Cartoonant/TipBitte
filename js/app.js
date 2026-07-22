@@ -46,12 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Date(year, month, 0).getDate();
   };
 
-  const DEFAULT_SOP_PDFS = [
-    { id: 'pdf-1', title: 'Bar & Front Service Opening Standard Operating Procedure.pdf', category: 'FRONT', url: '#', size: '1.2 MB', date: '2026-08-01' },
-    { id: 'pdf-2', title: 'HACCP Kitchen Hygiene & Food Prep Guidelines 2026.pdf', category: 'KITCHEN', url: '#', size: '2.4 MB', date: '2026-08-01' },
-    { id: 'pdf-3', title: 'Closing Register & Cash Terminal Protocol.pdf', category: 'FRONT', url: '#', size: '850 KB', date: '2026-08-01' },
-    { id: 'pdf-4', title: 'Restaurant Emergency Procedures & First Aid.pdf', category: 'EVERYONE', url: '#', size: '1.8 MB', date: '2026-08-01' }
-  ];
+  const DEFAULT_SOP_PDFS = [];
 
   // Global State
   let appState = {
@@ -1125,8 +1120,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSopFilter = 'ALL';
 
   const renderSOP = () => {
-    if (!appState.sopDocuments || appState.sopDocuments.length === 0) {
-      appState.sopDocuments = JSON.parse(JSON.stringify(DEFAULT_SOP_PDFS));
+    if (!appState.sopDocuments) {
+      appState.sopDocuments = [];
     }
 
     const isManager = appState.activeRole === 'MANAGER';
@@ -1136,7 +1131,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pdfContainer) {
       pdfContainer.innerHTML = '';
       if (appState.sopDocuments.length === 0) {
-        pdfContainer.innerHTML = `<p class="text-muted" style="grid-column:1/-1;">No PDF SOP documents linked yet. Upload PDF files above.</p>`;
+        pdfContainer.innerHTML = `
+          <div style="grid-column:1/-1; background:var(--bg-input); padding:1.5rem; border-radius:var(--radius-md); border:1px dashed var(--border-color); text-align:center;">
+            <i data-lucide="file-up" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
+            <p class="text-muted" style="margin:0; font-size:0.88rem;">No PDF SOP documents linked yet. Click "Link / Upload PDF SOP Documents" above to populate your SOP reference library.</p>
+          </div>
+        `;
       } else {
         appState.sopDocuments.forEach(doc => {
           const pdfCard = document.createElement('div');
