@@ -1,6 +1,6 @@
 /**
- * TipRank Resto - Core Application Logic (English Version with Coins)
- * Internal Restaurant Web App for Tip Distribution & Employee of the Month Gamification
+ * TipBitte - Core Application Logic (English Version with Coins)
+ * Meritocratic Tip Sharing & Team Gamification App
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1194,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `tiprank_resto_backup_${appState.currentMonth}.json`);
+      downloadAnchor.setAttribute("download", `tipbitte_backup_${appState.currentMonth}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
