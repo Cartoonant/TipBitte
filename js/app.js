@@ -21,6 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
   ];
 
+  const DEFAULT_MASTER_CATALOGUE = [
+    { id: 'cat-1', title: 'Register closure & bar organization', scope: 'FRONT', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Balance POS terminal, organize bar top, sanitize soda taps, restock wine fridge.' },
+    { id: 'cat-2', title: 'Fridge restocking & beverage audit', scope: 'FRONT', period: 'MORNING', points: 10, recurrence: 'DAILY', desc: 'Check beverage stock levels, restock beer taps, refill lemon slices and ice buckets.' },
+    { id: 'cat-3', title: 'Upselling gourmet wines & dessert combos', scope: 'FRONT', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Recommend daily wine pairing special and dessert combos during floor service.' },
+    { id: 'cat-4', title: 'Deep clean beverage dispenser & bar floor', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'WEEKLY', desc: 'Flush beverage lines, scrub drain mats, sweep and mop behind bar area.' },
+    { id: 'cat-5', title: 'Kitchen station sanitization & line setup', scope: 'KITCHEN', period: 'MORNING', points: 15, recurrence: 'DAILY', desc: 'Sanitize prep boards, calibrate food thermometers, organize line utensils.' },
+    { id: 'cat-6', title: 'Deep oven & fryer oil filtration maintenance', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'WEEKLY', desc: 'Filter fryer oil, scrub pizza oven deck, clean exhaust hood filters.' },
+    { id: 'cat-7', title: 'Prep list completion & food label audit', scope: 'KITCHEN', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Complete prep list items, check FIFO expiry dates, apply date labels.' },
+    { id: 'cat-8', title: 'Zero food waste & stock rotation lead', scope: 'KITCHEN', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Monitor portion sizes, record daily waste log, rotate walk-in cooler stock.' },
+    { id: 'cat-9', title: 'Hero shift lead & emergency floor cover', scope: 'EVERYONE', period: 'ANYTIME', points: 50, recurrence: 'ONEOFF', desc: 'Cover unexpected busy rush, assist team members across kitchen and floor.' },
+    { id: 'cat-10', title: 'Quick table floor wipe & tray assist', scope: 'EVERYONE', period: 'ANYTIME', points: 1, recurrence: 'DAILY', desc: 'Assist floor team with clearing dining tables during peak rush.' }
+  ];
+
   const getCurrentMonthKey = () => {
     return '2026-08';
   };
@@ -39,8 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
+    masterTaskCatalogue: [], // Structured Master Catalogue: [ { id, title, scope, period, points, recurrence, desc } ]
     schedules: {},           // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
-    scheduledDailyTasks: [], // [ { id, employeeId, title, category, points, frequency } ]
+    scheduledDailyTasks: [], // [ { id, employeeId, day, title, category, period, points, desc } ]
     tasks: [],               // Submissions: [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', timestamp } ]
     tipsConfig: {},          // { "2026-08": { totalAmount: 2600 } }
     manualTipOverrides: {}   // { "emp-2": { percent: 25, amount: 650 } }
@@ -636,14 +650,21 @@ document.addEventListener('DOMContentLoaded', () => {
               statusAction = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
             }
           }
-          
+
+          let periodBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">🕒 Anytime</span>`;
+          if (task.period === 'MORNING') periodBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">🌅 Morning</span>`;
+          if (task.period === 'AFTERNOON') periodBadge = `<span class="badge" style="background:rgba(16,185,129,0.15); color:var(--color-green); border:1px solid rgba(16,185,129,0.3);">☀️ Afternoon</span>`;
+          if (task.period === 'EVENING') periodBadge = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">🌙 Evening</span>`;
+
           item.innerHTML = `
             <div>
               <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
                 <strong class="task-user" style="font-size:1.05rem;">${task.title}</strong>
+                ${periodBadge}
                 ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Responsibility</span>` : ''}
               </div>
-              <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+              ${task.desc ? `<p style="margin:0.2rem 0; font-size:0.85rem; color:var(--text-muted);">${task.desc}</p>` : ''}
+              <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
                 <div class="avatar" style="background-color: ${emp.color}; width:22px; height:22px; font-size:0.65rem;">${emp.avatar}</div>
                 <span>Nominatively assigned to: <strong>${emp.name}</strong> (${emp.title || emp.role})</span>
               </div>
@@ -1086,13 +1107,162 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Employee of the Month Bonus Input Listener
-  const inputEotmBonus = document.getElementById('input-eotm-bonus');
-  if (inputEotmBonus) {
-    inputEotmBonus.addEventListener('change', (e) => {
-      appState.eotmBonusAmount = parseFloat(e.target.value) || 0;
+  // Automated Monthly Smart Fair Rotation Engine (31 Days)
+  const generateMonthlyFairRotation = () => {
+    const catalogue = appState.masterTaskCatalogue || [];
+    if (catalogue.length === 0) {
+      showToast("Master task catalogue is empty. Add tasks or import a catalogue first!");
+      return;
+    }
+
+    const monthKey = appState.currentMonth;
+    const totalDays = getDaysInMonth(monthKey);
+    const monthSchedules = appState.schedules[monthKey] || {};
+
+    const newScheduledTasks = [];
+
+    for (let day = 1; day <= totalDays; day++) {
+      // Find staff scheduled to WORK on this day
+      const scheduledStaff = appState.staff.filter(emp => {
+        const empDays = monthSchedules[emp.id] || {};
+        return empDays[day] !== false; // WORK day
+      });
+
+      const frontStaff = scheduledStaff.filter(s => s.role === 'FRONT');
+      const kitchenStaff = scheduledStaff.filter(s => s.role === 'KITCHEN');
+
+      const frontTasks = catalogue.filter(t => t.scope === 'FRONT' || t.scope === 'EVERYONE');
+      const kitchenTasks = catalogue.filter(t => t.scope === 'KITCHEN' || t.scope === 'EVERYONE');
+
+      // Rotate Front tasks nominatively among scheduled Front staff
+      if (frontStaff.length > 0 && frontTasks.length > 0) {
+        frontStaff.forEach((emp, index) => {
+          const task = frontTasks[(day + index) % frontTasks.length];
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${emp.id}-f`,
+            employeeId: emp.id,
+            day: day,
+            title: task.title,
+            category: task.scope,
+            period: task.period || 'ANYTIME',
+            points: task.points,
+            desc: task.desc || ''
+          });
+        });
+      }
+
+      // Rotate Kitchen tasks nominatively among scheduled Kitchen staff
+      if (kitchenStaff.length > 0 && kitchenTasks.length > 0) {
+        kitchenStaff.forEach((emp, index) => {
+          const task = kitchenTasks[(day + index) % kitchenTasks.length];
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${emp.id}-k`,
+            employeeId: emp.id,
+            day: day,
+            title: task.title,
+            category: task.scope,
+            period: task.period || 'ANYTIME',
+            points: task.points,
+            desc: task.desc || ''
+          });
+        });
+      }
+    }
+
+    appState.scheduledDailyTasks = newScheduledTasks;
+    saveState();
+    showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
+  };
+
+  // Monthly Rotation Button Listener
+  const btnMonthlyRotation = document.getElementById('btn-generate-monthly-rotation');
+  if (btnMonthlyRotation) {
+    btnMonthlyRotation.addEventListener('click', generateMonthlyFairRotation);
+  }
+
+  // Create New Catalogue Task Listener
+  const formCreateCat = document.getElementById('form-create-catalogue-task');
+  if (formCreateCat) {
+    formCreateCat.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('cat-task-title').value.trim();
+      const desc = document.getElementById('cat-task-desc') ? document.getElementById('cat-task-desc').value.trim() : '';
+      const scope = document.getElementById('cat-task-scope').value;
+      const period = document.getElementById('cat-task-period') ? document.getElementById('cat-task-period').value : 'ANYTIME';
+      const points = parseInt(document.getElementById('cat-task-coins').value);
+      const recurrence = document.getElementById('cat-task-recurrence').value;
+
+      if (!title) return;
+
+      const newTask = {
+        id: 'cat-' + Date.now(),
+        title,
+        desc,
+        scope,
+        period,
+        points,
+        recurrence
+      };
+
+      if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
+      appState.masterTaskCatalogue.push(newTask);
+
+      document.getElementById('cat-task-title').value = '';
+      if (document.getElementById('cat-task-desc')) document.getElementById('cat-task-desc').value = '';
       saveState();
-      showToast("Employee of the Month bonus updated!");
+      showToast("New structured task added to Master Catalogue!");
+    });
+  }
+
+  // Task Catalogue Importer Listener (JSON / CSV Bulk Import)
+  const inputImportCat = document.getElementById('input-import-catalogue');
+  if (inputImportCat) {
+    inputImportCat.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const content = evt.target.result;
+          let imported = [];
+
+          if (file.name.endsWith('.json')) {
+            imported = JSON.parse(content);
+          } else {
+            // Simple CSV Parser
+            const lines = content.split('\n');
+            lines.forEach((line, i) => {
+              if (i === 0 || !line.trim()) return; // skip header
+              const [title, scope, period, points, recurrence, desc] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+              if (title) {
+                imported.push({
+                  id: 'cat-imp-' + Date.now() + '-' + i,
+                  title,
+                  scope: scope || 'EVERYONE',
+                  period: period || 'ANYTIME',
+                  points: parseInt(points) || 10,
+                  recurrence: recurrence || 'DAILY',
+                  desc: desc || ''
+                });
+              }
+            });
+          }
+
+          if (Array.isArray(imported) && imported.length > 0) {
+            if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
+            appState.masterTaskCatalogue = [...appState.masterTaskCatalogue, ...imported];
+            saveState();
+            showToast(`Successfully imported ${imported.length} tasks into Master Catalogue!`);
+          } else {
+            alert("Could not find valid task entries in the imported file.");
+          }
+        } catch (err) {
+          console.error("Task import error:", err);
+          alert("Error parsing imported file format.");
+        }
+      };
+      reader.readAsText(file);
     });
   }
 

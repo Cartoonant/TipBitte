@@ -253,7 +253,77 @@
               </div>
             </div>
             
-            <form id="form-schedule-task" class="grid-2col">
+            <!-- Create New Catalogue Task Form -->
+            <form id="form-create-catalogue-task" class="grid-2col margin-bottom" style="background:var(--bg-input); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Task Title</label>
+                <input type="text" id="cat-task-title" class="form-control" placeholder="e.g. Register closure & bar organization..." required />
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Task Description & Instructions</label>
+                <input type="text" id="cat-task-desc" class="form-control" placeholder="e.g. Balance register, wipe bar top, restock fridge and audit spirits..." required />
+              </div>
+              <div class="form-group">
+                <label>Team Scope (Category)</label>
+                <select id="cat-task-scope" class="form-control">
+                  <option value="FRONT">Front Only (Floor / Bar)</option>
+                  <option value="KITCHEN">Kitchen Only (Cuisine)</option>
+                  <option value="EVERYONE">Everyone (General / All Team)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Shift Period (Time of Day)</label>
+                <select id="cat-task-period" class="form-control">
+                  <option value="MORNING">🌅 Morning (Shift Opening)</option>
+                  <option value="AFTERNOON">☀️ Afternoon (Midday Service)</option>
+                  <option value="EVENING">🌙 Evening (Closing Shift)</option>
+                  <option value="ANYTIME" selected>🕒 Anytime (Flexible)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Coin Value Scale</label>
+                <select id="cat-task-coins" class="form-control">
+                  <option value="1">1 Coin (Micro Action)</option>
+                  <option value="5">5 Coins (Minor Task)</option>
+                  <option value="10" selected>10 Coins (Standard Task)</option>
+                  <option value="15">15 Coins (Important Task)</option>
+                  <option value="20">20 Coins (Major Shift Task)</option>
+                  <option value="25">25 Coins (High Priority Task)</option>
+                  <option value="50">50 Coins (Master / Hero Task)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Recurrence Rule</label>
+                <select id="cat-task-recurrence" class="form-control">
+                  <option value="DAILY" selected>Daily (Every Shift)</option>
+                  <option value="WEEKLY">Weekly (Once a Week)</option>
+                  <option value="ONEOFF">One-Off / As Needed</option>
+                </select>
+              </div>
+              <div style="grid-column: 1 / -1; display:flex; gap:1rem; align-items:center;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">
+                  <i data-lucide="plus-circle"></i> Add Structured Task to Catalogue
+                </button>
+                <label class="btn btn-outline" style="cursor:pointer;" title="Import tasks from JSON/CSV file">
+                  <i data-lucide="upload"></i> Import Task Catalogue
+                  <input type="file" id="input-import-catalogue" accept=".json,.csv" class="hidden-file-input" />
+                </label>
+              </div>
+            </form>
+
+            <!-- Manual Single Assignment Form & Rotation Action -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border-color);">
+              <div>
+                <h4 style="margin:0;"><i data-lucide="shuffle" class="text-gold"></i> Monthly Smart Fair Rotation Engine</h4>
+                <p class="text-muted" style="margin:0.2rem 0 0 0; font-size:0.85rem;">Automatically distributes catalogue tasks across all 31 days of the month to scheduled staff nominatively.</p>
+              </div>
+              <button id="btn-generate-monthly-rotation" class="btn btn-gold glow">
+                <i data-lucide="sparkles"></i> ✨ Generate Monthly Fair Rotation
+              </button>
+            </div>
+
+            <!-- Single Task Schedule Form -->
+            <form id="form-schedule-task" class="grid-2col margin-top" style="background:var(--bg-card); padding:1rem; border-radius:var(--radius-md); border:1px dashed var(--border-color);">
               <div class="form-group">
                 <label>Nominative Responsibility (Assignee)</label>
                 <select id="sched-task-employee" class="form-control" required></select>
@@ -267,7 +337,16 @@
                 <select id="sched-task-category" class="form-control">
                   <option value="FRONT">Front Only (Floor / Bar)</option>
                   <option value="KITCHEN">Kitchen Only (Cuisine)</option>
-                  <option value="GENERAL">General (Everyone)</option>
+                  <option value="EVERYONE">Everyone (General / All Team)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Shift Period</label>
+                <select id="sched-task-period" class="form-control">
+                  <option value="MORNING">🌅 Morning (Opening)</option>
+                  <option value="AFTERNOON">☀️ Afternoon (Midday)</option>
+                  <option value="EVENING">🌙 Evening (Closing)</option>
+                  <option value="ANYTIME" selected>🕒 Anytime (Flexible)</option>
                 </select>
               </div>
               <div class="form-group">
@@ -282,17 +361,9 @@
                   <option value="50">50 Coins (Master / Hero Task)</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label>Recurrence Rule</label>
-                <select id="sched-task-recurrence" class="form-control">
-                  <option value="DAILY" selected>Daily (Every Shift)</option>
-                  <option value="WEEKLY">Weekly (Once a Week)</option>
-                  <option value="ONEOFF">One-Off / As Needed</option>
-                </select>
-              </div>
               <div style="display:flex; align-items:flex-end;">
-                <button type="submit" class="btn btn-primary btn-block">
-                  <i data-lucide="plus"></i> Add Nominative Task
+                <button type="submit" class="btn btn-outline btn-block">
+                  <i data-lucide="plus"></i> Add Single Task to Schedule
                 </button>
               </div>
             </form>
