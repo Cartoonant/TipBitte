@@ -159,17 +159,12 @@
           </div>
         </div>
 
-        <!-- Leaderboard Filters & Section -->
+        <!-- Leaderboard Unified Section -->
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="trophy" class="text-gold"></i> Monthly Coins Leaderboard</h3>
-              <p class="text-muted">Rankings are calculated 100% based on Coins earned through task completion and shift initiatives.</p>
-            </div>
-            <div class="filter-pills">
-              <button class="pill-btn active" data-filter="ALL">All Team</button>
-              <button class="pill-btn" data-filter="FRONT">Front (Floor/Bar)</button>
-              <button class="pill-btn" data-filter="KITCHEN">Kitchen</button>
+              <h3><i data-lucide="trophy" class="text-gold"></i> Unified Global Leaderboard</h3>
+              <p class="text-muted">Single unified ranking for all team members (Front & Kitchen) based 100% on Coins earned.</p>
             </div>
           </div>
 
@@ -206,7 +201,7 @@
           <div class="section-header">
             <div>
               <h3><i data-lucide="calendar-range" class="text-blue"></i> Roster & Days OFF Schedule</h3>
-              <p class="text-muted">Click/tap any cell to toggle between <strong>Worked Shift (11h)</strong> and <strong>Day OFF (Rest)</strong>.</p>
+              <p class="text-muted">Vertical week-by-week roster view. <span id="roster-permission-note" class="text-gold font-weight-bold">Manager Mode: Click any cell to toggle WORK / OFF.</span></p>
             </div>
             
             <div class="planning-legend">
@@ -215,27 +210,21 @@
             </div>
           </div>
 
-          <!-- Roster Legend & Filter Controls -->
+          <!-- Roster Controls & Week Navigation -->
           <div class="planning-controls">
-            <div class="filter-pills">
-              <button class="pill-btn planning-filter active" data-plan-filter="ALL">All Team</button>
-              <button class="pill-btn planning-filter" data-plan-filter="FRONT">Front (Floor/Bar)</button>
-              <button class="pill-btn planning-filter" data-plan-filter="KITCHEN">Kitchen</button>
+            <div class="filter-pills" id="week-selector-pills">
+              <button class="pill-btn week-filter active" data-week="ALL">All Month</button>
+              <button class="pill-btn week-filter" data-week="1">Week 1 (Aug 1-7)</button>
+              <button class="pill-btn week-filter" data-week="2">Week 2 (Aug 8-14)</button>
+              <button class="pill-btn week-filter" data-week="3">Week 3 (Aug 15-21)</button>
+              <button class="pill-btn week-filter" data-week="4">Week 4 (Aug 22-28)</button>
+              <button class="pill-btn week-filter" data-week="5">Week 5 (Aug 29-31)</button>
             </div>
           </div>
 
-          <!-- Roster Metrics Summary Bar -->
-          <div class="planning-stats-bar">
-            <div class="p-stat">
-              <span>Roster Overview:</span>
-              <strong id="plan-total-staff">6 members (Front & Kitchen)</strong>
-            </div>
-          </div>
-
-          <div class="planning-grid-container">
-            <table class="planning-table" id="planning-table">
-              <!-- Dynamic JS Table -->
-            </table>
+          <!-- Vertical Stacked Weekly Cards Container -->
+          <div id="roster-weekly-container" class="roster-weekly-stack">
+            <!-- Dynamic Weekly Cards Rendered via JS -->
           </div>
         </div>
       </section>

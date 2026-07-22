@@ -254,13 +254,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hero-month-name').textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
   };
 
-  // Dashboard & Leaderboard Renderer
+  // Dashboard & Leaderboard Renderer (Unified Global Ranking)
   const renderDashboard = () => {
     const { empStats, grandTotalPoints } = calculateTipDistribution();
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
     const totalTips = parseFloat(config.totalAmount) || 0;
 
-    // Update Overview Cards
+    // Overview Cards
     document.getElementById('stat-total-tips').textContent = `${totalTips.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
     const ratePerCoin = grandTotalPoints > 0 ? (totalTips / grandTotalPoints).toFixed(2) : '0.00';
     document.getElementById('stat-tips-rate').textContent = `${ratePerCoin} € / Coin`;
@@ -276,13 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stat-staff-count').textContent = appState.staff.length;
     document.getElementById('stat-team-breakdown').textContent = `${frontCount} Front / ${kitchenCount} Kitchen`;
 
-    // Filter List
+    // Unified Global Ranking (No team filters on Leaderboard tab)
     let filteredList = [...empStats];
-    if (appState.activeFilter !== 'ALL') {
-      filteredList = filteredList.filter(e => e.role === appState.activeFilter);
-    }
-
-    // Rank 100% by Coins
     filteredList.sort((a, b) => b.points - a.points);
 
     // Podium Renderer (Top 3)
@@ -318,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
       podiumContainer.innerHTML = `<p class="text-muted">Add at least 2 team members to unlock the podium!</p>`;
     }
 
-    // Table Renderer
+    // Table Renderer (Unified Global Table)
     const tbody = document.getElementById('leaderboard-tbody');
     tbody.innerHTML = '';
 
@@ -343,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </span>
         </td>
         <td><strong class="text-gold" style="font-size:1.05rem;">${emp.points} Coins</strong></td>
-        <td>${emp.workedDays} days (${emp.workedHours}h)</td>
+        <td>${emp.workedDays} days</td>
         <td><strong>${emp.tipSharePercent}%</strong></td>
         <td><strong class="text-green" style="font-size:1.05rem;">${emp.tipAmount.toFixed(2)} €</strong></td>
       `;
@@ -353,40 +348,59 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Roster / Planning Renderer
-  let planningFilter = 'ALL';
+  // Roster / Planning Renderer (Vertical Week-by-Week & Role-Based Permissions)
+  let selectedWeek = 'ALL';
 
   const renderPlanning = () => {
-    const table = document.getElementById('planning-table');
-    table.innerHTML = '';
+    const container = document.getElementById('roster-weekly-container');
+    container.innerHTML = '';
 
-    const daysCount = getDaysInMonth(appState.currentMonth);
+    const isManager = appState.activeRole === 'MANAGER';
+    const noteEl = document.getElementById('roster-permission-note');
+    if (noteEl) {
+      if (isManager) {
+        noteEl.textContent = "Manager Mode: Click any cell to toggle WORK / OFF.";
+        noteEl.className = "text-gold font-weight-bold";
+      } else {
+        noteEl.textContent = "Employee View (Read-Only). Only Manager can edit schedules.";
+        noteEl.className = "text-muted font-weight-bold";
+      }
+    }
+
     const monthSchedules = appState.schedules[appState.currentMonth] || {};
-
-    let staffList = [...appState.staff];
-    if (planningFilter !== 'ALL') {
-      staffList = staffList.filter(s => s.role === planningFilter);
-    }
-
-    document.getElementById('plan-total-staff').textContent = `${staffList.length} members (${planningFilter === 'ALL' ? 'Front & Kitchen' : planningFilter})`;
-
     const [year, month] = appState.currentMonth.split('-').map(Number);
-    let headerHTML = `<thead><tr><th class="cell-name">Team Member</th>`;
-    for (let d = 1; d <= daysCount; d++) {
-      const dayAbbr = getDayOfWeekAbbr(year, month, d);
-      headerHTML += `<th><span style="font-size:0.65rem; color:var(--text-muted); display:block; font-weight:600;">${dayAbbr}</span>${d}</th>`;
-    }
-    headerHTML += `</tr></thead>`;
+    const totalDaysInMonth = getDaysInMonth(appState.currentMonth);
 
-    let bodyHTML = `<tbody>`;
+    // August 2026 Weeks Definition
+    const weeks = [
+      { id: '1', title: 'Week 1 (Aug 1 - Aug 7)', start: 1, end: 7 },
+      { id: '2', title: 'Week 2 (Aug 8 - Aug 14)', start: 8, end: 14 },
+      { id: '3', title: 'Week 3 (Aug 15 - Aug 21)', start: 15, end: 21 },
+      { id: '4', title: 'Week 4 (Aug 22 - Aug 28)', start: 22, end: 28 },
+      { id: '5', title: 'Week 5 (Aug 29 - Aug 31)', start: 29, end: totalDaysInMonth }
+    ];
 
-    if (staffList.length === 0) {
-      bodyHTML += `<tr><td colspan="${daysCount + 1}" style="text-align:center; padding:2rem;" class="text-muted">No team members in this category.</td></tr>`;
-    } else {
-      staffList.forEach(emp => {
+    const weeksToRender = selectedWeek === 'ALL' 
+      ? weeks 
+      : weeks.filter(w => w.id === selectedWeek);
+
+    weeksToRender.forEach(w => {
+      const card = document.createElement('div');
+      card.className = 'weekly-card';
+
+      let cardHTML = `<div class="weekly-card-title"><i data-lucide="calendar"></i> ${w.title}</div>`;
+      cardHTML += `<div class="table-responsive"><table class="planning-table"><thead><tr><th class="cell-name">Team Member</th>`;
+
+      for (let d = w.start; d <= w.end; d++) {
+        const dayAbbr = getDayOfWeekAbbr(year, month, d);
+        cardHTML += `<th><span style="font-size:0.65rem; color:var(--text-muted); display:block; font-weight:600;">${dayAbbr}</span>${d}</th>`;
+      }
+      cardHTML += `</tr></thead><tbody>`;
+
+      appState.staff.forEach(emp => {
         const empSchedule = monthSchedules[emp.id] || {};
 
-        let rowHTML = `<tr><td class="cell-name">
+        cardHTML += `<tr><td class="cell-name">
           <div style="display:flex; align-items:center; gap:0.5rem;">
             <span class="dot" style="background:${emp.color}"></span>
             <span>${emp.name}</span>
@@ -396,11 +410,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </td>`;
 
-        for (let d = 1; d <= daysCount; d++) {
+        for (let d = w.start; d <= w.end; d++) {
           const isWorked = empSchedule[d] !== false;
-
-          rowHTML += `
-            <td class="shift-cell ${isWorked ? 'is-work' : 'is-off'}" 
+          cardHTML += `
+            <td class="shift-cell ${isWorked ? 'is-work' : 'is-off'} ${!isManager ? 'shift-cell-readonly' : ''}" 
                 data-emp="${emp.id}" 
                 data-day="${d}" 
                 title="${isWorked ? 'Scheduled Shift (WORK)' : 'Day OFF (Rest)'}">
@@ -409,16 +422,22 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         }
 
-        rowHTML += `</tr>`;
-        bodyHTML += rowHTML;
+        cardHTML += `</tr>`;
       });
-    }
 
-    bodyHTML += `</tbody>`;
-    table.innerHTML = headerHTML + bodyHTML;
+      cardHTML += `</tbody></table></div>`;
+      card.innerHTML = cardHTML;
+      container.appendChild(card);
+    });
 
-    table.querySelectorAll('.shift-cell').forEach(cell => {
+    // Attach Cell Click Handler with Role Permission Check
+    container.querySelectorAll('.shift-cell').forEach(cell => {
       cell.addEventListener('click', (e) => {
+        if (!isManager) {
+          showToast("Read-only view: Only Manager can edit roster schedule.");
+          return;
+        }
+
         const empId = e.currentTarget.dataset.emp;
         const day = parseInt(e.currentTarget.dataset.day);
 
@@ -436,7 +455,19 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("Roster status updated!");
       });
     });
+
+    if (window.lucide) lucide.createIcons();
   };
+
+  // Week Selector Listener
+  document.querySelectorAll('.week-filter').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.week-filter').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      selectedWeek = e.currentTarget.dataset.week;
+      renderPlanning();
+    });
+  });
 
   // Tasks & Initiatives Renderer (Role-Based Access)
   const renderTasks = () => {
