@@ -1094,8 +1094,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.getElementById('app');
 
     if (!sessionRaw) {
-      if (loginScreen) loginScreen.classList.remove('hidden');
-      if (appContainer) appContainer.classList.add('hidden');
+      if (loginScreen) {
+        loginScreen.classList.remove('hidden');
+        loginScreen.style.display = 'flex';
+      }
+      if (appContainer) {
+        appContainer.classList.add('hidden');
+        appContainer.style.display = 'none';
+      }
       return false;
     }
 
@@ -1123,13 +1129,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      if (loginScreen) loginScreen.classList.add('hidden');
-      if (appContainer) appContainer.classList.remove('hidden');
+      if (loginScreen) {
+        loginScreen.classList.add('hidden');
+        loginScreen.style.display = 'none';
+      }
+      if (appContainer) {
+        appContainer.classList.remove('hidden');
+        appContainer.style.display = '';
+      }
       return true;
     } catch (e) {
       localStorage.removeItem('tipbitte_session');
-      if (loginScreen) loginScreen.classList.remove('hidden');
-      if (appContainer) appContainer.classList.add('hidden');
+      if (loginScreen) {
+        loginScreen.classList.remove('hidden');
+        loginScreen.style.display = 'flex';
+      }
+      if (appContainer) {
+        appContainer.classList.add('hidden');
+        appContainer.style.display = 'none';
+      }
       return false;
     }
   };
@@ -1353,6 +1371,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Quick One-Click Demo Login Buttons Listener
+  document.querySelectorAll('.btn-demo-login').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const user = e.currentTarget.dataset.user;
+      const pass = e.currentTarget.dataset.pass;
+      const match = CREDENTIALS_REGISTRY.find(c => c.username.toLowerCase() === user.toLowerCase() && c.password === pass);
+
+      if (match) {
+        localStorage.setItem('tipbitte_session', JSON.stringify(match));
+        checkSession();
+        renderAll();
+        showToast(`Signed in as ${match.name} (${match.role})!`);
+      }
+    });
+  });
 
   // Logout Button Listener
   const btnLogout = document.getElementById('btn-logout');
