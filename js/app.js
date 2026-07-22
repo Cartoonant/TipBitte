@@ -11,15 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DEFAULT_STAFF = [
     // Équipe Front (Salle / Bar)
-    { id: 'emp-1', name: 'Bruno Hennion', role: 'FRONT', title: 'Floor Manager', color: '#06b6d4', avatar: 'BH' },
     { id: 'emp-2', name: 'Vinod Pal', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VP' },
     { id: 'emp-3', name: 'Siri Vennela Puppala', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SV' },
     
     // Équipe Kitchen (Cuisine)
-    { id: 'emp-4', name: 'Aadhi Dammanapeta', role: 'KITCHEN', title: 'Cuisine', color: '#ec4899', avatar: 'AD' },
-    { id: 'emp-5', name: 'Karthik Nallathambi', role: 'KITCHEN', title: 'Cuisine', color: '#10b981', avatar: 'KN' },
-    { id: 'emp-6', name: 'Bhanu Reddy Palem', role: 'KITCHEN', title: 'Cuisine', color: '#f59e0b', avatar: 'BP' },
-    { id: 'emp-7', name: 'Muthyam Reddy Thembareni', role: 'KITCHEN', title: 'Cuisine', color: '#6366f1', avatar: 'MT' }
+    { id: 'emp-4', name: 'Aadhi Dammanapeta', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD' },
+    { id: 'emp-5', name: 'Karthik Nallathambi', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KN' },
+    { id: 'emp-6', name: 'Bhanu Reddy Palem', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BP' },
+    { id: 'emp-7', name: 'Muthyam Reddy Thembareni', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
   ];
 
   // Helper pour générer un mois au format YYYY-MM (Défaut sur Août 2026)
@@ -38,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     theme: 'dark',
     activeFilter: 'ALL',
     staff: [],
-    schedules: {}, // { "2026-08": { "emp-1": { 1: true, 2: false, ... } } }
+    schedules: {}, // { "2026-08": { "emp-2": { 1: true, 2: false, ... } } }
     tasks: [],     // [ { id, employeeId, desc, points, status: 'APPROVED'|'PENDING'|'REJECTED', date } ]
     tipsConfig: {} // { "2026-08": { totalAmount: 2600, rule: 'VALUE_POINTS' } }
   };
@@ -46,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Rôle et jours de repos hebdomadaires réels récurrents pour chaque employé
   // JS Date.getDay(): 0=Dimanche, 1=Lundi, 2=Mardi, 3=Mercredi, 4=Jeudi, 5=Vendredi, 6=Samedi
   const DEFAULT_OFF_DAYS_CONFIG = {
-    'emp-1': [1],       // Bruno Hennion -> Lundi
     'emp-2': [4],       // Vinod Pal -> Jeudi
     'emp-3': [2, 3],    // Siri Vennela Puppala -> Mardi, Mercredi
     'emp-4': [4],       // Aadhi Dammanapeta -> Jeudi
@@ -71,8 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         appState = JSON.parse(saved);
         if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
-        // Recharger les données si le staff ne correspond pas à Août 2026
-        if (!appState.staff || appState.staff.length === 0 || !appState.staff.some(s => s.name === 'Bruno Hennion')) {
+        // Recharger les données si Bruno est encore présent ou si Aadhi n'est pas Kitchen Lead
+        if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Bruno')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
       } catch (e) {
@@ -120,10 +118,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Config Tips par défaut (ex: 2800 € pour le mois d'Août 2026)
+    // Config Tips par défaut (ex: 2600 € pour le mois d'Août 2026)
     if (!appState.tipsConfig[mKey]) {
       appState.tipsConfig[mKey] = {
-        totalAmount: 2800,
+        totalAmount: 2600,
         rule: 'VALUE_POINTS'
       };
     }
@@ -131,13 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tâches de démonstration axées sur la création de valeur et les initiatives
     appState.tasks = [
       { id: 't-1', employeeId: 'emp-2', desc: 'Vinod Pal (Front Lead): Anticipation rush & réorganisation fluide de la terrasse (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 36000000 },
-      { id: 't-2', employeeId: 'emp-4', desc: 'Aadhi Dammanapeta (Kitchen): Préparation accélérée et zéro gâchis d\'ingrédients (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 32000000 },
+      { id: 't-2', employeeId: 'emp-4', desc: 'Aadhi Dammanapeta (Kitchen Lead): Préparation accélérée et zéro gâchis d\'ingrédients (+30 pts)', points: 30, status: 'APPROVED', timestamp: Date.now() - 32000000 },
       { id: 't-3', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Accueil d\'excellence & avis 5 étoiles client (+30 pts)', points: 30, status: 'APPROVED', timestamp: Date.now() - 24000000 },
       { id: 't-4', employeeId: 'emp-6', desc: 'Bhanu Reddy Palem (Kitchen): Nettoyage profond & désinfection complète poste friteuse (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 12000000 },
-      { id: 't-5', employeeId: 'emp-1', desc: 'Bruno Hennion (Manager): Optimisation du stock vins & boissons haut de gamme (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 8000000 },
-      { id: 't-6', employeeId: 'emp-5', desc: 'Karthik Nallathambi (Kitchen): Entretien préventif du four à pizza & grill (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
-      { id: 't-7', employeeId: 'emp-7', desc: 'Muthyam Reddy T. (Kitchen): Initiative dressage assiettes signature (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 3600000 },
-      { id: 't-8', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Vente additionnelle desserts & cafés gourmands (+15 pts)', points: 15, status: 'PENDING', timestamp: Date.now() - 1800000 }
+      { id: 't-5', employeeId: 'emp-5', desc: 'Karthik Nallathambi (Kitchen): Entretien préventif du four à pizza & grill (+25 pts)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
+      { id: 't-6', employeeId: 'emp-7', desc: 'Muthyam Reddy T. (Kitchen): Initiative dressage assiettes signature (+20 pts)', points: 20, status: 'APPROVED', timestamp: Date.now() - 3600000 },
+      { id: 't-7', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Vente additionnelle desserts & cafés gourmands (+15 pts)', points: 15, status: 'PENDING', timestamp: Date.now() - 1800000 }
     ];
 
     saveState();
