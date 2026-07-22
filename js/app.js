@@ -1432,8 +1432,14 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
-  // Google Sheet Live Sync URL & Parser
-  const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0/export?format=csv';
+  // Google Sheet Live Sync URL & Robust CORS Fallback Stack
+  const SHEET_ID = '1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0';
+
+  const GOOGLE_SHEET_URLS = [
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`
+  ];
 
   const parseCSVTasks = (csvText) => {
     if (!csvText || !csvText.trim()) return [];
@@ -1497,11 +1503,26 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing Google Sheet...`;
     }
 
-    try {
-      const response = await fetch(GOOGLE_SHEET_CSV_URL);
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const csvText = await response.text();
-      
+    let csvText = null;
+    let fetchError = null;
+
+    // Try endpoints in cascade (gviz/tq -> export?format=csv -> allorigins proxy)
+    for (const url of GOOGLE_SHEET_URLS) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 10) {
+            csvText = text;
+            break;
+          }
+        }
+      } catch (err) {
+        fetchError = err;
+      }
+    }
+
+    if (csvText) {
       const parsed = parseCSVTasks(csvText);
       if (parsed.length > 0) {
         appState.masterTaskCatalogue = parsed;
@@ -1510,19 +1531,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showNotification) {
           showToast(`⚡ Live Google Sheet synchronized! ${parsed.length} tasks loaded.`);
         }
+        if (btnSync) {
+          btnSync.disabled = false;
+          btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
+        }
+        if (window.lucide) lucide.createIcons();
+        return;
       }
-    } catch (err) {
-      console.error("Google Sheet Sync Error:", err);
-      if (showNotification) {
-        showToast("Error syncing Google Sheet. Check CORS or link permissions.");
-      }
-    } finally {
-      if (btnSync) {
-        btnSync.disabled = false;
-        btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
-      }
-      if (window.lucide) lucide.createIcons();
     }
+
+    console.error("Google Sheet Sync Error:", fetchError);
+    if (showNotification) {
+      showToast("Error syncing Google Sheet. Please check internet or sheet permissions.");
+    }
+    if (btnSync) {
+      btnSync.disabled = false;
+      btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
+    }
+    if (window.lucide) lucide.createIcons();
   };
 
   // Live Google Sheet Sync Listener
