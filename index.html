@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TipRank - Gestion des Tips & Employé du Mois</title>
-  <meta name="description" content="Application web interne de gestion des pourboires et gamification pour restaurant (Front & Kitchen).">
+  <title>TipRank - Monthly Tips & Employee of the Month</title>
+  <meta name="description" content="Internal restaurant web app for fair tip distribution and Employee of the Month gamification (Front & Kitchen).">
   
-  <!-- Fonts Google -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- CSS Principal -->
+  <!-- Main Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -31,12 +31,12 @@
         </div>
         <div class="brand-text">
           <h1>TipRank <span class="badge-pro">RESTO</span></h1>
-          <p class="subtitle">Gestion des Tips & Employé du Mois</p>
+          <p class="subtitle">Tip Distribution & Employee of the Month</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <button id="btn-theme-toggle" class="btn-icon" title="Changer le thème" aria-label="Changer le thème">
+        <button id="btn-theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
           <i data-lucide="sun" class="icon-sun"></i>
           <i data-lucide="moon" class="icon-moon"></i>
         </button>
@@ -44,45 +44,45 @@
         <div class="month-selector-wrapper">
           <i data-lucide="calendar" class="selector-icon"></i>
           <select id="current-month-select" class="month-select">
-            <!-- Options dynamiques générées en JS -->
+            <!-- Dynamic Month Options -->
           </select>
         </div>
       </div>
     </header>
 
-    <!-- Sidebar Navigation (Desktop / Tablette large) -->
+    <!-- Sidebar Navigation (Desktop / Tablet) -->
     <aside class="app-sidebar">
       <nav class="nav-links">
         <button class="nav-btn active" data-tab="dashboard">
           <i data-lucide="trophy"></i>
-          <span>Classement</span>
+          <span>Leaderboard</span>
         </button>
         <button class="nav-btn" data-tab="planning">
           <i data-lucide="calendar-range"></i>
-          <span>Planning & Jours OFF</span>
+          <span>Roster & Days OFF</span>
         </button>
         <button class="nav-btn" data-tab="tasks">
           <i data-lucide="check-square"></i>
-          <span>Tâches & Initiatives</span>
+          <span>Tasks & Initiatives</span>
           <span id="pending-badge" class="badge-count hidden">0</span>
         </button>
         <button class="nav-btn" data-tab="tips">
           <i data-lucide="coins"></i>
-          <span>Calculateur de Tips</span>
+          <span>Tip Calculator</span>
         </button>
         <button class="nav-btn" data-tab="staff">
           <i data-lucide="users"></i>
-          <span>Équipe & Rôles</span>
+          <span>Team & Roles</span>
         </button>
         <button class="nav-btn nav-btn-deploy" data-tab="deploy">
           <i data-lucide="globe"></i>
-          <span>Déployer Gratuitement</span>
+          <span>Deploy Free</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <button id="btn-load-demo" class="btn btn-outline btn-sm btn-block">
-          <i data-lucide="sparkles"></i> Charger Démo
+          <i data-lucide="sparkles"></i> Load Demo Data
         </button>
       </div>
     </aside>
@@ -92,15 +92,15 @@
 
       <!-- TAB 1: DASHBOARD & LEADERBOARD -->
       <section id="tab-dashboard" class="tab-content active">
-        <!-- Bannière Employé du Mois -->
+        <!-- Hero Banner -->
         <div class="hero-banner">
           <div class="hero-text">
-            <div class="hero-tag"><i data-lucide="award"></i> Concours du Mois</div>
-            <h2>Employé du Mois <span id="hero-month-name">Août 2026</span></h2>
-            <p>Le classement et la répartition des tips reposent à 100% sur la <strong>création de valeur et l'initiative</strong> pendant vos shifts !</p>
+            <div class="hero-tag"><i data-lucide="award"></i> Monthly Contest</div>
+            <h2>Employee of the Month <span id="hero-month-name">August 2026</span></h2>
+            <p>Earn <strong>Coins</strong> by completing tasks and logging shift initiatives to share monthly tips fairly!</p>
           </div>
           <button id="btn-reveal-winner" class="btn btn-gold glow">
-            <i data-lucide="crown"></i> Célébrer le Vainqueur
+            <i data-lucide="crown"></i> Crown the Winner
           </button>
         </div>
 
@@ -109,34 +109,34 @@
           <div class="stat-card">
             <div class="stat-icon icon-gold"><i data-lucide="wallet"></i></div>
             <div class="stat-info">
-              <span class="stat-label">Tips du Mois</span>
-              <strong id="stat-total-tips" class="stat-value">0,00 €</strong>
-              <span id="stat-tips-rate" class="stat-sub">0.00 € / point de valeur</span>
+              <span class="stat-label">Monthly Tips Pool</span>
+              <strong id="stat-total-tips" class="stat-value">0.00 €</strong>
+              <span id="stat-tips-rate" class="stat-sub">0.00 € / Coin</span>
             </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-icon icon-purple"><i data-lucide="sparkles"></i></div>
             <div class="stat-info">
-              <span class="stat-label">Total Points de Valeur</span>
-              <strong id="stat-total-hours" class="stat-value">0 pts</strong>
-              <span id="stat-total-shifts" class="stat-sub">Cumul de l'équipe</span>
+              <span class="stat-label">Total Team Coins</span>
+              <strong id="stat-total-hours" class="stat-value">0 Coins</strong>
+              <span id="stat-total-shifts" class="stat-sub">Earned this month</span>
             </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-icon icon-blue"><i data-lucide="star"></i></div>
             <div class="stat-info">
-              <span class="stat-label">Tâches Validées</span>
+              <span class="stat-label">Tasks Verified</span>
               <strong id="stat-completed-tasks" class="stat-value">0</strong>
-              <span id="stat-points-earned" class="stat-sub">0 tâches accomplies</span>
+              <span id="stat-points-earned" class="stat-sub">0 entries approved</span>
             </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-icon icon-green"><i data-lucide="user-check"></i></div>
             <div class="stat-info">
-              <span class="stat-label">Effectif Actif</span>
+              <span class="stat-label">Active Roster</span>
               <strong id="stat-staff-count" class="stat-value">0</strong>
               <span id="stat-team-breakdown" class="stat-sub">0 Front / 0 Kitchen</span>
             </div>
@@ -147,19 +147,19 @@
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="trophy" class="text-gold"></i> Classement Général de la Valeur Créée</h3>
-              <p class="text-muted">Calculé à 100% sur les tâches fixes accomplies et les initiatives prises en service.</p>
+              <h3><i data-lucide="trophy" class="text-gold"></i> Monthly Coins Leaderboard</h3>
+              <p class="text-muted">Rankings are calculated 100% based on Coins earned through task completion and shift initiatives.</p>
             </div>
             <div class="filter-pills">
-              <button class="pill-btn active" data-filter="ALL">Tous</button>
-              <button class="pill-btn" data-filter="FRONT">Salle & Bar</button>
-              <button class="pill-btn" data-filter="KITCHEN">Cuisine</button>
+              <button class="pill-btn active" data-filter="ALL">All Team</button>
+              <button class="pill-btn" data-filter="FRONT">Front (Floor/Bar)</button>
+              <button class="pill-btn" data-filter="KITCHEN">Kitchen</button>
             </div>
           </div>
 
           <!-- Podium Top 3 -->
           <div id="podium-container" class="podium-wrapper">
-            <!-- Dynamique -->
+            <!-- Dynamic -->
           </div>
 
           <!-- Ranking Table -->
@@ -167,75 +167,75 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Rang</th>
-                  <th>Employé</th>
-                  <th>Équipe</th>
-                  <th>Points de Valeur</th>
-                  <th>Jours Présents</th>
-                  <th>Part du Magot (%)</th>
-                  <th>Parts Tips Est. (€)</th>
+                  <th>Rank</th>
+                  <th>Employee</th>
+                  <th>Team & Role</th>
+                  <th>Coins Earned</th>
+                  <th>Days Worked</th>
+                  <th>Tip Share (%)</th>
+                  <th>Estimated Tip (€)</th>
                 </tr>
               </thead>
               <tbody id="leaderboard-tbody">
-                <!-- Dynamique -->
+                <!-- Dynamic -->
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: PLANNING & DAYS OFF -->
+      <!-- TAB 2: ROSTER & DAYS OFF -->
       <section id="tab-planning" class="tab-content">
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="calendar-range" class="text-blue"></i> Planning des Jours OFF & Présences</h3>
-              <p class="text-muted">Cliquez/touchez une case pour basculer entre <strong>Travail (11h)</strong> et <strong>Jour OFF</strong> (shift fixe 11h30 - 22h30).</p>
+              <h3><i data-lucide="calendar-range" class="text-blue"></i> Roster & Days OFF Schedule</h3>
+              <p class="text-muted">Click/tap any cell to toggle between <strong>Worked Shift (11h)</strong> and <strong>Day OFF (Rest)</strong>.</p>
             </div>
             
             <div class="planning-legend">
-              <span class="legend-item"><span class="dot dot-work"></span> Travaillé (11h)</span>
-              <span class="legend-item"><span class="dot dot-off"></span> Jour OFF (Repos)</span>
+              <span class="legend-item"><span class="dot dot-work"></span> Worked Shift (11h)</span>
+              <span class="legend-item"><span class="dot dot-off"></span> Day OFF (Rest)</span>
             </div>
           </div>
 
-          <!-- Barre de Contrôles & Métriques du Planning -->
+          <!-- Roster Controls & Metrics -->
           <div class="planning-controls">
             <div class="filter-pills">
-              <button class="pill-btn planning-filter active" data-plan-filter="ALL">Toute l'Équipe</button>
-              <button class="pill-btn planning-filter" data-plan-filter="FRONT">Salle & Bar</button>
-              <button class="pill-btn planning-filter" data-plan-filter="KITCHEN">Cuisine</button>
+              <button class="pill-btn planning-filter active" data-plan-filter="ALL">All Team</button>
+              <button class="pill-btn planning-filter" data-plan-filter="FRONT">Front (Floor/Bar)</button>
+              <button class="pill-btn planning-filter" data-plan-filter="KITCHEN">Kitchen</button>
             </div>
 
             <div class="planning-quick-actions">
-              <button id="btn-plan-all-work" class="btn btn-outline btn-sm" title="Marquer tous les jours en jours travaillés">
-                <i data-lucide="check-check"></i> 100% Travaillé
+              <button id="btn-plan-all-work" class="btn btn-outline btn-sm" title="Mark all days as worked shifts">
+                <i data-lucide="check-check"></i> Mark 100% Worked
               </button>
-              <button id="btn-plan-standard-off" class="btn btn-outline btn-sm" title="Assigner automatiquement les repos hebdomadaires">
-                <i data-lucide="wand-2"></i> Repos Hebdo Auto
+              <button id="btn-plan-standard-off" class="btn btn-outline btn-sm" title="Apply recurring weekly rest days schedule">
+                <i data-lucide="wand-2"></i> Apply Recurring OFF Schedule
               </button>
             </div>
           </div>
 
-          <!-- Métriques Résumé Planning -->
+          <!-- Roster Metrics Summary Bar -->
           <div class="planning-stats-bar">
             <div class="p-stat">
-              <span>Effectif Total :</span>
-              <strong id="plan-total-staff">0 employés</strong>
+              <span>Total Roster:</span>
+              <strong id="plan-total-staff">0 staff members</strong>
             </div>
             <div class="p-stat">
-              <span>Heures Cumulées Équipe :</span>
+              <span>Cumulative Team Hours:</span>
               <strong id="plan-total-team-hours" class="text-blue">0 h</strong>
             </div>
             <div class="p-stat">
-              <span>Moyenne par Employé :</span>
-              <strong id="plan-avg-days">0 jours (0h)</strong>
+              <span>Average per Employee:</span>
+              <strong id="plan-avg-days">0 days (0h)</strong>
             </div>
           </div>
 
           <div class="planning-grid-container">
             <table class="planning-table" id="planning-table">
-              <!-- Dynamique via JS -->
+              <!-- Dynamic JS Table -->
             </table>
           </div>
         </div>
@@ -243,186 +243,186 @@
 
       <!-- TAB 3: TASKS & INITIATIVES -->
       <section id="tab-tasks" class="tab-content">
-        <!-- Bannière d'Information Gamification -->
+        <!-- Gamification Banner -->
         <div class="info-box margin-bottom">
           <i data-lucide="sparkles" class="text-gold"></i>
           <div>
-            <strong>Système de Points & Création de Valeur :</strong>
-            <p>Déclarez vos tâches accomplies et vos initiatives pour accumuler des points. Le manager valide les demandes pour attribuer les points et calculer le classement du mois !</p>
+            <strong>Coin Rewards & Merit System:</strong>
+            <p>Log your completed tasks and shift initiatives to earn Coins. The manager approves entries to award Coins and calculate monthly tip shares!</p>
           </div>
         </div>
 
         <div class="grid-2col">
-          <!-- Col 1: Tâches Récurrentes Fixes -->
+          <!-- Col 1: Fixed Shift Checklists -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="check-circle-2" class="text-green"></i> Checklistes de Shift (Fixes)</h3>
+              <h3><i data-lucide="check-circle-2" class="text-green"></i> Shift Checklists (Fixed Tasks)</h3>
             </div>
-            <p class="text-muted small-margin">Cochez une tâche accomplie pour envoyer une demande de validation au manager.</p>
+            <p class="text-muted small-margin">Select a completed task to submit it for manager approval.</p>
             
             <div class="task-form">
               <div class="form-group">
-                <label>Employé concerné</label>
+                <label>Select Team Member</label>
                 <select id="task-fixed-employee" class="form-control"></select>
               </div>
               <div class="form-group">
-                <label>Catégorie & Tâche effectuée</label>
+                <label>Category & Task Completed</label>
                 <select id="task-fixed-preset" class="form-control">
-                  <optgroup label="Cuisine (Kitchen)">
-                    <option value="Nettoyage approfondi & désinfection cuisine (+20 pts)">Kitchen: Nettoyage approfondi & désinfection poste (+20 pts)</option>
-                    <option value="Préparation mise en place service (+15 pts)">Kitchen: Préparation accélérée mise en place (+15 pts)</option>
-                    <option value="Entretien préventif des équipements (+25 pts)">Kitchen: Entretien préventif four/friteuse/grill (+25 pts)</option>
-                    <option value="Gestion des stocks & zéro gâchis (+20 pts)">Kitchen: Contrôle DLC & zéro gâchis d'ingrédients (+20 pts)</option>
+                  <optgroup label="Kitchen Team">
+                    <option value="Kitchen: Deep cleaning & station sanitization (+20 Coins)">Kitchen: Deep cleaning & station sanitization (+20 Coins)</option>
+                    <option value="Kitchen: Accelerated prep list completion (+15 Coins)">Kitchen: Accelerated prep list completion (+15 Coins)</option>
+                    <option value="Kitchen: Equipment maintenance & grill care (+25 Coins)">Kitchen: Equipment maintenance & grill care (+25 Coins)</option>
+                    <option value="Kitchen: Stock control & zero food waste (+20 Coins)">Kitchen: Stock control & zero food waste (+20 Coins)</option>
                   </optgroup>
-                  <optgroup label="Salle & Bar (Front)">
-                    <option value="Clôture caisse & rangement bar (+20 pts)">Front: Clôture caisse & rangement bar complet (+20 pts)</option>
-                    <option value="Accueil d'excellence & gestion de banquet (+25 pts)">Front: Service d'excellence & banquet (+25 pts)</option>
-                    <option value="Réassort frigos & inventaire boissons (+15 pts)">Front: Réassort frigos & inventaire boissons (+15 pts)</option>
-                    <option value="Vente additionnelle & conseil client (+15 pts)">Front: Vente additionnelle desserts/cafés (+15 pts)</option>
+                  <optgroup label="Front Team (Floor / Bar)">
+                    <option value="Front: Register closure & bar organization (+20 Coins)">Front: Register closure & bar organization (+20 Coins)</option>
+                    <option value="Front: Guest service & banquet management (+25 Coins)">Front: Guest service & banquet management (+25 Coins)</option>
+                    <option value="Front: Fridge restocking & beverage audit (+15 Coins)">Front: Fridge restocking & beverage audit (+15 Coins)</option>
+                    <option value="Front: Upselling desserts & specialty drinks (+15 Coins)">Front: Upselling desserts & specialty drinks (+15 Coins)</option>
                   </optgroup>
-                  <optgroup label="Général">
-                    <option value="Remplacement d'urgence d'un collègue (+30 pts)">Général: Remplacement d'urgence d'un collègue sur repos (+30 pts)</option>
+                  <optgroup label="General">
+                    <option value="General: Emergency shift cover for teammate (+30 Coins)">General: Emergency shift cover for teammate (+30 Coins)</option>
                   </optgroup>
                 </select>
               </div>
               <button id="btn-submit-fixed-task" class="btn btn-primary btn-block">
-                <i data-lucide="send"></i> Déclarer la tâche accomplie
+                <i data-lucide="send"></i> Submit Task Completion
               </button>
             </div>
           </div>
 
-          <!-- Col 2: Déclaration d'Initiative / Bonus -->
+          <!-- Col 2: Bonus Initiative Submission -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="sparkles" class="text-gold"></i> Soumettre une Initiative / Action Bonus</h3>
+              <h3><i data-lucide="sparkles" class="text-gold"></i> Submit Initiative / Bonus Action</h3>
             </div>
-            <p class="text-muted small-margin">Vous avez pris une super initiative pendant le shift ? Rédigez une courte description !</p>
+            <p class="text-muted small-margin">Took an extra initiative during shift? Write a short description to request Coins!</p>
             
             <form id="form-bonus-task" class="task-form">
               <div class="form-group">
-                <label>Employé concerné</label>
+                <label>Select Team Member</label>
                 <select id="task-bonus-employee" class="form-control" required></select>
               </div>
               <div class="form-group">
-                <label>Description courte de l'initiative</label>
-                <input type="text" id="task-bonus-desc" class="form-control" placeholder="ex: Compliment client Google Avis, réorganisation terrasse rush..." required />
+                <label>Short Description of Initiative</label>
+                <input type="text" id="task-bonus-desc" class="form-control" placeholder="e.g. Guest compliment, terrace rush setup, quick fridge repair..." required />
               </div>
               <div class="form-group">
-                <label>Points suggérés</label>
+                <label>Suggested Coin Value</label>
                 <select id="task-bonus-pts" class="form-control">
-                  <option value="15">+15 pts (Petite attention / Entraide)</option>
-                  <option value="25" selected>+25 pts (Initiative remarquable)</option>
-                  <option value="35">+35 pts (Action exceptionnelle & impact client)</option>
+                  <option value="15">+15 Coins (Courteous action / Team help)</option>
+                  <option value="25" selected>+25 Coins (Remarkable Initiative)</option>
+                  <option value="35">+35 Coins (Exceptional Guest Impact)</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-gold btn-block">
-                <i data-lucide="plus-circle"></i> Soumettre l'initiative
+                <i data-lucide="plus-circle"></i> Submit Initiative
               </button>
             </form>
           </div>
         </div>
 
-        <!-- Section Validation Manager -->
+        <!-- Manager Validation Section -->
         <div class="section-card margin-top">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="shield-check" class="text-purple"></i> Espace Manager : Validation des Tâches en Attente</h3>
-              <p class="text-muted">Validez ou refusez les tâches déclarées pour créditer les points de valeur en temps réel.</p>
+              <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Dashboard: Pending Approvals</h3>
+              <p class="text-muted">Approve or reject submitted entries to award Coins in real time.</p>
             </div>
-            <span class="badge badge-purple" id="pending-count-badge">0 en attente</span>
+            <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
           </div>
           
           <div id="pending-tasks-list" class="tasks-feed">
-            <!-- Dynamique -->
+            <!-- Dynamic Pending List -->
           </div>
         </div>
 
-        <!-- Historique des Tâches Validées -->
+        <!-- Approved Tasks History -->
         <div class="section-card margin-top">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="history"></i> Historique des Tâches & Initiatives Validées Ce Mois</h3>
-              <p class="text-muted">Consultez les points de valeur crédités récemment à chaque membre du personnel.</p>
+              <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
+              <p class="text-muted">Review recently awarded Coins for all team members this month.</p>
             </div>
           </div>
           <div id="validated-tasks-list" class="history-list">
-            <!-- Dynamique -->
+            <!-- Dynamic History List -->
           </div>
         </div>
       </section>
 
-      <!-- TAB 4: TIPS CALCULATOR -->
+      <!-- TAB 4: TIP CALCULATOR -->
       <section id="tab-tips" class="tab-content">
         <div class="grid-2col">
-          <!-- Formulaire Répartition -->
+          <!-- Tip Parameters Form -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="coins" class="text-gold"></i> Paramètres de Distribution</h3>
+              <h3><i data-lucide="coins" class="text-gold"></i> Tip Distribution Parameters</h3>
             </div>
             
             <div class="form-group">
-              <label>Montant Total des Tips du Mois (€)</label>
+              <label>Total Monthly Tips Pool (€)</label>
               <div class="input-currency">
-                <input type="number" id="input-total-tips" class="form-control input-lg" placeholder="ex: 1450.00" step="10" min="0" />
+                <input type="number" id="input-total-tips" class="form-control input-lg" placeholder="e.g. 2600.00" step="10" min="0" />
                 <span class="currency-symbol">€</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label>Règle de Répartition des Tips</label>
+              <label>Distribution Model Rule</label>
               <select id="tip-distribution-rule" class="form-control">
-                <option value="VALUE_POINTS" selected>100% au Prorata des Points de Valeur & Initiatives (Modèle Méritocratique)</option>
-                <option value="VALUE_POINTS_RATIO_60_40">Ratio Pôle : 60% Front / 40% Kitchen (Proratisé par points de valeur du pôle)</option>
-                <option value="VALUE_POINTS_RATIO_65_35">Ratio Pôle : 65% Front / 35% Kitchen (Proratisé par points de valeur du pôle)</option>
-                <option value="VALUE_POINTS_RATIO_70_30">Ratio Pôle : 70% Front / 30% Kitchen (Proratisé par points de valeur du pôle)</option>
+                <option value="VALUE_POINTS" selected>100% Pro-rata based on Coins Earned (Meritocratic Model)</option>
+                <option value="VALUE_POINTS_RATIO_60_40">Team Split: 60% Front / 40% Kitchen (Pro-rata by Team Coins)</option>
+                <option value="VALUE_POINTS_RATIO_65_35">Team Split: 65% Front / 35% Kitchen (Pro-rata by Team Coins)</option>
+                <option value="VALUE_POINTS_RATIO_70_30">Team Split: 70% Front / 30% Kitchen (Pro-rata by Team Coins)</option>
               </select>
             </div>
 
             <div class="info-box">
               <i data-lucide="sparkles" class="text-gold"></i>
               <div>
-                <strong>Modèle axé sur la Création de Valeur :</strong>
-                <p>Le temps de présence brute ne détermine plus le partage. La cagnotte est répartie au prorata exact des points gagnés grâce aux tâches d'excellence et aux initiatives pendant les shifts.</p>
+                <strong>Coin-Based Meritocracy Model:</strong>
+                <p>Raw attendance time no longer determines tip distribution. Tips are allocated strictly pro-rata based on Coins earned through task excellence and shift initiatives.</p>
               </div>
             </div>
 
             <button id="btn-save-tips" class="btn btn-success btn-block margin-top">
-              <i data-lucide="check"></i> Enregistrer & Recalculer les Sommes
+              <i data-lucide="check"></i> Save Parameters & Recalculate Shares
             </button>
           </div>
 
-          <!-- Résumé des Totaux -->
+          <!-- Overall Summary -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="pie-chart"></i> Répartition Globale</h3>
+              <h3><i data-lucide="pie-chart"></i> Team Breakdown Summary</h3>
             </div>
 
             <div class="tip-summary-cards">
               <div class="summary-box box-front">
                 <div class="box-header">
-                  <i data-lucide="glass-water"></i> Équipe Front (Salle / Bar)
+                  <i data-lucide="glass-water"></i> Front Team (Floor / Bar)
                 </div>
-                <strong id="summary-front-amount" class="box-val">0,00 €</strong>
-                <span id="summary-front-sub" class="box-sub">0h cumulées</span>
+                <strong id="summary-front-amount" class="box-val">0.00 €</strong>
+                <span id="summary-front-sub" class="box-sub">0 Coins earned (Front)</span>
               </div>
 
               <div class="summary-box box-kitchen">
                 <div class="box-header">
-                  <i data-lucide="chef-hat"></i> Équipe Kitchen (Cuisine)
+                  <i data-lucide="chef-hat"></i> Kitchen Team
                 </div>
-                <strong id="summary-kitchen-amount" class="box-val">0,00 €</strong>
-                <span id="summary-kitchen-sub" class="box-sub">0h cumulées</span>
+                <strong id="summary-kitchen-amount" class="box-val">0.00 €</strong>
+                <span id="summary-kitchen-sub" class="box-sub">0 Coins earned (Kitchen)</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tableau Détaillé par Employé -->
+        <!-- Detailed Individual Table -->
         <div class="section-card margin-top">
           <div class="section-header">
-            <h3><i data-lucide="receipt"></i> Montants Dus par Employé</h3>
+            <h3><i data-lucide="receipt"></i> Individual Tip Breakdown</h3>
             <button id="btn-print-tips" class="btn btn-outline btn-sm">
-              <i data-lucide="printer"></i> Imprimer Fiches
+              <i data-lucide="printer"></i> Print Breakdown
             </button>
           </div>
 
@@ -430,16 +430,16 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Employé</th>
-                  <th>Équipe</th>
-                  <th>Jours Travaillés</th>
-                  <th>Total Heures</th>
-                  <th>Part du Magot (%)</th>
-                  <th>Montant À Verser (€)</th>
+                  <th>Employee</th>
+                  <th>Team & Role</th>
+                  <th>Coins Earned</th>
+                  <th>Attendance</th>
+                  <th>Tip Share (%)</th>
+                  <th>Amount Payable (€)</th>
                 </tr>
               </thead>
               <tbody id="tips-detail-tbody">
-                <!-- Dynamique -->
+                <!-- Dynamic -->
               </tbody>
             </table>
           </div>
@@ -449,66 +449,70 @@
       <!-- TAB 5: STAFF MANAGEMENT -->
       <section id="tab-staff" class="tab-content">
         <div class="grid-2col">
-          <!-- Ajouter un membre -->
+          <!-- Add Member -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="user-plus"></i> Ajouter un Membre</h3>
+              <h3><i data-lucide="user-plus"></i> Add Team Member</h3>
             </div>
             
             <form id="form-add-staff" class="task-form">
               <div class="form-group">
-                <label>Nom complet</label>
-                <input type="text" id="staff-name" class="form-control" placeholder="ex: Thomas Martin" required />
+                <label>Full Name</label>
+                <input type="text" id="staff-name" class="form-control" placeholder="e.g. Alex Smith" required />
               </div>
               <div class="form-group">
-                <label>Équipe / Pôle</label>
+                <label>Team</label>
                 <select id="staff-role" class="form-control">
-                  <option value="FRONT">Front (Salle / Bar)</option>
-                  <option value="KITCHEN">Kitchen (Cuisine)</option>
+                  <option value="FRONT">Front (Floor / Bar)</option>
+                  <option value="KITCHEN">Kitchen</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Couleur Avatar</label>
+                <label>Role / Title</label>
+                <input type="text" id="staff-title" class="form-control" placeholder="e.g. Server, Chef, Bartender..." required />
+              </div>
+              <div class="form-group">
+                <label>Avatar Color</label>
                 <input type="color" id="staff-color" class="form-control color-picker" value="#3b82f6" />
               </div>
               <button type="submit" class="btn btn-primary btn-block">
-                <i data-lucide="plus"></i> Enregistrer le membre
+                <i data-lucide="plus"></i> Add Member
               </button>
             </form>
           </div>
 
-          <!-- Actions Données / Reset -->
+          <!-- Data Actions & Backup -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="database"></i> Gestion des Données & Sauvegardes</h3>
+              <h3><i data-lucide="database"></i> Data & Backup Management</h3>
             </div>
-            <p class="text-muted">Toutes vos données sont conservées localement dans votre navigateur. Vous pouvez exporter une sauvegarde ou réinitialiser le mois.</p>
+            <p class="text-muted">All data is stored locally in your web browser. You can export a JSON backup or reset the current month.</p>
             
             <div class="actions-stack">
               <button id="btn-export-data" class="btn btn-outline btn-block">
-                <i data-lucide="download"></i> Exporter Sauvegarde (JSON)
+                <i data-lucide="download"></i> Export JSON Backup
               </button>
               
               <label class="btn btn-outline btn-block file-input-label">
-                <i data-lucide="upload"></i> Importer une Sauvegarde
+                <i data-lucide="upload"></i> Import JSON Backup
                 <input type="file" id="input-import-data" accept=".json" class="hidden-file-input">
               </label>
 
               <button id="btn-reset-month" class="btn btn-danger-outline btn-block margin-top">
-                <i data-lucide="rotate-ccw"></i> Réinitialiser le mois courant
+                <i data-lucide="rotate-ccw"></i> Reset Current Month Data
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Liste du Personnel -->
+        <!-- Staff List Grid -->
         <div class="section-card margin-top">
           <div class="section-header">
-            <h3><i data-lucide="users"></i> Liste de l'Équipe Actuelle</h3>
+            <h3><i data-lucide="users"></i> Active Roster List</h3>
           </div>
 
           <div id="staff-list-grid" class="staff-grid">
-            <!-- Dynamique -->
+            <!-- Dynamic -->
           </div>
         </div>
       </section>
@@ -518,8 +522,8 @@
         <div class="section-card">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="globe" class="text-blue"></i> Guide de Déploiement Gratuit sur le Web</h3>
-              <p class="text-muted">Pour que votre équipe et vous-même puissiez utiliser l'application sur smartphone ou tablette au restaurant sans installation.</p>
+              <h3><i data-lucide="globe" class="text-blue"></i> Free Web Deployment Guide</h3>
+              <p class="text-muted">Easily host this web application online so your entire team can access it on their smartphone or shared restaurant tablet.</p>
             </div>
           </div>
 
@@ -527,11 +531,11 @@
             <div class="deploy-card">
               <div class="deploy-step-num">1</div>
               <div class="deploy-step-content">
-                <h4>Option A (La plus simple) : Déploiement sur Netlify (Drop sans code)</h4>
+                <h4>Option A (Easiest) : Netlify Drop (Zero code drag & drop)</h4>
                 <ol>
-                  <li>Rendez-vous sur le site gratuit <strong><a href="https://app.netlify.com/drop" target="_blank" rel="noopener">Netlify Drop (app.netlify.com/drop)</a></strong>.</li>
-                  <li>Glissez-déposez le dossier de cette application (qui contient <code>index.html</code>, <code>css</code> et <code>js</code>).</li>
-                  <li>Votre application est en ligne en 5 secondes avec une URL sécurisée HTTPS (ex: <code>https://resto-tips.netlify.app</code>) !</li>
+                  <li>Visit free website <strong><a href="https://app.netlify.com/drop" target="_blank" rel="noopener">Netlify Drop (app.netlify.com/drop)</a></strong>.</li>
+                  <li>Drag and drop this project folder containing <code>index.html</code>, <code>css</code>, and <code>js</code>.</li>
+                  <li>Your app goes live instantly with a secure HTTPS URL (e.g. <code>https://resto-tips.netlify.app</code>)!</li>
                 </ol>
               </div>
             </div>
@@ -539,12 +543,12 @@
             <div class="deploy-card">
               <div class="deploy-step-num">2</div>
               <div class="deploy-step-content">
-                <h4>Option B : Déploiement via GitHub + Vercel / GitHub Pages</h4>
+                <h4>Option B : GitHub + Vercel / GitHub Pages</h4>
                 <ol>
-                  <li>Créez un dépôt gratuit sur <strong>GitHub.com</strong>.</li>
-                  <li>Mettez les fichiers sur votre dépôt.</li>
-                  <li>Connectez votre dépôt à <strong>Vercel.com</strong> ou activez <strong>GitHub Pages</strong> dans les paramètres du dépôt.</li>
-                  <li>Toute l'équipe peut alors ajouter l'application sur l'écran d'accueil de son smartphone comme une application native !</li>
+                  <li>Create a free repository on <strong>GitHub.com</strong>.</li>
+                  <li>Push your files to the repository.</li>
+                  <li>Connect to <strong>Vercel.com</strong> or enable <strong>GitHub Pages</strong> in repo settings.</li>
+                  <li>Team members can add the web app link directly to their smartphone home screen!</li>
                 </ol>
               </div>
             </div>
@@ -552,11 +556,11 @@
             <div class="deploy-card">
               <div class="deploy-step-num">3</div>
               <div class="deploy-step-content">
-                <h4>Option C : Utilisation sur Tablette Commune du Restaurant</h4>
+                <h4>Option C : Shared Restaurant Tablet Setup</h4>
                 <ol>
-                  <li>Ouvrez l'URL générée sur la tablette du restaurant (ex: iPad / Android).</li>
-                  <li>Cliquez sur "Ajouter à l'écran d'accueil" dans le navigateur pour créer un raccourci d'application plein écran.</li>
-                  <li>Les employés peuvent y déclarer leurs tâches et consulter leurs présences et tips en un instant !</li>
+                  <li>Open the live URL on your restaurant iPad or Android tablet.</li>
+                  <li>Tap "Add to Home Screen" in browser options to create a full-screen app shortcut.</li>
+                  <li>Staff can log tasks and view Coins and tip shares in seconds!</li>
                 </ol>
               </div>
             </div>
@@ -574,11 +578,11 @@
       </button>
       <button class="bottom-nav-btn" data-tab="planning">
         <i data-lucide="calendar-range"></i>
-        <span>Planning</span>
+        <span>Roster</span>
       </button>
       <button class="bottom-nav-btn" data-tab="tasks">
         <i data-lucide="check-square"></i>
-        <span>Tâches</span>
+        <span>Tasks</span>
         <span id="mobile-pending-dot" class="dot-badge hidden"></span>
       </button>
       <button class="bottom-nav-btn" data-tab="tips">
@@ -587,39 +591,39 @@
       </button>
       <button class="bottom-nav-btn" data-tab="staff">
         <i data-lucide="users"></i>
-        <span>Équipe</span>
+        <span>Team</span>
       </button>
     </nav>
 
-    <!-- Modal Gagnant du Mois -->
+    <!-- Employee of the Month Winner Modal -->
     <div id="modal-winner" class="modal-backdrop hidden">
       <div class="modal-card">
         <button id="btn-close-winner" class="modal-close"><i data-lucide="x"></i></button>
         <div class="winner-trophy-icon">
           <i data-lucide="crown"></i>
         </div>
-        <div class="winner-subtitle">Gagnant du Concours</div>
-        <h2 id="winner-name">Chargement...</h2>
+        <div class="winner-subtitle">Contest Winner</div>
+        <h2 id="winner-name">Loading...</h2>
         <span id="winner-team-badge" class="badge">Front</span>
 
         <div class="winner-stats-grid">
           <div class="w-stat">
-            <span class="w-label">Score Cumulé</span>
-            <strong id="winner-points">0 pts</strong>
+            <span class="w-label">Coins Earned</span>
+            <strong id="winner-points">0 Coins</strong>
           </div>
           <div class="w-stat">
-            <span class="w-label">Jours Présents</span>
-            <strong id="winner-days">0 j (0h)</strong>
+            <span class="w-label">Days Worked</span>
+            <strong id="winner-days">0 d (0h)</strong>
           </div>
           <div class="w-stat">
-            <span class="w-label">Tips Estimés</span>
-            <strong id="winner-tips">0,00 €</strong>
+            <span class="w-label">Estimated Tip</span>
+            <strong id="winner-tips">0.00 €</strong>
           </div>
         </div>
 
-        <p class="winner-cheer">Félicitations pour ton travail exemplaire ce mois-ci ! 🚀🎉</p>
+        <p class="winner-cheer">Congratulations on your outstanding contribution and dedication this month! 🚀🎉</p>
         <button id="btn-celebrate-again" class="btn btn-gold btn-block margin-top">
-          <i data-lucide="sparkles"></i> Lancer la pluie de confettis !
+          <i data-lucide="sparkles"></i> Celebrate with Confetti!
         </button>
       </div>
     </div>
@@ -629,7 +633,7 @@
 
   </div>
 
-  <!-- JavaScript principal -->
+  <!-- Main JavaScript File -->
   <script src="js/app.js"></script>
 </body>
 </html>
