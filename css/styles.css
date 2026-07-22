@@ -1098,57 +1098,6 @@ button, input, select, textarea {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Login Authentication Screen Styles */
-.login-screen-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98)),
-              radial-gradient(circle at top center, var(--color-gold-glow), transparent 70%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1.5rem;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--bg-card-solid);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 2.25rem 2rem;
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(16px);
-  animation: fadeIn 0.4s ease;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 1.75rem;
-}
-
-.login-brand-icon {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 0.75rem auto;
-  background: linear-gradient(135deg, var(--color-gold), #d97706);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 1.75rem;
-  box-shadow: 0 0 20px var(--color-gold-glow);
-}
-
-.login-header h2 {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin: 0 0 0.25rem 0;
-}
-
 /* Utility Helpers */
 .hidden { display: none !important; }
 .text-gold { color: var(--color-gold); }
