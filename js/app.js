@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         appState = JSON.parse(saved);
         if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
-        // Vérifier si le staff est au nouveau format
+        // Vérifier si le staff et les plannings sont au format avec les jours OFF réels
         if (!appState.staff || appState.staff.length === 0 || !appState.staff.some(s => s.name === 'Vinod')) {
           initDefaultState();
         }
@@ -85,19 +85,42 @@ document.addEventListener('DOMContentLoaded', () => {
     generateDemoData();
   };
 
+  // Rôle et jours de repos hebdomadaires réels pour chaque employé
+  // JS Date.getDay(): 0=Dimanche, 1=Lundi, 2=Mardi, 3=Mercredi, 4=Jeudi, 5=Vendredi, 6=Samedi
+  const DEFAULT_OFF_DAYS_CONFIG = {
+    'emp-1': [4],       // Vinod -> Jeudi
+    'emp-2': [2, 3],    // Siri -> Mardi, Mercredi
+    'emp-3': [1],       // Bruno -> Lundi
+    'emp-4': [4],       // Aadhi -> Jeudi
+    'emp-5': [2],       // Bhanu -> Mardi
+    'emp-6': [1],       // Karthik -> Lundi
+    'emp-7': [3]        // Muthyam -> Mercredi
+  };
+
+  const getDayOfWeekAbbr = (year, month, day) => {
+    const date = new Date(year, month - 1, day);
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return days[date.getDay()];
+  };
+
   const generateDemoData = () => {
     const mKey = appState.currentMonth;
     const daysCount = getDaysInMonth(mKey);
+    const [year, month] = mKey.split('-').map(Number);
 
-    // Initialiser les plannings avec des jours de repos distribués (repos uniques par employé)
+    // Initialiser les plannings avec les repos hebdomadaires réels transmis
     if (!appState.schedules[mKey]) {
       appState.schedules[mKey] = {};
-      appState.staff.forEach((emp, index) => {
+      appState.staff.forEach((emp) => {
         appState.schedules[mKey][emp.id] = {};
-        // Exemple : repos hebdomadaires décalés pour chaque employé
-        const offDays = [(index % 4) + 2, (index % 5) + 7, (index % 4) + 12, (index % 3) + 18, (index % 4) + 24, (index % 2) + 28];
+        const empOffWeekdays = DEFAULT_OFF_DAYS_CONFIG[emp.id] || [];
+
         for (let d = 1; d <= daysCount; d++) {
-          appState.schedules[mKey][emp.id][d] = !offDays.includes(d);
+          const date = new Date(year, month - 1, d);
+          const dayOfWeek = date.getDay();
+          // Est OFF si le jour de la semaine correspond à son jour de repos fixe
+          const isOff = empOffWeekdays.includes(dayOfWeek);
+          appState.schedules[mKey][emp.id][d] = !isOff;
         }
       });
     }
@@ -400,10 +423,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('plan-total-team-hours').textContent = `${totalTeamHours} h (${totalTeamWorkedDays} shifts)`;
     document.getElementById('plan-avg-days').textContent = `${avgDays} jours (${avgHours}h)`;
 
-    // Header : Employé + Jours 1..N + Total Heures
+    // Header : Employé + Jours 1..N avec jour de la semaine + Total Heures
+    const [year, month] = appState.currentMonth.split('-').map(Number);
     let headerHTML = `<thead><tr><th class="cell-name">Membre de l'Équipe</th>`;
     for (let d = 1; d <= daysCount; d++) {
-      headerHTML += `<th>${d}</th>`;
+      const dayAbbr = getDayOfWeekAbbr(year, month, d);
+      headerHTML += `<th><span style="font-size:0.65rem; color:var(--text-muted); display:block; font-weight:600;">${dayAbbr}</span>${d}</th>`;
     }
     headerHTML += `<th>Total Jours</th><th>Total Heures</th></tr></thead>`;
 
@@ -498,19 +523,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-plan-standard-off').addEventListener('click', () => {
     const daysCount = getDaysInMonth(appState.currentMonth);
+    const [year, month] = appState.currentMonth.split('-').map(Number);
     if (!appState.schedules[appState.currentMonth]) appState.schedules[appState.currentMonth] = {};
     
-    appState.staff.forEach((emp, index) => {
+    appState.staff.forEach((emp) => {
       appState.schedules[appState.currentMonth][emp.id] = {};
-      // Assigne 6 jours OFF répartis de manière équilibrée
-      const offDays = [(index % 4) + 2, (index % 5) + 7, (index % 4) + 12, (index % 3) + 18, (index % 4) + 24, (index % 2) + 28];
+      const empOffWeekdays = DEFAULT_OFF_DAYS_CONFIG[emp.id] || [];
+
       for (let d = 1; d <= daysCount; d++) {
-        appState.schedules[appState.currentMonth][emp.id][d] = !offDays.includes(d);
+        const date = new Date(year, month - 1, d);
+        const dayOfWeek = date.getDay();
+        const isOff = empOffWeekdays.includes(dayOfWeek);
+        appState.schedules[appState.currentMonth][emp.id][d] = !isOff;
       }
     });
 
     saveState();
-    showToast("Planning de repos hebdomadaire équilibré appliqué !");
+    showToast("Planning des repos réels de l'équipe appliqué avec succès !");
   });
 
   // Rendu de l'onglet Tâches & Validation
