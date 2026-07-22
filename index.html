@@ -194,42 +194,25 @@
             </div>
             
             <div class="planning-legend">
-              <span class="legend-item"><span class="dot dot-work"></span> Worked Shift (11h)</span>
-              <span class="legend-item"><span class="dot dot-off"></span> Day OFF (Rest)</span>
+              <span class="legend-item"><span class="dot dot-work"></span> WORK (Shift)</span>
+              <span class="legend-item"><span class="dot dot-off"></span> OFF (Rest)</span>
             </div>
           </div>
 
-          <!-- Roster Controls & Metrics -->
+          <!-- Roster Legend & Filter Controls -->
           <div class="planning-controls">
             <div class="filter-pills">
               <button class="pill-btn planning-filter active" data-plan-filter="ALL">All Team</button>
               <button class="pill-btn planning-filter" data-plan-filter="FRONT">Front (Floor/Bar)</button>
               <button class="pill-btn planning-filter" data-plan-filter="KITCHEN">Kitchen</button>
             </div>
-
-            <div class="planning-quick-actions">
-              <button id="btn-plan-all-work" class="btn btn-outline btn-sm" title="Mark all days as worked shifts">
-                <i data-lucide="check-check"></i> Mark 100% Worked
-              </button>
-              <button id="btn-plan-standard-off" class="btn btn-outline btn-sm" title="Apply recurring weekly rest days schedule">
-                <i data-lucide="wand-2"></i> Apply Recurring OFF Schedule
-              </button>
-            </div>
           </div>
 
           <!-- Roster Metrics Summary Bar -->
           <div class="planning-stats-bar">
             <div class="p-stat">
-              <span>Total Roster:</span>
-              <strong id="plan-total-staff">0 staff members</strong>
-            </div>
-            <div class="p-stat">
-              <span>Cumulative Team Hours:</span>
-              <strong id="plan-total-team-hours" class="text-blue">0 h</strong>
-            </div>
-            <div class="p-stat">
-              <span>Average per Employee:</span>
-              <strong id="plan-avg-days">0 days (0h)</strong>
+              <span>Roster Overview:</span>
+              <strong id="plan-total-staff">6 members (Front & Kitchen)</strong>
             </div>
           </div>
 

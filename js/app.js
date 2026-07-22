@@ -11,14 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DEFAULT_STAFF = [
     // Front Team (Floor / Bar)
-    { id: 'emp-2', name: 'Vinod Pal', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VP' },
-    { id: 'emp-3', name: 'Siri Vennela Puppala', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SV' },
+    { id: 'emp-2', name: 'Vinod', role: 'FRONT', title: 'Service Lead', color: '#3b82f6', avatar: 'VN' },
+    { id: 'emp-3', name: 'Siri', role: 'FRONT', title: 'Server', color: '#8b5cf6', avatar: 'SR' },
     
     // Kitchen Team
-    { id: 'emp-4', name: 'Aadhi Dammanapeta', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD' },
-    { id: 'emp-5', name: 'Karthik Nallathambi', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KN' },
-    { id: 'emp-6', name: 'Bhanu Reddy Palem', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BP' },
-    { id: 'emp-7', name: 'Muthyam Reddy Thembareni', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
+    { id: 'emp-4', name: 'Aadhi', role: 'KITCHEN', title: 'Kitchen Lead', color: '#ec4899', avatar: 'AD' },
+    { id: 'emp-5', name: 'Karthik', role: 'KITCHEN', title: 'Kitchen', color: '#10b981', avatar: 'KR' },
+    { id: 'emp-6', name: 'Bhanu', role: 'KITCHEN', title: 'Kitchen', color: '#f59e0b', avatar: 'BH' },
+    { id: 'emp-7', name: 'Muthyam', role: 'KITCHEN', title: 'Kitchen', color: '#6366f1', avatar: 'MT' }
   ];
 
   const getCurrentMonthKey = () => {
@@ -43,12 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Recurring weekly rest days (JS Date.getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
   const DEFAULT_OFF_DAYS_CONFIG = {
-    'emp-2': [4],       // Vinod Pal -> Thursday
-    'emp-3': [2, 3],    // Siri Vennela Puppala -> Tuesday, Wednesday
-    'emp-4': [4],       // Aadhi Dammanapeta -> Thursday
-    'emp-5': [1],       // Karthik Nallathambi -> Monday
-    'emp-6': [2],       // Bhanu Reddy Palem -> Tuesday
-    'emp-7': [3]        // Muthyam Reddy Thembareni -> Wednesday
+    'emp-2': [4],       // Vinod -> Thursday
+    'emp-3': [2, 3],    // Siri -> Tuesday, Wednesday
+    'emp-4': [4],       // Aadhi -> Thursday
+    'emp-5': [1],       // Karthik -> Monday
+    'emp-6': [2],       // Bhanu -> Tuesday
+    'emp-7': [3]        // Muthyam -> Wednesday
   };
 
   const getDayOfWeekAbbr = (year, month, day) => {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // 2. LOCALSTORAGE PERSISTENCE & DEMO INITIALIZATION
+  // 2. LOCALSTORAGE PERSISTENCE & INITIALIZATION
   // ==========================================
 
   const loadState = () => {
@@ -67,8 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         appState = JSON.parse(saved);
         if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
-        // Reset if staff format or language needs update
-        if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Bruno')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
+        // Reset if staff has family names or needs update
+        if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
       } catch (e) {
@@ -124,16 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
 
-    // Realistic demo task entries in English with Coins
-    appState.tasks = [
-      { id: 't-1', employeeId: 'emp-2', desc: 'Vinod Pal (Front Lead): Rush anticipation & terrace workflow optimization (+25 Coins)', points: 25, status: 'APPROVED', timestamp: Date.now() - 36000000 },
-      { id: 't-2', employeeId: 'emp-4', desc: 'Aadhi Dammanapeta (Kitchen Lead): Fast-track prep & zero food waste initiative (+30 Coins)', points: 30, status: 'APPROVED', timestamp: Date.now() - 32000000 },
-      { id: 't-3', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Hospitality excellence & 5-star Google review (+30 Coins)', points: 30, status: 'APPROVED', timestamp: Date.now() - 24000000 },
-      { id: 't-4', employeeId: 'emp-6', desc: 'Bhanu Reddy Palem (Kitchen): Deep cleaning & full station sanitization (+25 Coins)', points: 25, status: 'APPROVED', timestamp: Date.now() - 12000000 },
-      { id: 't-5', employeeId: 'emp-5', desc: 'Karthik Nallathambi (Kitchen): Preventive grill & pizza oven maintenance (+25 Coins)', points: 25, status: 'APPROVED', timestamp: Date.now() - 5000000 },
-      { id: 't-6', employeeId: 'emp-7', desc: 'Muthyam Reddy T. (Kitchen): Signature plate presentation initiative (+20 Coins)', points: 20, status: 'APPROVED', timestamp: Date.now() - 3600000 },
-      { id: 't-7', employeeId: 'emp-3', desc: 'Siri V. Puppala (Server): Upselling gourmet desserts & coffees (+15 Coins)', points: 15, status: 'PENDING', timestamp: Date.now() - 1800000 }
-    ];
+    // Tasks list empty by default until defined together
+    appState.tasks = [];
 
     saveState();
   };
@@ -374,21 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
       staffList = staffList.filter(s => s.role === planningFilter);
     }
 
-    let totalTeamWorkedDays = 0;
-    let totalTeamHours = 0;
-
-    staffList.forEach(emp => {
-      const att = getEmployeeAttendance(emp.id, appState.currentMonth);
-      totalTeamWorkedDays += att.workedDays;
-      totalTeamHours += att.workedHours;
-    });
-
-    const avgDays = staffList.length > 0 ? (totalTeamWorkedDays / staffList.length).toFixed(1) : 0;
-    const avgHours = staffList.length > 0 ? Math.round(totalTeamHours / staffList.length) : 0;
-
     document.getElementById('plan-total-staff').textContent = `${staffList.length} members (${planningFilter === 'ALL' ? 'Front & Kitchen' : planningFilter})`;
-    document.getElementById('plan-total-team-hours').textContent = `${totalTeamHours} h (${totalTeamWorkedDays} shifts)`;
-    document.getElementById('plan-avg-days').textContent = `${avgDays} days (${avgHours}h)`;
 
     const [year, month] = appState.currentMonth.split('-').map(Number);
     let headerHTML = `<thead><tr><th class="cell-name">Team Member</th>`;
@@ -396,16 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const dayAbbr = getDayOfWeekAbbr(year, month, d);
       headerHTML += `<th><span style="font-size:0.65rem; color:var(--text-muted); display:block; font-weight:600;">${dayAbbr}</span>${d}</th>`;
     }
-    headerHTML += `<th>Total Days</th><th>Total Hours</th></tr></thead>`;
+    headerHTML += `</tr></thead>`;
 
     let bodyHTML = `<tbody>`;
 
     if (staffList.length === 0) {
-      bodyHTML += `<tr><td colspan="${daysCount + 3}" style="text-align:center; padding:2rem;" class="text-muted">No team members in this category.</td></tr>`;
+      bodyHTML += `<tr><td colspan="${daysCount + 1}" style="text-align:center; padding:2rem;" class="text-muted">No team members in this category.</td></tr>`;
     } else {
       staffList.forEach(emp => {
         const empSchedule = monthSchedules[emp.id] || {};
-        let workedDays = 0;
 
         let rowHTML = `<tr><td class="cell-name">
           <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -419,20 +396,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let d = 1; d <= daysCount; d++) {
           const isWorked = empSchedule[d] !== false;
-          if (isWorked) workedDays++;
 
           rowHTML += `
             <td class="shift-cell ${isWorked ? 'is-work' : 'is-off'}" 
                 data-emp="${emp.id}" 
                 data-day="${d}" 
-                title="${isWorked ? 'Shift 11:30 AM - 10:30 PM (11h worked)' : 'Day OFF (Rest)'}">
-              ${isWorked ? '11h' : 'OFF'}
+                title="${isWorked ? 'Scheduled Shift (WORK)' : 'Day OFF (Rest)'}">
+              ${isWorked ? 'WORK' : 'OFF'}
             </td>
           `;
         }
 
-        const totalHours = workedDays * 11;
-        rowHTML += `<td><strong>${workedDays} d</strong></td><td><strong class="text-blue">${totalHours} h</strong></td></tr>`;
+        rowHTML += `</tr>`;
         bodyHTML += rowHTML;
       });
     }
@@ -456,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.schedules[appState.currentMonth][empId][day] = !currentVal;
 
         saveState();
-        showToast("Roster updated!");
+        showToast("Roster status updated!");
       });
     });
   };
@@ -845,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Roster Quick Actions
+  // Roster Filter Actions
   document.querySelectorAll('.planning-filter').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.planning-filter').forEach(b => b.classList.remove('active'));
@@ -853,42 +828,6 @@ document.addEventListener('DOMContentLoaded', () => {
       planningFilter = e.currentTarget.dataset.planFilter;
       renderPlanning();
     });
-  });
-
-  document.getElementById('btn-plan-all-work').addEventListener('click', () => {
-    const daysCount = getDaysInMonth(appState.currentMonth);
-    if (!appState.schedules[appState.currentMonth]) appState.schedules[appState.currentMonth] = {};
-    
-    appState.staff.forEach(emp => {
-      appState.schedules[appState.currentMonth][emp.id] = {};
-      for (let d = 1; d <= daysCount; d++) {
-        appState.schedules[appState.currentMonth][emp.id][d] = true;
-      }
-    });
-
-    saveState();
-    showToast("All days marked as worked shifts!");
-  });
-
-  document.getElementById('btn-plan-standard-off').addEventListener('click', () => {
-    const daysCount = getDaysInMonth(appState.currentMonth);
-    const [year, month] = appState.currentMonth.split('-').map(Number);
-    if (!appState.schedules[appState.currentMonth]) appState.schedules[appState.currentMonth] = {};
-    
-    appState.staff.forEach((emp) => {
-      appState.schedules[appState.currentMonth][emp.id] = {};
-      const empOffWeekdays = DEFAULT_OFF_DAYS_CONFIG[emp.id] || [];
-
-      for (let d = 1; d <= daysCount; d++) {
-        const date = new Date(year, month - 1, d);
-        const dayOfWeek = date.getDay();
-        const isOff = empOffWeekdays.includes(dayOfWeek);
-        appState.schedules[appState.currentMonth][emp.id][d] = !isOff;
-      }
-    });
-
-    saveState();
-    showToast("Recurring team rest day schedule applied!");
   });
 
   // ==========================================
