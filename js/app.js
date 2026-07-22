@@ -1432,6 +1432,105 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
+  // Google Sheet Live Sync URL & Parser
+  const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0/export?format=csv';
+
+  const parseCSVTasks = (csvText) => {
+    if (!csvText || !csvText.trim()) return [];
+    const lines = csvText.split(/\r?\n/);
+    const imported = [];
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      const parts = trimmed.split(',');
+      const cleanParts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
+
+      // Find first non-empty column
+      const firstCol = cleanParts.find(p => p.length > 0) || '';
+      if (!firstCol || firstCol.toLowerCase() === 'task name' || firstCol.toLowerCase() === 'dayly tasks') return;
+
+      let title = firstCol;
+      let scope = cleanParts[2] ? cleanParts[2].toUpperCase() : '';
+      let period = cleanParts[3] ? cleanParts[3].toUpperCase() : '';
+      let recurrence = cleanParts[4] ? cleanParts[4].toUpperCase() : 'DAILY';
+      let points = parseInt(cleanParts[5]) || 10;
+      let desc = cleanParts[1] && cleanParts[1] !== title ? cleanParts[1] : `Standard operational task: ${title}`;
+
+      // Smart Scope Auto-Detection if unassigned
+      if (!scope || !['FRONT', 'KITCHEN', 'EVERYONE', 'CLEANER'].includes(scope)) {
+        const lower = title.toLowerCase();
+        if (lower.includes('thrash') || lower.includes('trash') || lower.includes('karton') || lower.includes('basement') || lower.includes('deliveries') || lower.includes('meat') || lower.includes('groceries') || lower.includes('fridge')) {
+          scope = 'KITCHEN';
+        } else if (lower.includes('dine-in') || lower.includes('carpet') || lower.includes('wall') || lower.includes('door') || lower.includes('wickelraum')) {
+          scope = 'FRONT';
+        } else if (lower.includes('cleaner') || lower.includes('mop') || lower.includes('sweep')) {
+          scope = 'CLEANER';
+        } else {
+          scope = 'EVERYONE';
+        }
+      }
+
+      if (!period || !['MORNING', 'AFTERNOON', 'EVENING', 'ANYTIME'].includes(period)) {
+        period = 'ANYTIME';
+      }
+
+      imported.push({
+        id: 'cat-gs-' + index + '-' + Date.now(),
+        title: title,
+        scope: scope,
+        period: period,
+        points: points,
+        recurrence: recurrence,
+        desc: desc
+      });
+    });
+
+    return imported;
+  };
+
+  const syncGoogleSheetTasks = async (showNotification = true) => {
+    const btnSync = document.getElementById('btn-sync-google-sheet');
+    if (btnSync) {
+      btnSync.disabled = true;
+      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing Google Sheet...`;
+    }
+
+    try {
+      const response = await fetch(GOOGLE_SHEET_CSV_URL);
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const csvText = await response.text();
+      
+      const parsed = parseCSVTasks(csvText);
+      if (parsed.length > 0) {
+        appState.masterTaskCatalogue = parsed;
+        saveState();
+        renderAll();
+        if (showNotification) {
+          showToast(`⚡ Live Google Sheet synchronized! ${parsed.length} tasks loaded.`);
+        }
+      }
+    } catch (err) {
+      console.error("Google Sheet Sync Error:", err);
+      if (showNotification) {
+        showToast("Error syncing Google Sheet. Check CORS or link permissions.");
+      }
+    } finally {
+      if (btnSync) {
+        btnSync.disabled = false;
+        btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+  };
+
+  // Live Google Sheet Sync Listener
+  const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
+  if (btnSyncSheet) {
+    btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
+  }
+
   // Generate Monthly Schedule Button Listener
   const btnMonthlySchedule = document.getElementById('btn-generate-monthly-schedule');
   if (btnMonthlySchedule) {

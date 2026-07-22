@@ -267,25 +267,29 @@
               </div>
             </div>
 
-            <!-- Primary Action Buttons: Update Tasks & Generate Schedule -->
+            <!-- Primary Action Buttons: Sync Google Sheets, Update Tasks & Generate Schedule -->
             <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
+              <button id="btn-sync-google-sheet" class="btn btn-gold glow" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
+                <i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)
+              </button>
+
               <label class="btn btn-primary" style="cursor:pointer; flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
-                <i data-lucide="upload-cloud"></i> Update Tasks (Import Excel / CSV / JSON)
+                <i data-lucide="upload-cloud"></i> Update Tasks (Import File)
                 <input type="file" id="input-update-tasks-file" accept=".csv,.json,.xlsx" class="hidden-file-input" />
               </label>
 
-              <button id="btn-generate-monthly-schedule" class="btn btn-gold glow" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
-                <i data-lucide="sparkles"></i> Generate Schedule (Monthly Fair Rotation)
+              <button id="btn-generate-monthly-schedule" class="btn btn-outline" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
+                <i data-lucide="sparkles"></i> Generate Schedule (Rotation)
               </button>
             </div>
 
             <!-- Active Master Catalogue Summary Bar -->
             <div style="margin-top:1.25rem; padding:0.75rem 1rem; background:var(--bg-input); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
               <span class="text-muted" style="font-size:0.85rem;">
-                <i data-lucide="database" class="text-blue"></i> Active Master Catalogue: <strong id="catalogue-task-count" class="text-gold">10 Tasks Loaded</strong>
+                <i data-lucide="link-2" class="text-green"></i> Live Google Sheet: <a href="https://docs.google.com/spreadsheets/d/1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0/edit?usp=sharing" target="_blank" style="color:var(--color-gold); text-decoration:underline; font-weight:600;">Catalogue Sheet</a>
               </span>
               <span class="text-muted" style="font-size:0.85rem;">
-                Fixed Coin Scale: <strong class="text-green">1, 5, 10, 15, 20, 25, 50 Coins</strong>
+                <i data-lucide="database" class="text-blue"></i> Active Catalogue: <strong id="catalogue-task-count" class="text-gold">15 Tasks Loaded</strong>
               </span>
             </div>
           </div>
