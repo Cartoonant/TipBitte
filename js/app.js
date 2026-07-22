@@ -35,7 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const getCurrentMonthKey = () => {
-    return '2026-08';
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}`;
   };
 
   const getDaysInMonth = (monthKey) => {
@@ -45,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Global State
   let appState = {
-    currentMonth: '2026-08',
+    currentMonth: getCurrentMonthKey(),
     activeRole: 'MANAGER', // 'MANAGER' or employee ID (e.g. 'emp-2')
     eotmWinnerId: null,     // Employee ID crowned as Employee of the Month
     eotmBonusAmount: 100,   // Fixed bonus in € for Employee of the Month
@@ -275,16 +278,38 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', appState.theme);
   };
 
+  const renderHeaderLiveDate = () => {
+    const liveDateEl = document.getElementById('header-live-date');
+    if (!liveDateEl) return;
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('en-US', options);
+    liveDateEl.innerHTML = `<i data-lucide="clock" class="selector-icon text-gold" style="width:16px; height:16px;"></i> <span>${dateStr}</span>`;
+    if (window.lucide) lucide.createIcons();
+  };
+
   const renderMonthSelector = () => {
     const select = document.getElementById('current-month-select');
     if (!select) return;
 
-    select.innerHTML = `
-      <option value="2026-08" selected>August 2026</option>
-      <option value="2026-09">September 2026</option>
-      <option value="2026-10">October 2026</option>
-    `;
-    select.value = appState.currentMonth;
+    const now = new Date();
+    const currentYr = now.getFullYear();
+    const currentMo = now.getMonth(); // 0-indexed
+
+    let optionsHTML = '';
+    // Generate rolling months (from 2 months ago to 9 months ahead)
+    for (let i = -2; i <= 9; i++) {
+      const d = new Date(currentYr, currentMo + i, 1);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const key = `${yyyy}-${mm}`;
+      const monthName = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const isCurrentDeviceMonth = (i === 0);
+      optionsHTML += `<option value="${key}">${monthName} ${isCurrentDeviceMonth ? '(Current)' : ''}</option>`;
+    }
+
+    select.innerHTML = optionsHTML;
+    select.value = appState.currentMonth || getCurrentMonthKey();
 
     const heroMonth = document.getElementById('hero-month-name');
     if (heroMonth) heroMonth.textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
@@ -1107,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    renderHeaderLiveDate();
     renderMonthSelector();
     renderDashboard();
     renderPlanning();
