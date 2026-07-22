@@ -1080,6 +1080,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTips();
       renderStaff();
     }
+
+    bindNavTabListeners();
   };
 
   // ==========================================
@@ -1234,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update active class on all nav buttons (sidebar & bottom mobile nav)
     document.querySelectorAll('[data-tab]').forEach(btn => {
-      if (btn.dataset.tab === tabId) {
+      if (btn.getAttribute('data-tab') === tabId) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
@@ -1262,14 +1264,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Delegated Event Listener for Navigation Tabs (Guarantees clicks work anywhere on icons/labels)
-  document.addEventListener('click', (e) => {
-    const tabBtn = e.target.closest('[data-tab]');
-    if (tabBtn && tabBtn.dataset.tab) {
-      e.preventDefault();
-      switchTab(tabBtn.dataset.tab);
-    }
-  });
+  // Direct, robust navigation tab click handler
+  const bindNavTabListeners = () => {
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const tabId = btn.getAttribute('data-tab');
+        if (tabId) {
+          switchTab(tabId);
+        }
+      };
+    });
+  };
 
   const btnTheme = document.getElementById('btn-theme-toggle');
   if (btnTheme) {
@@ -1516,6 +1522,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // App Initialization
   loadState();
+  bindNavTabListeners();
   isInitialized = true;
   renderAll();
 
