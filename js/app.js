@@ -1223,14 +1223,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const switchTab = (tabId) => {
+    if (!tabId) return;
     const isManager = appState.activeRole === 'MANAGER';
+
     // Prevent employee from navigating to restricted tabs
     if (!isManager && (tabId === 'tips' || tabId === 'staff' || tabId === 'deploy')) {
       showToast("Access restricted: Manager account required for this section.");
       tabId = 'dashboard';
     }
 
-    document.querySelectorAll('.nav-btn, .bottom-nav-btn').forEach(btn => {
+    // Update active class on all nav buttons (sidebar & bottom mobile nav)
+    document.querySelectorAll('[data-tab]').forEach(btn => {
       if (btn.dataset.tab === tabId) {
         btn.classList.add('active');
       } else {
@@ -1238,23 +1241,34 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Update active class and visibility on section tab content
     document.querySelectorAll('.tab-content').forEach(content => {
       if (content.id === `tab-${tabId}`) {
         content.classList.add('active');
+        content.style.display = 'block';
       } else {
         content.classList.remove('active');
+        content.style.display = 'none';
       }
     });
 
+    // Render active view content
     if (tabId === 'dashboard') renderDashboard();
     if (tabId === 'planning') renderPlanning();
     if (tabId === 'tasks') renderTasks();
     if (tabId === 'tips' && isManager) renderTips();
     if (tabId === 'staff' && isManager) renderStaff();
+
+    if (window.lucide) lucide.createIcons();
   };
 
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  // Delegated Event Listener for Navigation Tabs (Guarantees clicks work anywhere on icons/labels)
+  document.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('[data-tab]');
+    if (tabBtn && tabBtn.dataset.tab) {
+      e.preventDefault();
+      switchTab(tabBtn.dataset.tab);
+    }
   });
 
   const btnTheme = document.getElementById('btn-theme-toggle');
