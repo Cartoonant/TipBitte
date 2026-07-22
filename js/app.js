@@ -150,7 +150,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
 
-    appState.tasks = [];
+    // Approved Demo Tasks & Initiatives to simulate pro-rata Coins & Tip distribution
+    if (!appState.tasks || appState.tasks.length === 0) {
+      appState.tasks = [
+        { id: 'demo-1', employeeId: 'emp-4', desc: 'Aadhi (Kitchen Lead): Kitchen prep list & zero food waste initiative', points: 140, status: 'APPROVED', timestamp: Date.now() - 86400000 },
+        { id: 'demo-2', employeeId: 'emp-2', desc: 'Vinod (Front Lead): Terrace management & guest satisfaction', points: 120, status: 'APPROVED', timestamp: Date.now() - 72000000 },
+        { id: 'demo-3', employeeId: 'emp-5', desc: 'Karthik (Kitchen): Preventive pizza oven & grill maintenance', points: 110, status: 'APPROVED', timestamp: Date.now() - 60000000 },
+        { id: 'demo-4', employeeId: 'emp-3', desc: 'Siri (Server): Upselling gourmet wines & dessert combos', points: 95, status: 'APPROVED', timestamp: Date.now() - 48000000 },
+        { id: 'demo-5', employeeId: 'emp-7', desc: 'Muthyam (Kitchen): Station sanitization & plate styling', points: 90, status: 'APPROVED', timestamp: Date.now() - 36000000 },
+        { id: 'demo-6', employeeId: 'emp-6', desc: 'Bhanu (Kitchen): Stock replenishment & prep support', points: 85, status: 'APPROVED', timestamp: Date.now() - 24000000 }
+      ];
+    }
+
     localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
   };
 
@@ -326,9 +337,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const createPodiumStep = (emp, rank, stepClass) => {
           if (!emp) return '';
           const isCrownWinner = emp.id === appState.eotmWinnerId;
+          const showCrown = (rank === 1) || isCrownWinner;
           return `
             <div class="podium-step ${stepClass}">
-              ${rank === 1 || isCrownWinner ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
+              ${showCrown ? '<i data-lucide="crown" class="podium-crown"></i>' : ''}
               <div class="podium-avatar" style="background-color: ${emp.color}">
                 ${emp.avatar}
               </div>
