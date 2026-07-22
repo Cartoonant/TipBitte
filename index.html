@@ -77,8 +77,12 @@
           <span>Roster & Days OFF</span>
         </button>
         <button class="nav-btn" data-tab="tasks">
-          <i data-lucide="check-square"></i>
-          <span>Tasks & Initiatives</span>
+          <i data-lucide="list-checks"></i>
+          <span>Tasks & Schedule</span>
+        </button>
+        <button class="nav-btn manager-only-nav" data-tab="approvals" data-manager-only="true">
+          <i data-lucide="check-circle-2"></i>
+          <span>Pending Approvals</span>
           <span id="pending-badge" class="badge-count hidden">0</span>
         </button>
         <button class="nav-btn manager-only-nav" data-tab="tips" data-manager-only="true">
@@ -382,47 +386,49 @@
             </form>
           </div>
 
-          <!-- Manager Tasks Dashboard Container (Visible ONLY to Manager) -->
-          <div id="manager-tasks-dashboard" class="manager-only-block">
-            <!-- Manager Validation Section -->
-            <div class="section-card margin-top">
-              <div class="section-header">
-                <div>
-                  <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Dashboard: Pending Approvals</h3>
-                  <p class="text-muted">Approve or reject submitted entries to award Coins in real time.</p>
-                </div>
-                <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
-              </div>
-              
-              <div id="pending-tasks-list" class="tasks-feed">
-                <!-- Dynamic Pending List -->
-              </div>
-            </div>
-
-            <!-- Approved Tasks History -->
-            <div class="section-card margin-top">
-              <div class="section-header">
-                <div>
-                  <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
-                  <p class="text-muted">Review recently awarded Coins for all team members this month.</p>
-                </div>
-              </div>
-              <div id="validated-tasks-list" class="history-list">
-                <!-- Dynamic History List -->
-              </div>
-            </div>
-          </div>
-
           <!-- Employee Submitted Entries List (STRICTLY PRIVATE TO LOGGED IN EMPLOYEE) -->
           <div id="employee-submissions-block" class="section-card margin-top employee-only-card hidden">
             <div class="section-header">
               <div>
                 <h3><i data-lucide="lock" class="text-gold"></i> Your Private Submissions & History</h3>
-                <p class="text-muted">Only you and the manager can view your submitted entries and approval status.</p>
+                <p class="text-muted">Only you can view your submitted entries and approval status.</p>
               </div>
             </div>
             <div id="employee-submissions-list" class="tasks-feed">
               <!-- Dynamic Private Submissions List -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: PENDING APPROVALS & HISTORY (DEDICATED MANAGER TAB) -->
+      <section id="tab-approvals" class="tab-content manager-only-block" data-manager-only="true">
+        <div id="manager-tasks-dashboard" class="manager-only-block">
+          <!-- Manager Validation Section -->
+          <div class="section-card">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="shield-check" class="text-purple"></i> Manager Validation Feed: Pending Approvals</h3>
+                <p class="text-muted">Review and validate employee task completions or submitted initiatives to award Coins.</p>
+              </div>
+              <span class="badge badge-purple" id="pending-count-badge">0 pending</span>
+            </div>
+            
+            <div id="pending-tasks-list" class="tasks-feed">
+              <!-- Dynamic Pending List -->
+            </div>
+          </div>
+
+          <!-- Approved Tasks History -->
+          <div class="section-card margin-top">
+            <div class="section-header">
+              <div>
+                <h3><i data-lucide="history"></i> History of Approved Tasks & Initiatives</h3>
+                <p class="text-muted">Review awarded Coins for all team members across the restaurant this month.</p>
+              </div>
+            </div>
+            <div id="validated-tasks-list" class="history-list">
+              <!-- Dynamic History List -->
             </div>
           </div>
         </div>
