@@ -606,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 2. Render Scheduled Daily Tasks Grid (Manager)
+      // 2. Render Scheduled Daily Tasks Grid (Manager View)
       const schedGrid = document.getElementById('manager-scheduled-tasks-grid');
       if (schedGrid) {
         schedGrid.innerHTML = '';
@@ -616,13 +616,17 @@ document.addEventListener('DOMContentLoaded', () => {
           schedGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No tasks scheduled for today's shift yet. Tap "✨ Generate Fair Task Rotation" above!</p>`;
         } else {
           scheduled.forEach(task => {
-            const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned' };
+            const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', title: '' };
             const row = document.createElement('div');
             row.className = 'task-item';
             row.innerHTML = `
               <div>
                 <div class="task-user">${task.title}</div>
-                <div class="task-desc">Assigned to: <strong>${emp.name}</strong> (${task.category})</div>
+                <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+                  <div class="avatar" style="background-color: ${emp.color}; width:24px; height:24px; font-size:0.7rem;">${emp.avatar}</div>
+                  <span>Nominatively assigned to: <strong>${emp.name}</strong> (${emp.title || emp.role})</span>
+                  <span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Responsible</span>
+                </div>
               </div>
               <div style="display:flex; align-items:center; gap:1rem;">
                 <span class="task-pts">+${task.points} Coins</span>
@@ -675,14 +679,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const rankEl = document.getElementById('emp-profile-rank');
       if (rankEl) rankEl.textContent = `#${rank > 0 ? rank : 1}`;
 
-      // Render Employee Personal Assigned Tasks (My Shift Schedule) with Pending Workflow
+      // Render Employee Personal Assigned Tasks (My Shift Schedule) with Individual Accountability
       const empAssignedGrid = document.getElementById('employee-assigned-tasks-list');
       if (empAssignedGrid) {
         empAssignedGrid.innerHTML = '';
         const myTasks = (appState.scheduledDailyTasks || []).filter(t => t.employeeId === activeEmp.id);
 
         if (myTasks.length === 0) {
-          empAssignedGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No shift tasks assigned to you right now. Great job!</p>`;
+          empAssignedGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No shift tasks assigned specifically to you right now. Great job!</p>`;
         } else {
           myTasks.forEach(task => {
             const row = document.createElement('div');
@@ -709,7 +713,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             row.innerHTML = `
               <div>
-                <div class="task-user">${task.title}</div>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                  <strong class="task-user" style="font-size:1.05rem;">${task.title}</strong>
+                  <span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Responsibility</span>
+                </div>
                 <div class="task-desc">Reward: +${task.points} Coins upon manager validation</div>
               </div>
               <div style="display:flex; align-items:center; gap:1rem;">
@@ -717,6 +724,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${statusAction}
               </div>
             `;
+            empAssignedGrid.appendChild(row);
+          });
             empAssignedGrid.appendChild(row);
           });
 
