@@ -371,13 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const [year, month] = appState.currentMonth.split('-').map(Number);
     const totalDaysInMonth = getDaysInMonth(appState.currentMonth);
 
-    // August 2026 Weeks Definition
+    // August 2026 Monday - Sunday Calendar Weeks Definition
     const weeks = [
-      { id: '1', title: 'Week 1 (Aug 1 - Aug 7)', start: 1, end: 7 },
-      { id: '2', title: 'Week 2 (Aug 8 - Aug 14)', start: 8, end: 14 },
-      { id: '3', title: 'Week 3 (Aug 15 - Aug 21)', start: 15, end: 21 },
-      { id: '4', title: 'Week 4 (Aug 22 - Aug 28)', start: 22, end: 28 },
-      { id: '5', title: 'Week 5 (Aug 29 - Aug 31)', start: 29, end: totalDaysInMonth }
+      { id: '1', title: 'Week 1: Aug 1 - Aug 2 (Sat - Sun)', start: 1, end: 2 },
+      { id: '2', title: 'Week 2: Aug 3 - Aug 9 (Mon - Sun)', start: 3, end: 9 },
+      { id: '3', title: 'Week 3: Aug 10 - Aug 16 (Mon - Sun)', start: 10, end: 16 },
+      { id: '4', title: 'Week 4: Aug 17 - Aug 23 (Mon - Sun)', start: 17, end: 23 },
+      { id: '5', title: 'Week 5: Aug 24 - Aug 30 (Mon - Sun)', start: 24, end: 30 },
+      { id: '6', title: 'Week 6: Aug 31 (Mon)', start: 31, end: 31 }
     ];
 
     const weeksToRender = selectedWeek === 'ALL' 
