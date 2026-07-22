@@ -600,18 +600,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    const schedEmpSelect = document.getElementById('sched-task-employee');
-    const bonusEmpSelect = document.getElementById('task-bonus-employee');
+    const catCountEl = document.getElementById('catalogue-task-count');
+    if (catCountEl) {
+      const count = (appState.masterTaskCatalogue || []).length;
+      catCountEl.textContent = `${count} Task${count !== 1 ? 's' : ''} Loaded`;
+    }
 
-    const optionsHTML = appState.staff.map(s => `<option value="${s.id}">${s.name} (${s.title || s.role})</option>`).join('');
-    if (schedEmpSelect) schedEmpSelect.innerHTML = optionsHTML;
-    if (bonusEmpSelect) bonusEmpSelect.innerHTML = optionsHTML;
+    // MANAGER VIEW: GLOBAL SCHEDULE GRID TABLE
+    const schedTbody = document.getElementById('manager-schedule-tbody');
+    if (isManager && schedTbody) {
+      schedTbody.innerHTML = '';
+      const scheduled = appState.scheduledDailyTasks || [];
 
-    if (!isManager && activeEmp && bonusEmpSelect) {
-      bonusEmpSelect.value = activeEmp.id;
-      bonusEmpSelect.disabled = true;
-    } else if (bonusEmpSelect) {
-      bonusEmpSelect.disabled = false;
+      if (scheduled.length === 0) {
+        schedTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:1.5rem;" class="text-muted">No monthly schedule generated yet. Click <strong>"Generate Schedule"</strong> above!</td></tr>`;
+      } else {
+        scheduled.forEach(task => {
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', role: 'FRONT' };
+          const tr = document.createElement('tr');
+
+          let periodBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">🕒 Anytime</span>`;
+          if (task.period === 'MORNING') periodBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">🌅 Morning</span>`;
+          if (task.period === 'AFTERNOON') periodBadge = `<span class="badge" style="background:rgba(16,185,129,0.15); color:var(--color-green); border:1px solid rgba(16,185,129,0.3);">☀️ Afternoon</span>`;
+          if (task.period === 'EVENING') periodBadge = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">🌙 Evening</span>`;
+
+          const dayNum = task.day || 1;
+          const [year, month] = appState.currentMonth.split('-').map(Number);
+          const dayAbbr = getDayOfWeekAbbr(year, month, dayNum);
+
+          tr.innerHTML = `
+            <td><strong>Aug ${dayNum}</strong> (${dayAbbr})</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div class="avatar" style="background-color: ${emp.color}; width:24px; height:24px; font-size:0.7rem;">${emp.avatar}</div>
+                <span><strong>${emp.name}</strong></span>
+                <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}" style="font-size:0.65rem; padding:0.1rem 0.35rem;">${emp.role}</span>
+              </div>
+            </td>
+            <td>${periodBadge}</td>
+            <td>
+              <strong style="color:var(--text-main); display:block;">${task.title}</strong>
+              ${task.desc ? `<span class="text-muted" style="font-size:0.8rem;">${task.desc}</span>` : ''}
+            </td>
+            <td><strong class="text-gold">+${task.points} Coins</strong></td>
+          `;
+          schedTbody.appendChild(tr);
+        });
+      }
     }
 
     // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER (NOMINATIVE ASSIGNMENT)
@@ -1174,50 +1209,16 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
-  // Monthly Rotation Button Listener
-  const btnMonthlyRotation = document.getElementById('btn-generate-monthly-rotation');
-  if (btnMonthlyRotation) {
-    btnMonthlyRotation.addEventListener('click', generateMonthlyFairRotation);
+  // Generate Monthly Schedule Button Listener
+  const btnMonthlySchedule = document.getElementById('btn-generate-monthly-schedule');
+  if (btnMonthlySchedule) {
+    btnMonthlySchedule.addEventListener('click', generateMonthlyFairRotation);
   }
 
-  // Create New Catalogue Task Listener
-  const formCreateCat = document.getElementById('form-create-catalogue-task');
-  if (formCreateCat) {
-    formCreateCat.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = document.getElementById('cat-task-title').value.trim();
-      const desc = document.getElementById('cat-task-desc') ? document.getElementById('cat-task-desc').value.trim() : '';
-      const scope = document.getElementById('cat-task-scope').value;
-      const period = document.getElementById('cat-task-period') ? document.getElementById('cat-task-period').value : 'ANYTIME';
-      const points = parseInt(document.getElementById('cat-task-coins').value);
-      const recurrence = document.getElementById('cat-task-recurrence').value;
-
-      if (!title) return;
-
-      const newTask = {
-        id: 'cat-' + Date.now(),
-        title,
-        desc,
-        scope,
-        period,
-        points,
-        recurrence
-      };
-
-      if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
-      appState.masterTaskCatalogue.push(newTask);
-
-      document.getElementById('cat-task-title').value = '';
-      if (document.getElementById('cat-task-desc')) document.getElementById('cat-task-desc').value = '';
-      saveState();
-      showToast("New structured task added to Master Catalogue!");
-    });
-  }
-
-  // Task Catalogue Importer Listener (JSON / CSV Bulk Import)
-  const inputImportCat = document.getElementById('input-import-catalogue');
-  if (inputImportCat) {
-    inputImportCat.addEventListener('change', (e) => {
+  // Update Tasks File Import Listener (Excel / CSV / JSON)
+  const inputUpdateTasks = document.getElementById('input-update-tasks-file');
+  if (inputUpdateTasks) {
+    inputUpdateTasks.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -1230,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (file.name.endsWith('.json')) {
             imported = JSON.parse(content);
           } else {
-            // Simple CSV Parser
+            // Simple CSV/Excel export parser
             const lines = content.split('\n');
             lines.forEach((line, i) => {
               if (i === 0 || !line.trim()) return; // skip header
@@ -1239,10 +1240,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 imported.push({
                   id: 'cat-imp-' + Date.now() + '-' + i,
                   title,
-                  scope: scope || 'EVERYONE',
-                  period: period || 'ANYTIME',
+                  scope: scope ? scope.toUpperCase() : 'EVERYONE',
+                  period: period ? period.toUpperCase() : 'ANYTIME',
                   points: parseInt(points) || 10,
-                  recurrence: recurrence || 'DAILY',
+                  recurrence: recurrence ? recurrence.toUpperCase() : 'DAILY',
                   desc: desc || ''
                 });
               }
@@ -1250,16 +1251,15 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           if (Array.isArray(imported) && imported.length > 0) {
-            if (!appState.masterTaskCatalogue) appState.masterTaskCatalogue = [];
-            appState.masterTaskCatalogue = [...appState.masterTaskCatalogue, ...imported];
+            appState.masterTaskCatalogue = imported; // Refresh master catalogue with imported file tasks
             saveState();
-            showToast(`Successfully imported ${imported.length} tasks into Master Catalogue!`);
+            showToast(`✅ Master Task Catalogue updated with ${imported.length} tasks from file!`);
           } else {
             alert("Could not find valid task entries in the imported file.");
           }
         } catch (err) {
-          console.error("Task import error:", err);
-          alert("Error parsing imported file format.");
+          console.error("Task file import error:", err);
+          alert("Error parsing task file format.");
         }
       };
       reader.readAsText(file);
