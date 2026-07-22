@@ -96,7 +96,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <button id="btn-load-demo" class="btn btn-outline btn-sm btn-block">
+        <button id="btn-load-demo" class="btn btn-outline btn-sm btn-block manager-only-nav" data-manager-only="true">
           <i data-lucide="sparkles"></i> Load Demo Data
         </button>
       </div>
@@ -233,7 +233,7 @@
       <section id="tab-tasks" class="tab-content">
         
         <!-- MANAGER VIEW: TASK CATALOGUE, AUTOMATED ROTATION & VALIDATION DASHBOARD -->
-        <div id="manager-tasks-dashboard" class="manager-only-block">
+        <div id="manager-tasks-dashboard" class="manager-only-block" data-manager-only="true">
           
           <!-- Section 1: Master Task Catalogue & Creation Form -->
           <div class="section-card margin-bottom">
@@ -340,7 +340,7 @@
         </div>
 
         <!-- EMPLOYEE VIEW: DEDICATED PERSONAL SCHEDULE, INITIATIVES & PRIVATE HISTORY -->
-        <div id="employee-tasks-dashboard" class="employee-only-card hidden">
+        <div id="employee-tasks-dashboard" class="employee-only-card hidden" data-employee-only="true">
           
           <!-- Employee Personal Summary Card -->
           <div class="section-card margin-bottom" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: var(--color-gold);">

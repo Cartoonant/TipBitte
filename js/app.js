@@ -1043,17 +1043,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleSelect = document.getElementById('active-role-select');
     if (roleSelect) roleSelect.value = appState.activeRole;
 
-    document.querySelectorAll('[data-manager-only="true"]').forEach(el => {
+    // Toggle Manager-only elements
+    document.querySelectorAll('[data-manager-only="true"], .manager-only-block, .manager-only-nav').forEach(el => {
       if (isManager) {
         el.style.display = '';
+        el.classList.remove('hidden');
       } else {
         el.style.display = 'none';
+        el.classList.add('hidden');
       }
     });
 
-    // Auto-redirect if employee is trying to view a manager-only tab
-    const activeTabBtn = document.querySelector('.nav-btn.active, .bottom-nav-btn.active');
-    if (!isManager && activeTabBtn && activeTabBtn.dataset.managerOnly === "true") {
+    // Toggle Employee-only elements
+    document.querySelectorAll('[data-employee-only="true"], .employee-only-card').forEach(el => {
+      if (!isManager) {
+        el.style.display = '';
+        el.classList.remove('hidden');
+      } else {
+        el.style.display = 'none';
+        el.classList.add('hidden');
+      }
+    });
+
+    // Auto-redirect if employee is on a restricted tab
+    const activeTab = document.querySelector('.tab-content.active');
+    if (!isManager && activeTab && (activeTab.id === 'tab-tips' || activeTab.id === 'tab-staff' || activeTab.id === 'tab-deploy')) {
       switchTab('dashboard');
       return;
     }
