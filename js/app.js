@@ -25,19 +25,65 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const DEFAULT_MASTER_CATALOGUE = [
-    { id: 'cat-1', title: 'Register closure & bar organization', scope: 'FRONT', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Balance POS terminal, organize bar top, sanitize soda taps, restock wine fridge.' },
-    { id: 'cat-2', title: 'Fridge restocking & beverage audit', scope: 'FRONT', period: 'MORNING', points: 10, recurrence: 'DAILY', desc: 'Check beverage stock levels, restock beer taps, refill lemon slices and ice buckets.' },
-    { id: 'cat-3', title: 'Upselling gourmet wines & dessert combos', scope: 'FRONT', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Recommend daily wine pairing special and dessert combos during floor service.' },
-    { id: 'cat-4', title: 'Deep clean beverage dispenser & bar floor', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'WEEKLY', desc: 'Flush beverage lines, scrub drain mats, sweep and mop behind bar area.' },
-    { id: 'cat-5', title: 'Kitchen station sanitization & line setup', scope: 'KITCHEN', period: 'MORNING', points: 15, recurrence: 'DAILY', desc: 'Sanitize prep boards, calibrate food thermometers, organize line utensils.' },
-    { id: 'cat-6', title: 'Deep oven & fryer oil filtration maintenance', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'WEEKLY', desc: 'Filter fryer oil, scrub pizza oven deck, clean exhaust hood filters.' },
-    { id: 'cat-7', title: 'Prep list completion & food label audit', scope: 'KITCHEN', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Complete prep list items, check FIFO expiry dates, apply date labels.' },
-    { id: 'cat-8', title: 'Zero food waste & stock rotation lead', scope: 'KITCHEN', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Monitor portion sizes, record daily waste log, rotate walk-in cooler stock.' },
-    { id: 'cat-9', title: 'Hero shift lead & emergency floor cover', scope: 'EVERYONE', period: 'ANYTIME', points: 50, recurrence: 'ONEOFF', desc: 'Cover unexpected busy rush, assist team members across kitchen and floor.' },
-    { id: 'cat-10', title: 'Quick table floor wipe & tray assist', scope: 'EVERYONE', period: 'ANYTIME', points: 1, recurrence: 'DAILY', desc: 'Assist floor team with clearing dining tables during peak rush.' },
-    { id: 'cat-11', title: 'Deep restaurant floor sweep & mop', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Sweep and mop main dining room, bar area, hallway, and entrance floors.' },
-    { id: 'cat-12', title: 'Restroom sanitization & paper restock', scope: 'CLEANER', period: 'ANYTIME', points: 15, recurrence: 'DAILY', desc: 'Scrub toilets, sanitize sinks and mirrors, refill hand soap and paper towel dispensers.' },
-    { id: 'cat-13', title: 'Trash & recycling waste management', scope: 'CLEANER', period: 'EVENING', points: 10, recurrence: 'DAILY', desc: 'Empty all dining room and kitchen trash bins, replace liners, and drop waste in outdoor dumpsters.' }
+    // General Daily Tasks
+    { id: 'cat-gs-1', title: 'Put thrash out', scope: 'EVERYONE', period: 'AFTERNOON', points: 5, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-2', title: 'Clean fridges', scope: 'EVERYONE', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-3', title: 'Broom dine-in area', scope: 'FRONT', period: 'AFTERNOON', points: 5, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-4', title: 'Mop dine-in area', scope: 'FRONT', period: 'AFTERNOON', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-5', title: 'vaccum red carpet', scope: 'FRONT', period: 'ANYTIME', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-6', title: 'Clean walls', scope: 'EVERYONE', period: 'ANYTIME', points: 20, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-7', title: 'Clean doors', scope: 'EVERYONE', period: 'ANYTIME', points: 20, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-8', title: 'Clear wickelraum', scope: 'EVERYONE', period: 'ANYTIME', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-9', title: 'Clear empty kartons in personnal room', scope: 'EVERYONE', period: 'ANYTIME', points: 5, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-10', title: "If something missing, put in what's missing group", scope: 'EVERYONE', period: 'ANYTIME', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-11', title: 'Communicate on deliveries', scope: 'FRONT', period: 'ANYTIME', points: 5, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-12', title: 'Give back red meat crates', scope: 'EVERYONE', period: 'ANYTIME', points: 10, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-13', title: 'Put groceries in basement', scope: 'EVERYONE', period: 'ANYTIME', points: 15, recurrence: 'DAILY', desc: 'Daily tasks' },
+    { id: 'cat-gs-14', title: 'Sort the fridges and freezer', scope: 'KITCHEN', period: 'AFTERNOON', points: 15, recurrence: 'DAILY', desc: 'Daily tasks' },
+
+    // Opening Procedures (Front & Kitchen)
+    { id: 'cat-gs-15', title: 'Check toilets cleaness', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-16', title: 'Put chairs on the ground', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-17', title: 'Open curtains', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-18', title: 'Open cashbox and tablets', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-19', title: 'Prepare Raitha / Salan', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-20', title: 'Prepare plates', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-21', title: 'Prepare cuttelry on tables with napkins', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-22', title: 'Check availability of items', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-23', title: 'Open outside if weather is good', scope: 'FRONT', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+    { id: 'cat-gs-24', title: 'Start ventilation to 5', scope: 'KITCHEN', period: 'MORNING', points: 25, recurrence: 'DAILY', desc: 'Opening procedure' },
+
+    // Closing Procedures (Front & Kitchen)
+    { id: 'cat-gs-25', title: 'Close outside tables', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-26', title: 'Wipe every tables', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-27', title: 'Put chairs on the tables', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-28', title: 'Dishwash', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-29', title: 'Wipe and clean the bar', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-30', title: 'Charge tablets and phones', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-31', title: 'Put Raitha / Salan in the fridge', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-32', title: 'Clean the floor', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-33', title: 'Sort the crates / put full ones backsite', scope: 'FRONT', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-34', title: 'Wipe surfaces', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-35', title: 'Clean oven and microwaves', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-36', title: 'Close food recipients', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-37', title: 'Clean the floor (Kitchen)', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+    { id: 'cat-gs-38', title: 'Shut down ventilation', scope: 'KITCHEN', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Closing procedure' },
+
+    // Fixed Aadhi Tasks
+    { id: 'cat-gs-39', title: 'Weigh every spices he puts on recipe + write on paper', scope: 'KITCHEN', period: 'ANYTIME', points: 15, recurrence: 'DAILY', desc: 'Fixed Aadhi Recipe Task' },
+    { id: 'cat-gs-40', title: 'Prepare bags of spices accordingly', scope: 'KITCHEN', period: 'ANYTIME', points: 15, recurrence: 'DAILY', desc: 'Fixed Aadhi Recipe Task' },
+    { id: 'cat-gs-41', title: 'One week of only 1 grocerie run', scope: 'KITCHEN', period: 'ANYTIME', points: 20, recurrence: 'WEEKLY', desc: 'Fixed Aadhi Recipe Task' },
+
+    // Fixed Roy Cleaner Tasks
+    { id: 'cat-gs-42', title: 'Clean vaccum cleaner robot', scope: 'CLEANER', period: 'EVENING', points: 40, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-43', title: 'Broom personnal room, hallway, stairs and shoes room', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-44', title: 'Take thrash out to the bin', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-45', title: 'Wipe mirrors and sink', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-46', title: 'Refill garbage bags and tissues', scope: 'CLEANER', period: 'EVENING', points: 10, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-47', title: 'Clean the urinals and toilets + mop toilets', scope: 'CLEANER', period: 'EVENING', points: 20, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-48', title: 'Mop from personnal room to kitchen', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-49', title: 'Sanitize kitchen', scope: 'CLEANER', period: 'EVENING', points: 25, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' },
+    { id: 'cat-gs-50', title: 'Start a washing machine cycle', scope: 'CLEANER', period: 'EVENING', points: 15, recurrence: 'DAILY', desc: 'Fixed Cleaner Task' }
   ];
 
   const getCurrentMonthKey = () => {
@@ -123,6 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
           initDefaultState();
         }
+
+        if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
+          appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
+          generateMonthlyFairRotation();
+        }
       } catch (e) {
         console.error("Error reading LocalStorage state", e);
         initDefaultState();
@@ -134,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const initDefaultState = () => {
     appState.staff = JSON.parse(JSON.stringify(DEFAULT_STAFF));
+    appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
     appState.activeRole = 'MANAGER';
     appState.eotmWinnerId = null;
     appState.eotmBonusAmount = 100;
@@ -144,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.theme = 'dark';
     
     generateDemoData();
+    generateMonthlyFairRotation();
   };
 
   // Guarantee Days Off Schedule Persistence across any selected month
