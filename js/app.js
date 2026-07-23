@@ -760,19 +760,66 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER (NOMINATIVE ASSIGNMENT)
+    // SUB-TAB 1: DAILY TASKS CHECKLIST & SCHEDULER (NOMINATIVE ASSIGNMENT FOR SELECTED DATE)
     const dailyGrid = document.getElementById('daily-tasks-grid');
     if (dailyGrid) {
       dailyGrid.innerHTML = '';
 
-      let visibleScheduledTasks = [...(appState.scheduledDailyTasks || [])];
+      const selectedDateStr = appState.selectedDate || getTodayDateString();
+      const dateParts = selectedDateStr.split('-');
+      const selectedDay = parseInt(dateParts[2]) || 1;
+      const [sYyyy, sMm, sDd] = dateParts.map(Number);
+      const dayAbbr = getDayOfWeekAbbr(sYyyy, sMm, sDd);
+
+      // Check employee availability on this selected date
+      if (!isManager && activeEmp) {
+        const isWorking = isStaffWorkingOnDate(activeEmp, selectedDateStr);
+        if (!isWorking) {
+          dailyGrid.innerHTML = `
+            <div style="text-align:center; padding:2.5rem 1rem; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color); width:100%;">
+              <div style="font-size:2.8rem; margin-bottom:0.5rem;">🌴</div>
+              <h3 style="color:var(--color-gold); margin-bottom:0.5rem;">Scheduled Day OFF (${dayAbbr}, ${selectedDateStr})</h3>
+              <p class="text-muted" style="max-width:420px; margin:0 auto;">You are OFF today according to the roster! No shift tasks are assigned to you on your rest days.</p>
+            </div>
+          `;
+          return;
+        }
+      }
+
+      // Filter tasks strictly for the selected day number of the month
+      let visibleScheduledTasks = (appState.scheduledDailyTasks || []).filter(t => t.day === selectedDay);
+
       if (!isManager && activeEmp) {
         visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
       }
 
       if (visibleScheduledTasks.length === 0) {
-        dailyGrid.innerHTML = `<p class="text-muted" style="padding:1.5rem; text-align:center;">No daily shift tasks assigned ${!isManager ? 'specifically to you' : ''} yet. ${isManager ? 'Use the form above to assign nominative tasks!' : ''}</p>`;
+        dailyGrid.innerHTML = `
+          <div style="text-align:center; padding:2rem 1rem; width:100%;" class="text-muted">
+            <i data-lucide="calendar-x" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
+            <p style="margin:0;">No shift tasks assigned ${!isManager ? 'to you' : ''} for <strong>${dayAbbr}, ${selectedDateStr}</strong>.</p>
+          </div>
+        `;
       } else {
+        // Daily Header Banner with Date Info
+        const banner = document.createElement('div');
+        banner.style.gridColumn = '1 / -1';
+        banner.style.padding = '0.6rem 0.9rem';
+        banner.style.background = 'var(--bg-input)';
+        banner.style.borderRadius = 'var(--radius-md)';
+        banner.style.border = '1px solid var(--border-color)';
+        banner.style.marginBottom = '0.75rem';
+        banner.style.display = 'flex';
+        banner.style.alignItems = 'center';
+        banner.style.justifyContent = 'space-between';
+        banner.innerHTML = `
+          <span style="font-size:0.85rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
+            <i data-lucide="calendar" class="text-gold"></i> Shift Roadmap for ${dayAbbr}, ${selectedDateStr}
+          </span>
+          <span class="badge badge-gold" style="font-size:0.7rem;">${visibleScheduledTasks.length} Task${visibleScheduledTasks.length !== 1 ? 's' : ''} Assigned</span>
+        `;
+        dailyGrid.appendChild(banner);
+
         visibleScheduledTasks.forEach(task => {
           const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', title: '' };
           const item = document.createElement('div');
@@ -789,7 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (existingSubmission) {
             if (existingSubmission.status === 'PENDING') {
-              statusAction = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Manager Approval</span>`;
+              statusAction = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Approval</span>`;
             } else if (existingSubmission.status === 'APPROVED') {
               statusAction = `<span class="badge badge-purple">✔ Approved (+${task.points} Coins)</span>`;
             } else if (existingSubmission.status === 'REJECTED') {
@@ -1352,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ensureMonthSchedule(appState.currentMonth);
     renderHeaderLiveDate();
-    renderMonthSelector();
+    renderDatePicker();
     renderDashboard();
     renderPlanning();
     renderTasks();
@@ -1363,6 +1410,22 @@ document.addEventListener('DOMContentLoaded', () => {
       renderStaff();
     }
   };
+
+  // Date Picker Event Listener
+  const datePickerEl = document.getElementById('selected-date-picker');
+  if (datePickerEl) {
+    datePickerEl.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val) {
+        appState.selectedDate = val;
+        appState.currentMonth = val.substring(0, 7);
+        generateMonthlyFairRotation();
+        saveState();
+        renderAll();
+        showToast(`📅 Date selected: ${val}`);
+      }
+    });
+  }
 
   // ==========================================
   // 5. EVENT HANDLERS & NAVIGATION
@@ -1397,20 +1460,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const getTodayDateString = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const isStaffWorkingOnDate = (emp, dateStr) => {
+    if (!emp || !dateStr) return false;
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return false;
+    const yyyy = parseInt(parts[0]);
+    const mm = parseInt(parts[1]);
+    const dd = parseInt(parts[2]);
+
+    const dateObj = new Date(yyyy, mm - 1, dd);
+    const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+    // Check fixed weekly off days (e.g. Vinod off Thu=4, Siri off Tue=2/Wed=3, Aadhi off Thu=4, etc.)
+    const defaultOffDays = (emp.offDays !== undefined) ? emp.offDays : (DEFAULT_OFF_DAYS_CONFIG[emp.id] || []);
+    if (defaultOffDays.includes(dayOfWeek)) {
+      return false; // Scheduled OFF on this day of week!
+    }
+
+    // Check custom roster schedule overrides for this month
+    const monthKey = `${yyyy}-${String(mm).padStart(2, '0')}`;
+    const empMonthSched = appState.schedules?.[monthKey]?.[emp.id];
+    if (empMonthSched && empMonthSched[dd] === false) {
+      return false; // Manually marked OFF
+    }
+
+    return true; // Working day!
+  };
+
+  const renderHeaderLiveDate = () => {
+    const el = document.getElementById('header-live-date');
+    if (!el) return;
+
+    const selectedDate = appState.selectedDate || getTodayDateString();
+    const [yyyy, mm, dd] = selectedDate.split('-').map(Number);
+    const dObj = new Date(yyyy, mm - 1, dd);
+    const formattedDate = dObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    el.innerHTML = `<i data-lucide="clock" class="selector-icon text-gold"></i> <span>Selected: ${formattedDate}</span>`;
+    if (window.lucide) lucide.createIcons();
+  };
+
+  const renderDatePicker = () => {
+    const picker = document.getElementById('selected-date-picker');
+    if (!picker) return;
+
+    if (!appState.selectedDate) {
+      appState.selectedDate = getTodayDateString();
+    }
+    picker.value = appState.selectedDate;
+
+    const heroMonth = document.getElementById('hero-month-name');
+    if (heroMonth) {
+      const [yyyy, mm, dd] = appState.selectedDate.split('-').map(Number);
+      const dObj = new Date(yyyy, mm - 1, dd);
+      const monthName = dObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      heroMonth.textContent = `${monthName} (Day ${dd})`;
+    }
+  };
+
   // Automated Monthly Smart Fair Rotation Engine (31 Days)
-  // Rule 1: Fixed assignments for Roy (Cleaner) and Aadhi (Recipe/Spices)
+  // Rule 1: Fixed assignments for Roy (Cleaner) and Aadhi (Recipe/Spices) - ONLY WHEN WORKING
   // Rule 2: Schedule-based Opening & Closing procedures for Front & Kitchen
-  // Rule 3: Daily equitable random rotation for remaining staff tasks among present staff
+  // Rule 3: Daily equitable random rotation for remaining staff tasks among PRESENT WORKING staff
   const generateMonthlyFairRotation = () => {
     const catalogue = appState.masterTaskCatalogue || [];
-    if (catalogue.length === 0) {
-      showToast("Master task catalogue is empty.");
+    if (!catalogue || catalogue.length === 0) {
       return;
     }
 
-    const monthKey = appState.currentMonth;
+    const monthKey = appState.currentMonth || getCurrentMonthKey();
     const totalDays = getDaysInMonth(monthKey);
-    const monthSchedules = appState.schedules[monthKey] || {};
 
     const newScheduledTasks = [];
 
@@ -1420,13 +1552,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Categorize catalogue into 3 distinct buckets:
     // Bucket A: Fixed Roy & Aadhi Tasks
-    const royTasks = catalogue.filter(t => t.scope === 'CLEANER' || t.title.toLowerCase().includes('roy') || t.desc.toLowerCase().includes('roy'));
-    const aadhiTasks = catalogue.filter(t => t.title.toLowerCase().includes('aadhi') || t.desc.toLowerCase().includes('aadhi'));
+    const royTasks = catalogue.filter(t => t.scope === 'CLEANER' || t.title.toLowerCase().includes('roy') || (t.desc && t.desc.toLowerCase().includes('roy')));
+    const aadhiTasks = catalogue.filter(t => t.title.toLowerCase().includes('aadhi') || (t.desc && t.desc.toLowerCase().includes('aadhi')) || (t.scope && t.scope.toUpperCase() === 'AADHI'));
 
     // Bucket B: Opening & Closing Shift Procedures
     const isOpeningTask = (t) => {
       const txt = (t.title + ' ' + (t.desc || '') + ' ' + (t.period || '')).toLowerCase();
-      return txt.includes('opening');
+      return txt.includes('opening') || txt.includes('procedure');
     };
     const isClosingTask = (t) => {
       const txt = (t.title + ' ' + (t.desc || '') + ' ' + (t.period || '')).toLowerCase();
@@ -1437,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closingTasks = catalogue.filter(t => isClosingTask(t) && !royTasks.includes(t) && !aadhiTasks.includes(t));
 
     // Bucket C: Remaining General Operational Tasks
-    const remainingTasks = catalogue.filter(t => !royTasks.includes(t) && !aadhiTasks.includes(t) && !isOpeningTask(t) && !isClosingTask(t));
+    const remainingTasks = catalogue.filter(t => !royTasks.includes(t) && !aadhiTasks.includes(t) && !openingTasks.includes(t) && !closingTasks.includes(t));
 
     // Seeded pseudo-random generator for consistent daily fair shuffling
     const getPseudoRandom = (seed) => {
@@ -1446,17 +1578,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     for (let day = 1; day <= totalDays; day++) {
-      // Find staff scheduled to WORK on this specific day
-      const scheduledStaff = appState.staff.filter(emp => {
-        const empDays = monthSchedules[emp.id] || {};
-        return empDays[day] !== false; // WORK day
-      });
+      const dayStr = String(day).padStart(2, '0');
+      const dateStr = `${monthKey}-${dayStr}`;
 
-      const frontStaff = scheduledStaff.filter(s => s.role === 'FRONT');
-      const kitchenStaff = scheduledStaff.filter(s => s.role === 'KITCHEN');
+      // Strictly filter staff WORKING on this specific date (ABSENT staff get 0 tasks!)
+      const scheduledStaff = appState.staff.filter(emp => isStaffWorkingOnDate(emp, dateStr));
+
+      // Front & Kitchen staff WORKING on this day (excluding Roy & Aadhi for general rotation pool)
+      const generalFrontStaff = scheduledStaff.filter(s => s.role === 'FRONT' && s.name.toLowerCase() !== 'roy' && s.name.toLowerCase() !== 'aadhi');
+      const generalKitchenStaff = scheduledStaff.filter(s => s.role === 'KITCHEN' && s.name.toLowerCase() !== 'roy' && s.name.toLowerCase() !== 'aadhi');
 
       // ----------------------------------------------------
-      // RULE 1: FIXED PERMANENT ASSIGNMENTS FOR ROY & AADHI
+      // RULE 1: FIXED ASSIGNMENTS FOR ROY & AADHI (ONLY IF WORKING ON DATE)
       // ----------------------------------------------------
       if (royEmp && scheduledStaff.some(s => s.id === royEmp.id)) {
         royTasks.forEach((task, tIdx) => {
@@ -1467,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: 'CLEANER',
             period: task.period || 'EVENING',
-            points: task.points,
+            points: task.points || 10,
             desc: task.desc || 'Fixed Cleaner Task'
           });
         });
@@ -1482,24 +1615,25 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: 'KITCHEN',
             period: task.period || 'ANYTIME',
-            points: task.points,
+            points: task.points || 10,
             desc: task.desc || 'Fixed Aadhi Recipe Task'
           });
         });
       }
 
       // ----------------------------------------------------
-      // RULE 2: SCHEDULE-BASED OPENING & CLOSING PROCEDURES
+      // RULE 2: SCHEDULE-BASED OPENING & CLOSING PROCEDURES (WORKING STAFF ONLY)
       // ----------------------------------------------------
       openingTasks.forEach((task, tIdx) => {
         let assignedEmp = null;
         if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
-          if (frontStaff.length > 0) assignedEmp = frontStaff[(day + tIdx) % frontStaff.length];
+          if (generalFrontStaff.length > 0) assignedEmp = generalFrontStaff[(day + tIdx) % generalFrontStaff.length];
         } else if (task.scope === 'KITCHEN') {
-          if (kitchenStaff.length > 0) assignedEmp = kitchenStaff[(day + tIdx) % kitchenStaff.length];
+          if (generalKitchenStaff.length > 0) assignedEmp = generalKitchenStaff[(day + tIdx) % generalKitchenStaff.length];
         }
         if (!assignedEmp && scheduledStaff.length > 0) {
-          assignedEmp = scheduledStaff[(day + tIdx) % scheduledStaff.length];
+          const eligible = scheduledStaff.filter(s => s.name.toLowerCase() !== 'roy');
+          if (eligible.length > 0) assignedEmp = eligible[(day + tIdx) % eligible.length];
         }
 
         if (assignedEmp) {
@@ -1510,7 +1644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: task.scope,
             period: 'MORNING',
-            points: task.points,
+            points: task.points || 25,
             desc: task.desc || 'Opening Procedure'
           });
         }
@@ -1519,12 +1653,13 @@ document.addEventListener('DOMContentLoaded', () => {
       closingTasks.forEach((task, tIdx) => {
         let assignedEmp = null;
         if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
-          if (frontStaff.length > 0) assignedEmp = frontStaff[(day + tIdx) % frontStaff.length];
+          if (generalFrontStaff.length > 0) assignedEmp = generalFrontStaff[(day + tIdx) % generalFrontStaff.length];
         } else if (task.scope === 'KITCHEN') {
-          if (kitchenStaff.length > 0) assignedEmp = kitchenStaff[(day + tIdx) % kitchenStaff.length];
+          if (generalKitchenStaff.length > 0) assignedEmp = generalKitchenStaff[(day + tIdx) % generalKitchenStaff.length];
         }
         if (!assignedEmp && scheduledStaff.length > 0) {
-          assignedEmp = scheduledStaff[(day + tIdx) % scheduledStaff.length];
+          const eligible = scheduledStaff.filter(s => s.name.toLowerCase() !== 'roy');
+          if (eligible.length > 0) assignedEmp = eligible[(day + tIdx) % eligible.length];
         }
 
         if (assignedEmp) {
@@ -1535,14 +1670,14 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: task.scope,
             period: 'EVENING',
-            points: task.points,
+            points: task.points || 25,
             desc: task.desc || 'Closing Procedure'
           });
         }
       });
 
       // ----------------------------------------------------
-      // RULE 3: EQUITABLE DAILY RANDOM ROTATION FOR REMAINING STAFF TASKS
+      // RULE 3: EQUITABLE DAILY RANDOM ROTATION FOR REMAINING TASKS (WORKING STAFF ONLY)
       // ----------------------------------------------------
       const remainingFront = remainingTasks.filter(t => t.scope === 'FRONT' || t.scope === 'EVERYONE');
       const remainingKitchen = remainingTasks.filter(t => t.scope === 'KITCHEN' || t.scope === 'EVERYONE');
@@ -1551,9 +1686,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const shuffledFront = [...remainingFront].sort(() => getPseudoRandom(seed++) - 0.5);
       const shuffledKitchen = [...remainingKitchen].sort(() => getPseudoRandom(seed++) - 0.5);
 
-      if (frontStaff.length > 0 && shuffledFront.length > 0) {
+      if (generalFrontStaff.length > 0 && shuffledFront.length > 0) {
         shuffledFront.forEach((task, idx) => {
-          const emp = frontStaff[idx % frontStaff.length];
+          const emp = generalFrontStaff[idx % generalFrontStaff.length];
           newScheduledTasks.push({
             id: `st-${monthKey}-${day}-${emp.id}-rf-${idx}`,
             employeeId: emp.id,
@@ -1561,15 +1696,15 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: task.scope,
             period: task.period || 'ANYTIME',
-            points: task.points,
+            points: task.points || 10,
             desc: task.desc || ''
           });
         });
       }
 
-      if (kitchenStaff.length > 0 && shuffledKitchen.length > 0) {
+      if (generalKitchenStaff.length > 0 && shuffledKitchen.length > 0) {
         shuffledKitchen.forEach((task, idx) => {
-          const emp = kitchenStaff[idx % kitchenStaff.length];
+          const emp = generalKitchenStaff[idx % generalKitchenStaff.length];
           newScheduledTasks.push({
             id: `st-${monthKey}-${day}-${emp.id}-rk-${idx}`,
             employeeId: emp.id,
@@ -1577,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: task.title,
             category: task.scope,
             period: task.period || 'ANYTIME',
-            points: task.points,
+            points: task.points || 10,
             desc: task.desc || ''
           });
         });

@@ -63,11 +63,10 @@
           <i data-lucide="moon" class="icon-moon"></i>
         </button>
 
-        <div class="month-selector-wrapper">
-          <i data-lucide="calendar" class="selector-icon"></i>
-          <select id="current-month-select" class="month-select">
-            <!-- Dynamic Month Options -->
-          </select>
+        <!-- Interactive Date Picker Selector (Past & Future Navigation) -->
+        <div class="date-selector-wrapper" style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-input); padding:0.35rem 0.75rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+          <i data-lucide="calendar-days" class="selector-icon text-gold"></i>
+          <input type="date" id="selected-date-picker" class="date-picker-input" style="background:none; border:none; color:var(--text-main); font-weight:700; font-size:0.88rem; font-family:inherit; cursor:pointer; outline:none;" />
         </div>
       </div>
     </header>
