@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Tip distribution calculation based on Coins + Headcount Proportional Weighting + EOTM Bonus
+  // Tip distribution calculation based on Two-Step Team Allocation (Team Pool -> Intra-Team Coins Pro-Rata)
   const calculateTipDistribution = () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
@@ -300,13 +300,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const kitchenStaff = appState.staff.filter(s => s.role === 'KITCHEN');
     const frontHeadcount = frontStaff.length || 1;
     const kitchenHeadcount = kitchenStaff.length || 1;
+    const totalHeadcount = frontHeadcount + kitchenHeadcount;
+
+    // Amount pool left to distribute pro-rata after deducting winner bonus
+    const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
+
+    // Step 1: Inter-Team Allocation by Headcount Proportionate Weighting
+    const frontAllocatedPool = poolForProRata * (frontHeadcount / totalHeadcount);
+    const kitchenAllocatedPool = poolForProRata * (kitchenHeadcount / totalHeadcount);
 
     let empStats = appState.staff.map(emp => {
       const points = getEmployeePoints(emp.id);
       const att = getEmployeeAttendance(emp.id, appState.currentMonth);
-      const teamHeadcount = emp.role === 'FRONT' ? frontHeadcount : kitchenHeadcount;
-      // Headcount-weighted coins: normalizes coins per-capita across team sizes
-      const weightedPoints = points * (1 / teamHeadcount);
 
       return {
         id: emp.id,
@@ -318,7 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
         workedDays: att.workedDays,
         workedHours: att.workedHours,
         points: points,
-        weightedPoints: weightedPoints,
+        teamCoins: 0,
+        intraTeamShare: 0,
         baselinePercent: 0,
         manualPercent: null,
         tipSharePercent: 0,
@@ -327,47 +333,67 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     });
 
-    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
-    const grandTotalWeightedPoints = empStats.reduce((sum, e) => sum + e.weightedPoints, 0);
+    const totalFrontCoins = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.points, 0);
+    const totalKitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.points, 0);
 
-    // Amount pool left to distribute pro-rata after deducting winner bonus
-    const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
-
-    // Baseline Coin-Proportions calculation with Headcount Weighting Equity
+    // Step 2: Intra-Team Individual Pro-Rata Distribution by Department Coins
     empStats.forEach(emp => {
-      if (grandTotalWeightedPoints > 0) {
-        emp.baselinePercent = parseFloat(((emp.weightedPoints / grandTotalWeightedPoints) * 100).toFixed(2));
+      const isFront = emp.role === 'FRONT';
+      const teamPool = isFront ? frontAllocatedPool : kitchenAllocatedPool;
+      const teamCoins = isFront ? totalFrontCoins : totalKitchenCoins;
+      const teamSize = isFront ? frontHeadcount : kitchenHeadcount;
+
+      emp.teamCoins = teamCoins;
+
+      // Intra-team individual coin ratio (Employee Coins / Total Department Coins)
+      if (teamCoins > 0) {
+        emp.intraTeamShare = emp.points / teamCoins;
       } else {
-        emp.baselinePercent = appState.staff.length > 0 ? parseFloat((100 / appState.staff.length).toFixed(2)) : 0;
+        emp.intraTeamShare = 1 / teamSize;
       }
+
+      // Base tip amount allocated from department pool
+      let calculatedTipAmt = emp.intraTeamShare * teamPool;
+
+      // Overall baseline percentage relative to the distributable pool
+      emp.baselinePercent = poolForProRata > 0 ? parseFloat(((calculatedTipAmt / poolForProRata) * 100).toFixed(2)) : 0;
 
       // Check for manual overrides from Manager
       const override = appState.manualTipOverrides ? appState.manualTipOverrides[emp.id] : null;
       if (override && override.percent !== undefined && override.percent !== null) {
         emp.manualPercent = parseFloat(override.percent);
         emp.tipSharePercent = emp.manualPercent;
+        calculatedTipAmt = (emp.tipSharePercent / 100) * poolForProRata;
       } else {
         emp.tipSharePercent = emp.baselinePercent;
       }
 
-      // Base pro-rata share amount
-      let baseTipAmt = (emp.tipSharePercent / 100) * poolForProRata;
-      
       // Add EOTM fixed bonus to winner
       if (emp.id === winnerId) {
-        baseTipAmt += bonusAmount;
+        calculatedTipAmt += bonusAmount;
       }
 
-      emp.tipAmount = baseTipAmt;
+      emp.tipAmount = calculatedTipAmt;
     });
 
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
     const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
+    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
 
     // Sort employees in strict descending order by total coin count (highest to lowest)
     empStats.sort((a, b) => b.points - a.points);
 
-    return { empStats, grandTotalPoints, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount };
+    return { 
+      empStats, 
+      grandTotalPoints, 
+      totalTips, 
+      frontPool, 
+      kitchenPool, 
+      frontHeadcount, 
+      kitchenHeadcount,
+      frontAllocatedPool,
+      kitchenAllocatedPool
+    };
   };
 
   // ==========================================
@@ -1376,17 +1402,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputBonus = document.getElementById('input-eotm-bonus');
     if (inputBonus) inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
 
-    const { empStats, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount } = calculateTipDistribution();
+    const { empStats, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount, frontAllocatedPool, kitchenAllocatedPool } = calculateTipDistribution();
 
-    // Render Headcount Equity Ratio summary banner
+    // Render Two-Step Team Allocation Equity Banner
     const elHeadcountBanner = document.getElementById('summary-headcount-equity');
     if (elHeadcountBanner) {
+      const fPoolStr = (frontAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const kPoolStr = (kitchenAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
       elHeadcountBanner.innerHTML = `
-        <div style="padding:0.75rem 1rem; background:rgba(168,85,247,0.12); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.3); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-          <span style="font-size:0.85rem; color:var(--text-main); font-weight:600; display:flex; align-items:center; gap:0.4rem;">
-            <i data-lucide="scale" style="color:#c084fc;"></i> <strong>Headcount Proportional Weighting Active:</strong> Front (${frontHeadcount} staff) vs Kitchen (${kitchenHeadcount} staff)
-          </span>
-          <span class="badge badge-purple" style="font-size:0.7rem;">⚖️ Normalized Per-Capita Equity</span>
+        <div style="padding:0.85rem 1.15rem; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(59,130,246,0.12)); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.35); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <span style="font-size:0.88rem; color:var(--text-main); font-weight:700; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem;">
+              <i data-lucide="scale" style="color:#c084fc;"></i> Two-Step Team Pool Distribution Active (Inter-Team Pool -> Intra-Team Coins Pro-Rata)
+            </span>
+            <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">
+              Total distributable tips are split between team pools by headcount ratio (<strong>Front Pool: ${fPoolStr} €</strong> | <strong>Kitchen Pool: ${kPoolStr} €</strong>), then distributed to members pro-rata by individual Coins earned within their department.
+            </p>
+          </div>
+          <span class="badge badge-purple" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">⚖️ Fair Inter-Team & Intra-Team Distribution</span>
         </div>
       `;
     }
