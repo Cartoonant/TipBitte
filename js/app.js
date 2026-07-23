@@ -2210,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Validate Opening Shift Listener
+  // Validate Opening Shift Listener (Full 30 Coins awarded to EACH member of the pair)
   const btnOpening = document.getElementById('btn-validate-opening');
   if (btnOpening) {
     btnOpening.addEventListener('click', () => {
@@ -2221,22 +2221,48 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      appState.tasks.unshift({
-        id: 'shift-open-' + Date.now(),
-        employeeId: currentEmpId,
-        desc: `[Opening Shift Process] Keyhandover, lights & morning line setup completed by ${emp.name}`,
-        points: 30,
-        status: 'PENDING',
-        timestamp: Date.now()
+      const selectedDateStr = appState.selectedDate || getTodayDateString();
+      const dateParts = selectedDateStr.split('-');
+      const selectedDay = parseInt(dateParts[2]) || 1;
+
+      // Identify opening team members assigned for this date (Kitchen or Front)
+      const dayOpeningTasks = (appState.scheduledDailyTasks || []).filter(t => t.day === selectedDay && (t.title.toLowerCase().includes('opening') || t.period === 'MORNING'));
+      
+      let openingEmpIds = Array.from(new Set(dayOpeningTasks.map(t => t.employeeId)));
+      // Filter for team members of the same role as current user, or include current user
+      openingEmpIds = openingEmpIds.filter(id => {
+        const s = appState.staff.find(x => x.id === id);
+        return s && (s.role === emp.role || emp.role === 'CLEANER');
+      });
+
+      if (!openingEmpIds.includes(currentEmpId)) {
+        openingEmpIds.push(currentEmpId);
+      }
+
+      // Award full 30 Coins to EACH individual in the pair
+      openingEmpIds.forEach(empId => {
+        const partner = appState.staff.find(s => s.id === empId);
+        // Avoid duplicate pending submissions for partner
+        const hasPending = (appState.tasks || []).some(t => t.employeeId === empId && t.desc.includes('[Opening Shift Process]') && t.status !== 'REJECTED');
+        if (!hasPending && partner) {
+          appState.tasks.unshift({
+            id: 'shift-open-' + empId + '-' + Date.now(),
+            employeeId: empId,
+            desc: `[Opening Shift Process] Keyhandover, lights & morning setup (Validated by ${emp.name})`,
+            points: 30, // Full 30 Coins awarded to EACH member!
+            status: 'PENDING',
+            timestamp: Date.now()
+          });
+        }
       });
 
       saveState();
       renderAll();
-      showToast(`Opening shift process submitted for Manager approval (+30 Coins pending)!`);
+      showToast(`Opening shift validated by ${emp.name}! Full 30 Coins awarded to each partner in the pair.`);
     });
   }
 
-  // Validate Closing Shift Listener
+  // Validate Closing Shift Listener (Full 30 Coins awarded to EACH member of the pair)
   const btnClosing = document.getElementById('btn-validate-closing');
   if (btnClosing) {
     btnClosing.addEventListener('click', () => {
@@ -2247,18 +2273,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      appState.tasks.unshift({
-        id: 'shift-close-' + Date.now(),
-        employeeId: currentEmpId,
-        desc: `[Closing Shift Process] POS register closure, sanitization & alarm lockup completed by ${emp.name}`,
-        points: 30,
-        status: 'PENDING',
-        timestamp: Date.now()
+      const selectedDateStr = appState.selectedDate || getTodayDateString();
+      const dateParts = selectedDateStr.split('-');
+      const selectedDay = parseInt(dateParts[2]) || 1;
+
+      // Identify closing team members assigned for this date (Kitchen or Front)
+      const dayClosingTasks = (appState.scheduledDailyTasks || []).filter(t => t.day === selectedDay && (t.title.toLowerCase().includes('closing') || t.period === 'EVENING'));
+      
+      let closingEmpIds = Array.from(new Set(dayClosingTasks.map(t => t.employeeId)));
+      // Filter for team members of the same role as current user, or include current user
+      closingEmpIds = closingEmpIds.filter(id => {
+        const s = appState.staff.find(x => x.id === id);
+        return s && (s.role === emp.role || emp.role === 'CLEANER');
+      });
+
+      if (!closingEmpIds.includes(currentEmpId)) {
+        closingEmpIds.push(currentEmpId);
+      }
+
+      // Award full 30 Coins to EACH individual in the pair
+      closingEmpIds.forEach(empId => {
+        const partner = appState.staff.find(s => s.id === empId);
+        // Avoid duplicate pending submissions for partner
+        const hasPending = (appState.tasks || []).some(t => t.employeeId === empId && t.desc.includes('[Closing Shift Process]') && t.status !== 'REJECTED');
+        if (!hasPending && partner) {
+          appState.tasks.unshift({
+            id: 'shift-close-' + empId + '-' + Date.now(),
+            employeeId: empId,
+            desc: `[Closing Shift Process] POS register closure, sanitization & lockup (Validated by ${emp.name})`,
+            points: 30, // Full 30 Coins awarded to EACH member!
+            status: 'PENDING',
+            timestamp: Date.now()
+          });
+        }
       });
 
       saveState();
       renderAll();
-      showToast(`Closing shift process submitted for Manager approval (+30 Coins pending)!`);
+      showToast(`Closing shift validated by ${emp.name}! Full 30 Coins awarded to each partner in the pair.`);
     });
   }
 
