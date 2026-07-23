@@ -961,23 +961,23 @@ document.addEventListener('DOMContentLoaded', () => {
               `;
 
               item.innerHTML = `
-                <div style="flex:1;">
-                  <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.35rem;">
-                    <strong class="task-user" style="font-size:1.05rem; color:var(--text-main);">${task.title}</strong>
+                <div class="task-left-content">
+                  <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <strong class="task-user" style="font-size:1.05rem; color:var(--text-main); font-weight:700;">${task.title}</strong>
                     ${teamBadge}
                     ${typeBadge}
                     ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Shift</span>` : ''}
                   </div>
-                  ${task.desc ? `<p style="margin:0.25rem 0 0.4rem 0; font-size:0.85rem; color:var(--text-muted); line-height:1.4;">${task.desc}</p>` : ''}
-                  <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
-                    <div class="avatar" style="background-color: ${emp.color}; width:24px; height:24px; font-size:0.68rem;">${emp.avatar}</div>
-                    <span style="font-size:0.82rem;">Assigned to: <strong style="color:var(--text-main);">${emp.name}</strong> (${emp.title || emp.role})</span>
+                  ${task.desc ? `<span style="font-size:0.85rem; color:var(--text-muted);">(${task.desc})</span>` : ''}
+                  <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-input); padding:0.25rem 0.65rem; border-radius:var(--radius-full); border:1px solid var(--border-color);">
+                    <div class="avatar" style="background-color: ${emp.color}; width:22px; height:22px; font-size:0.65rem;">${emp.avatar}</div>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">Assigned to: <strong style="color:var(--text-main);">${emp.name}</strong> (${emp.title || emp.role})</span>
                   </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:1rem; flex-shrink:0;">
-                  <span class="task-pts" style="font-weight:800; font-size:1rem; color:var(--color-gold);">+${task.points} Coins</span>
+                <div class="task-right-actions">
+                  <span class="task-pts" style="font-weight:800; font-size:1.1rem; color:var(--color-gold); white-space:nowrap;">+${task.points} Coins</span>
                   ${!isManager ? statusAction : `
-                    <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}" title="Remove task">
+                    <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}" title="Remove task" style="white-space:nowrap;">
                       <i data-lucide="trash-2"></i> Remove
                     </button>
                   `}

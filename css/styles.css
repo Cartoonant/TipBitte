@@ -1210,21 +1210,21 @@ button, input, select, textarea {
 
 /* Shift Section & Task Roadmap UI Overhaul (100% Full Width Horizontal Layout) */
 .tasks-feed {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  width: 100%;
-  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.9rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .shift-timeline-header {
-  grid-column: 1 / -1;
-  width: 100%;
-  box-sizing: border-box;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
   margin-top: 1.35rem;
   margin-bottom: 0.65rem;
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
   gap: 0.6rem;
   padding: 0.7rem 1.1rem;
   background: var(--bg-card-solid);
@@ -1237,14 +1237,15 @@ button, input, select, textarea {
   background: var(--bg-card-solid);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1.1rem 1.5rem;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  padding: 1rem 1.4rem;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
   gap: 1.5rem;
-  width: 100%;
-  box-sizing: border-box;
+  width: 100% !important;
+  box-sizing: border-box !important;
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
@@ -1253,6 +1254,24 @@ button, input, select, textarea {
   transform: translateY(-2px);
   border-color: var(--color-gold);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+.task-left-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.task-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .task-item.task-kitchen, .task-item-card.task-kitchen {
