@@ -68,24 +68,48 @@ const syncStateToGoogleSheet = async (state) => {
     console.error('Error writing local backup file:', e);
   }
 
-  // 2. Sync to Google Sheet via Service Account if authenticated
+  // 2. Sync to Google Sheet via Service Account (In-Place Row Update per MonthKey)
   if (doc) {
     try {
-      let syncSheet = doc.sheetsByTitle['App_Sync_Log'];
-      if (!syncSheet) {
-        syncSheet = await doc.addSheet({ title: 'App_Sync_Log', headerValues: ['Timestamp', 'MonthKey', 'ValidatedTasksCount', 'TipTotal'] });
+      const monthKey = state.currentMonth || '2026-07';
+      const tipsConfig = state.tipsConfig?.[monthKey] || {};
+      const totalTipsAmount = tipsConfig.totalAmount !== undefined && tipsConfig.totalAmount !== null ? parseFloat(tipsConfig.totalAmount) : 0;
+      const bonusAmount = state.eotmBonusAmount !== undefined ? parseFloat(state.eotmBonusAmount) : 100;
+      const winnerId = state.eotmWinnerId || '';
+
+      let tipsSheet = doc.sheetsByTitle['Tips_Config'];
+      if (!tipsSheet) {
+        tipsSheet = await doc.addSheet({ 
+          title: 'Tips_Config', 
+          headerValues: ['MonthKey', 'TotalTipsAmount', 'EOTMBonus', 'WinnerID', 'UpdatedAt'] 
+        });
       }
-      const tasksCount = (state.tasks || []).length;
-      const tipsConfig = state.tipsConfig?.[state.currentMonth] || {};
-      
-      await syncSheet.addRow({
-        Timestamp: new Date().toISOString(),
-        MonthKey: state.currentMonth || '2026-07',
-        ValidatedTasksCount: tasksCount,
-        TipTotal: tipsConfig.totalAmount || 2600
-      });
+
+      // Read existing rows to locate row matching current MonthKey
+      const rows = await tipsSheet.getRows();
+      const existingRow = rows.find(r => r.get('MonthKey') === monthKey);
+
+      if (existingRow) {
+        // Overwrite / Update existing month row in-place (No duplicate rows or additions)
+        existingRow.set('TotalTipsAmount', totalTipsAmount.toString());
+        existingRow.set('EOTMBonus', bonusAmount.toString());
+        existingRow.set('WinnerID', winnerId);
+        existingRow.set('UpdatedAt', new Date().toISOString());
+        await existingRow.save();
+        console.log(`✅ Google Sheet "Tips_Config" updated for ${monthKey}: ${totalTipsAmount} €`);
+      } else {
+        // Add new row for this month if it doesn't exist yet
+        await tipsSheet.addRow({
+          MonthKey: monthKey,
+          TotalTipsAmount: totalTipsAmount.toString(),
+          EOTMBonus: bonusAmount.toString(),
+          WinnerID: winnerId,
+          UpdatedAt: new Date().toISOString()
+        });
+        console.log(`✅ Google Sheet "Tips_Config" row created for ${monthKey}: ${totalTipsAmount} €`);
+      }
     } catch (err) {
-      console.log('Google Sheet row sync note:', err.message);
+      console.log('Google Sheet tips sync note:', err.message);
     }
   }
 

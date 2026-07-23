@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Equal-Pay Baseline Calculation Engine with Manager Malus Differentiation
   const calculateTipDistribution = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
     const totalTips = parseFloat(config.totalAmount) || 0;
     const bonusAmount = parseFloat(appState.eotmBonusAmount) || 0;
     const winnerId = appState.eotmWinnerId;
@@ -1422,7 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tip Calculator Renderer
   const renderTips = () => {
     const mKey = appState.currentMonth;
-    const config = appState.tipsConfig[mKey] || { totalAmount: 2600 };
+    const config = appState.tipsConfig[mKey] || { totalAmount: 0 };
 
     const inputPool = document.getElementById('input-total-tips');
     if (inputPool) inputPool.value = config.totalAmount;
@@ -1562,7 +1562,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('change', (e) => {
           const empId = e.currentTarget.dataset.emp;
           const newAmt = parseFloat(e.currentTarget.value) || 0;
-          const totalPool = parseFloat(appState.tipsConfig[appState.currentMonth]?.totalAmount) || 2600;
+          const totalPool = appState.tipsConfig[appState.currentMonth]?.totalAmount !== undefined ? parseFloat(appState.tipsConfig[appState.currentMonth].totalAmount) : 0;
 
           const newPct = totalPool > 0 ? parseFloat(((newAmt / totalPool) * 100).toFixed(2)) : 0;
 
