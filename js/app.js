@@ -351,8 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Equal-Pay Baseline Calculation Engine with Manager Malus Differentiation
   const calculateTipDistribution = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 0 };
-    const totalTips = parseFloat(config.totalAmount) || 0;
+    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 100 };
+    const totalTips = config.totalAmount !== undefined && config.totalAmount !== null ? parseFloat(config.totalAmount) : 100;
     const bonusAmount = parseFloat(appState.eotmBonusAmount) || 0;
     const winnerId = appState.eotmWinnerId;
 
@@ -1446,11 +1446,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tip Calculator Renderer
   const renderTips = () => {
     const mKey = appState.currentMonth;
-    const config = appState.tipsConfig[mKey] || { totalAmount: 0 };
+    const config = appState.tipsConfig[mKey] || { totalAmount: 100 };
 
     const inputPool = document.getElementById('input-total-tips');
     if (inputPool && document.activeElement !== inputPool) {
-      inputPool.value = config.totalAmount;
+      inputPool.value = config.totalAmount !== undefined && config.totalAmount !== null ? config.totalAmount : 100;
     }
 
     const inputBonus = document.getElementById('input-eotm-bonus');
@@ -3124,9 +3124,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSaveTips = document.getElementById('btn-save-tips');
   if (btnSaveTips) {
     btnSaveTips.addEventListener('click', async () => {
-      const totalAmount = parseFloat(document.getElementById('input-total-tips')?.value) || 0;
+      const totalInput = document.getElementById('input-total-tips');
+      const parsedTotal = totalInput && totalInput.value !== '' ? parseFloat(totalInput.value) : 100;
+      const totalAmount = !isNaN(parsedTotal) ? parsedTotal : 100;
       const bonusInput = document.getElementById('input-eotm-bonus');
-      const bonusAmount = bonusInput ? parseFloat(bonusInput.value) : appState.eotmBonusAmount;
+      const bonusAmount = bonusInput && bonusInput.value !== '' ? parseFloat(bonusInput.value) : appState.eotmBonusAmount;
 
       appState.tipsConfig[appState.currentMonth] = { totalAmount };
       if (!isNaN(bonusAmount) && bonusAmount >= 0) {

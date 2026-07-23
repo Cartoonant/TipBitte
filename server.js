@@ -73,7 +73,7 @@ const syncStateToGoogleSheet = async (state) => {
     try {
       const monthKey = state.currentMonth || '2026-07';
       const tipsConfig = state.tipsConfig?.[monthKey] || {};
-      const totalTipsAmount = tipsConfig.totalAmount !== undefined && tipsConfig.totalAmount !== null ? parseFloat(tipsConfig.totalAmount) : 0;
+      const totalTipsAmount = tipsConfig.totalAmount !== undefined && tipsConfig.totalAmount !== null ? parseFloat(tipsConfig.totalAmount) : 100;
       const bonusAmount = state.eotmBonusAmount !== undefined && state.eotmBonusAmount !== null ? parseFloat(state.eotmBonusAmount) : 0;
       const winnerId = state.eotmWinnerId || '';
 
