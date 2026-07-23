@@ -1541,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSync = document.getElementById('btn-sync-google-sheet');
     if (btnSync) {
       btnSync.disabled = true;
-      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
+      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing Google Sheet...`;
     }
 
     const urls = [
@@ -1551,6 +1551,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     let csvText = null;
+    let fetchError = null;
+
     for (const url of urls) {
       try {
         const response = await fetch(url);
@@ -1560,31 +1562,41 @@ document.addEventListener('DOMContentLoaded', () => {
             csvText = text;
             break;
           }
+        } else {
+          fetchError = new Error(`HTTP ${response.status} from ${url}`);
         }
       } catch (err) {
-        // next fallback
+        fetchError = err;
       }
     }
 
     if (csvText) {
-      const parsed = parseCSVTasks(csvText);
-      if (parsed.length > 0) {
-        appState.masterTaskCatalogue = parsed;
-        saveState();
-        renderAll();
-        if (showNotification) {
-          showToast(`⚡ Synchronized Google Sheet! ${parsed.length} tasks loaded.`);
+      try {
+        const parsed = parseCSVTasks(csvText);
+        if (parsed.length > 0) {
+          appState.masterTaskCatalogue = parsed;
+          generateMonthlyFairRotation();
+          saveState();
+          renderAll();
+          if (showNotification) {
+            showToast(`⚡ Synchronized Google Sheet! ${parsed.length} tasks loaded.`);
+          }
+        } else {
+          console.error("[Google Sheet Sync Error] CSV parsed 0 valid tasks.");
+          if (showNotification) showToast("Warning: 0 valid tasks parsed from Google Sheet.");
         }
+      } catch (parseErr) {
+        console.error("[Google Sheet Sync Error] Parsing error:", parseErr);
+        if (showNotification) showToast("CSV Parsing error. Check console.");
       }
     } else {
-      if (showNotification) {
-        showToast("Unable to fetch live Google Sheet. Check internet connection.");
-      }
+      console.error("[Google Sheet Sync Error] Could not fetch CSV from endpoints:", fetchError);
+      if (showNotification) showToast("Error connecting to Google Sheet. Check console.");
     }
 
     if (btnSync) {
       btnSync.disabled = false;
-      btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets`;
+      btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheet`;
     }
     if (window.lucide) lucide.createIcons();
   };
@@ -1593,77 +1605,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
   if (btnSyncSheet) {
     btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
-  }
-
-  // Close GS Sync Error Alert Listener
-  const btnCloseGsAlert = document.getElementById('btn-close-gs-alert');
-  if (btnCloseGsAlert) {
-    btnCloseGsAlert.addEventListener('click', () => {
-      const box = document.getElementById('gs-sync-alert');
-      if (box) box.classList.add('hidden');
-    });
-  }
-
-  // Toggle Paste CSV / Text Panel Listener
-  const btnTogglePaste = document.getElementById('btn-toggle-paste-csv');
-  const btnCancelPaste = document.getElementById('btn-cancel-paste-csv');
-  const pastePanel = document.getElementById('paste-csv-panel');
-
-  if (btnTogglePaste && pastePanel) {
-    btnTogglePaste.addEventListener('click', () => {
-      pastePanel.classList.toggle('hidden');
-      if (!pastePanel.classList.contains('hidden')) {
-        document.getElementById('input-paste-csv-text')?.focus();
-      }
-    });
-  }
-  if (btnCancelPaste && pastePanel) {
-    btnCancelPaste.addEventListener('click', () => pastePanel.classList.add('hidden'));
-  }
-
-  // Import Pasted CSV / Text Listener
-  const btnImportPasted = document.getElementById('btn-import-pasted-csv');
-  if (btnImportPasted) {
-    btnImportPasted.addEventListener('click', () => {
-      const text = document.getElementById('input-paste-csv-text')?.value || '';
-      if (!text.trim()) {
-        showToast("Please paste some text lines or CSV rows first.");
-        return;
-      }
-      const parsed = parseCSVTasks(text);
-      if (parsed.length > 0) {
-        appState.masterTaskCatalogue = parsed;
-        saveState();
-        if (pastePanel) pastePanel.classList.add('hidden');
-        renderAll();
-        showToast(`Loaded ${parsed.length} tasks from pasted text!`);
-      } else {
-        showToast("Could not parse any valid tasks from pasted text.");
-      }
-    });
-  }
-
-  // Reset Default Catalogue Listener
-  const btnResetDefault = document.getElementById('btn-reset-catalogue-default');
-  if (btnResetDefault) {
-    btnResetDefault.addEventListener('click', () => {
-      if (confirm("Restore built-in default task catalogue (13 tasks for Front, Kitchen, and Roy Cleaner)?")) {
-        appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
-        saveState();
-        renderAll();
-        showToast("Default task catalogue restored!");
-      }
-    });
-  }
-
-  // Toggle Master Catalogue List Drawer Listener
-  const btnToggleCatList = document.getElementById('btn-toggle-catalogue-list');
-  const catDrawer = document.getElementById('catalogue-list-drawer');
-  if (btnToggleCatList && catDrawer) {
-    btnToggleCatList.addEventListener('click', () => {
-      catDrawer.classList.toggle('hidden');
-      renderMasterCatalogueList();
-    });
   }
 
   // Generate Monthly Schedule Button Listener

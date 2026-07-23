@@ -262,24 +262,15 @@
           <div id="manager-task-scheduler" class="section-card manager-only-block margin-bottom" data-manager-only="true" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid var(--color-gold);">
             <div class="section-header" style="margin-bottom:1rem;">
               <div>
-                <h3><i data-lucide="file-spreadsheet" class="text-gold"></i> Master Task Management & Schedule Generator</h3>
-                <p class="text-muted">Import your external task file (Excel/CSV/JSON), then click <strong>Generate Schedule</strong> to automatically assign nominative tasks across the monthly roster.</p>
+                <h3><i data-lucide="file-spreadsheet" class="text-gold"></i> Live Google Sheet Task Manager</h3>
+                <p class="text-muted">Direct single-button sync with live Google Sheet (Columns: <strong>Tasks, Description, Team, Period, Reccurence, Reward</strong>).</p>
               </div>
             </div>
 
-            <!-- Primary Action Buttons: Sync Google Sheets, Import File & Generate Schedule -->
-            <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
-              <button id="btn-sync-google-sheet" class="btn btn-gold glow" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
-                <i data-lucide="refresh-cw"></i> Sync Google Sheets
-              </button>
-
-              <label class="btn btn-primary" style="cursor:pointer; flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
-                <i data-lucide="upload-cloud"></i> Import File (CSV / JSON)
-                <input type="file" id="input-update-tasks-file" accept=".csv,.json,.xlsx" class="hidden-file-input" />
-              </label>
-
-              <button id="btn-generate-monthly-schedule" class="btn btn-outline" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
-                <i data-lucide="sparkles"></i> Generate Schedule (Fair Rotation)
+            <!-- Single Direct Action Button: Sync Google Sheet -->
+            <div>
+              <button id="btn-sync-google-sheet" class="btn btn-gold glow" style="width:100%; justify-content:center; padding:0.9rem 1.5rem; font-weight:700; font-size:1rem;">
+                <i data-lucide="refresh-cw"></i> Sync Google Sheet
               </button>
             </div>
 
