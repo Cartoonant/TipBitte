@@ -1345,10 +1345,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Automated Monthly Smart Fair Rotation Engine (31 Days)
+  // Rule 1: Fixed assignments for Roy (Cleaner) and Aadhi (Recipe/Spices)
+  // Rule 2: Schedule-based Opening & Closing procedures for Front & Kitchen
+  // Rule 3: Daily equitable random rotation for remaining staff tasks among present staff
   const generateMonthlyFairRotation = () => {
     const catalogue = appState.masterTaskCatalogue || [];
     if (catalogue.length === 0) {
-      showToast("Master task catalogue is empty. Add tasks or import a catalogue first!");
+      showToast("Master task catalogue is empty.");
       return;
     }
 
@@ -1358,8 +1361,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const newScheduledTasks = [];
 
+    // Helper: Identify Roy and Aadhi from active staff roster
+    const royEmp = appState.staff.find(s => s.name.toLowerCase() === 'roy' || s.role === 'CLEANER');
+    const aadhiEmp = appState.staff.find(s => s.name.toLowerCase() === 'aadhi');
+
+    // Categorize catalogue into 3 distinct buckets:
+    // Bucket A: Fixed Roy & Aadhi Tasks
+    const royTasks = catalogue.filter(t => t.scope === 'CLEANER' || t.title.toLowerCase().includes('roy') || t.desc.toLowerCase().includes('roy'));
+    const aadhiTasks = catalogue.filter(t => t.title.toLowerCase().includes('aadhi') || t.desc.toLowerCase().includes('aadhi'));
+
+    // Bucket B: Opening & Closing Shift Procedures
+    const isOpeningTask = (t) => {
+      const txt = (t.title + ' ' + (t.desc || '') + ' ' + (t.period || '')).toLowerCase();
+      return txt.includes('opening');
+    };
+    const isClosingTask = (t) => {
+      const txt = (t.title + ' ' + (t.desc || '') + ' ' + (t.period || '')).toLowerCase();
+      return txt.includes('closing');
+    };
+
+    const openingTasks = catalogue.filter(t => isOpeningTask(t) && !royTasks.includes(t) && !aadhiTasks.includes(t));
+    const closingTasks = catalogue.filter(t => isClosingTask(t) && !royTasks.includes(t) && !aadhiTasks.includes(t));
+
+    // Bucket C: Remaining General Operational Tasks
+    const remainingTasks = catalogue.filter(t => !royTasks.includes(t) && !aadhiTasks.includes(t) && !isOpeningTask(t) && !isClosingTask(t));
+
+    // Seeded pseudo-random generator for consistent daily fair shuffling
+    const getPseudoRandom = (seed) => {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+
     for (let day = 1; day <= totalDays; day++) {
-      // Find staff scheduled to WORK on this day
+      // Find staff scheduled to WORK on this specific day
       const scheduledStaff = appState.staff.filter(emp => {
         const empDays = monthSchedules[emp.id] || {};
         return empDays[day] !== false; // WORK day
@@ -1368,15 +1402,107 @@ document.addEventListener('DOMContentLoaded', () => {
       const frontStaff = scheduledStaff.filter(s => s.role === 'FRONT');
       const kitchenStaff = scheduledStaff.filter(s => s.role === 'KITCHEN');
 
-      const frontTasks = catalogue.filter(t => t.scope === 'FRONT' || t.scope === 'EVERYONE');
-      const kitchenTasks = catalogue.filter(t => t.scope === 'KITCHEN' || t.scope === 'EVERYONE');
-
-      // Rotate Front tasks nominatively among scheduled Front staff
-      if (frontStaff.length > 0 && frontTasks.length > 0) {
-        frontStaff.forEach((emp, index) => {
-          const task = frontTasks[(day + index) % frontTasks.length];
+      // ----------------------------------------------------
+      // RULE 1: FIXED PERMANENT ASSIGNMENTS FOR ROY & AADHI
+      // ----------------------------------------------------
+      if (royEmp && scheduledStaff.some(s => s.id === royEmp.id)) {
+        royTasks.forEach((task, tIdx) => {
           newScheduledTasks.push({
-            id: `st-${monthKey}-${day}-${emp.id}-f`,
+            id: `st-${monthKey}-${day}-${royEmp.id}-roy-${tIdx}`,
+            employeeId: royEmp.id,
+            day: day,
+            title: task.title,
+            category: 'CLEANER',
+            period: task.period || 'EVENING',
+            points: task.points,
+            desc: task.desc || 'Fixed Cleaner Task'
+          });
+        });
+      }
+
+      if (aadhiEmp && scheduledStaff.some(s => s.id === aadhiEmp.id)) {
+        aadhiTasks.forEach((task, tIdx) => {
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${aadhiEmp.id}-aadhi-${tIdx}`,
+            employeeId: aadhiEmp.id,
+            day: day,
+            title: task.title,
+            category: 'KITCHEN',
+            period: task.period || 'ANYTIME',
+            points: task.points,
+            desc: task.desc || 'Fixed Aadhi Recipe Task'
+          });
+        });
+      }
+
+      // ----------------------------------------------------
+      // RULE 2: SCHEDULE-BASED OPENING & CLOSING PROCEDURES
+      // ----------------------------------------------------
+      openingTasks.forEach((task, tIdx) => {
+        let assignedEmp = null;
+        if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
+          if (frontStaff.length > 0) assignedEmp = frontStaff[(day + tIdx) % frontStaff.length];
+        } else if (task.scope === 'KITCHEN') {
+          if (kitchenStaff.length > 0) assignedEmp = kitchenStaff[(day + tIdx) % kitchenStaff.length];
+        }
+        if (!assignedEmp && scheduledStaff.length > 0) {
+          assignedEmp = scheduledStaff[(day + tIdx) % scheduledStaff.length];
+        }
+
+        if (assignedEmp) {
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${assignedEmp.id}-open-${tIdx}`,
+            employeeId: assignedEmp.id,
+            day: day,
+            title: task.title,
+            category: task.scope,
+            period: 'MORNING',
+            points: task.points,
+            desc: task.desc || 'Opening Procedure'
+          });
+        }
+      });
+
+      closingTasks.forEach((task, tIdx) => {
+        let assignedEmp = null;
+        if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
+          if (frontStaff.length > 0) assignedEmp = frontStaff[(day + tIdx) % frontStaff.length];
+        } else if (task.scope === 'KITCHEN') {
+          if (kitchenStaff.length > 0) assignedEmp = kitchenStaff[(day + tIdx) % kitchenStaff.length];
+        }
+        if (!assignedEmp && scheduledStaff.length > 0) {
+          assignedEmp = scheduledStaff[(day + tIdx) % scheduledStaff.length];
+        }
+
+        if (assignedEmp) {
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${assignedEmp.id}-close-${tIdx}`,
+            employeeId: assignedEmp.id,
+            day: day,
+            title: task.title,
+            category: task.scope,
+            period: 'EVENING',
+            points: task.points,
+            desc: task.desc || 'Closing Procedure'
+          });
+        }
+      });
+
+      // ----------------------------------------------------
+      // RULE 3: EQUITABLE DAILY RANDOM ROTATION FOR REMAINING STAFF TASKS
+      // ----------------------------------------------------
+      const remainingFront = remainingTasks.filter(t => t.scope === 'FRONT' || t.scope === 'EVERYONE');
+      const remainingKitchen = remainingTasks.filter(t => t.scope === 'KITCHEN' || t.scope === 'EVERYONE');
+
+      let seed = day * 1337;
+      const shuffledFront = [...remainingFront].sort(() => getPseudoRandom(seed++) - 0.5);
+      const shuffledKitchen = [...remainingKitchen].sort(() => getPseudoRandom(seed++) - 0.5);
+
+      if (frontStaff.length > 0 && shuffledFront.length > 0) {
+        shuffledFront.forEach((task, idx) => {
+          const emp = frontStaff[idx % frontStaff.length];
+          newScheduledTasks.push({
+            id: `st-${monthKey}-${day}-${emp.id}-rf-${idx}`,
             employeeId: emp.id,
             day: day,
             title: task.title,
@@ -1388,12 +1514,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Rotate Kitchen tasks nominatively among scheduled Kitchen staff
-      if (kitchenStaff.length > 0 && kitchenTasks.length > 0) {
-        kitchenStaff.forEach((emp, index) => {
-          const task = kitchenTasks[(day + index) % kitchenTasks.length];
+      if (kitchenStaff.length > 0 && shuffledKitchen.length > 0) {
+        shuffledKitchen.forEach((task, idx) => {
+          const emp = kitchenStaff[idx % kitchenStaff.length];
           newScheduledTasks.push({
-            id: `st-${monthKey}-${day}-${emp.id}-k`,
+            id: `st-${monthKey}-${day}-${emp.id}-rk-${idx}`,
             employeeId: emp.id,
             day: day,
             title: task.title,
@@ -1401,27 +1526,6 @@ document.addEventListener('DOMContentLoaded', () => {
             period: task.period || 'ANYTIME',
             points: task.points,
             desc: task.desc || ''
-          });
-        });
-      }
-
-      // Assign dedicated Cleaner tasks to Cleaner staff every single day (Roy)
-      const cleanerStaff = scheduledStaff.filter(s => s.role === 'CLEANER' || (s.title && s.title.toLowerCase() === 'cleaner'));
-      const cleanerTasks = catalogue.filter(t => t.scope === 'CLEANER');
-
-      if (cleanerStaff.length > 0 && cleanerTasks.length > 0) {
-        cleanerStaff.forEach((emp) => {
-          cleanerTasks.forEach((task, tIdx) => {
-            newScheduledTasks.push({
-              id: `st-${monthKey}-${day}-${emp.id}-c-${tIdx}`,
-              employeeId: emp.id,
-              day: day,
-              title: task.title,
-              category: 'CLEANER',
-              period: task.period || 'ANYTIME',
-              points: task.points,
-              desc: task.desc || ''
-            });
           });
         });
       }
@@ -1429,7 +1533,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     appState.scheduledDailyTasks = newScheduledTasks;
     saveState();
-    showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
   // Google Sheet Single Sheet Live Sync
