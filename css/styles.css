@@ -633,6 +633,7 @@ button, input, select, textarea {
 }
 .badge-front { background: rgba(59, 130, 246, 0.15); color: var(--color-front); border: 1px solid rgba(59, 130, 246, 0.3); }
 .badge-kitchen { background: rgba(236, 72, 153, 0.15); color: var(--color-kitchen); border: 1px solid rgba(236, 72, 153, 0.3); }
+.badge-cleaner { background: rgba(20, 184, 166, 0.15); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.3); }
 .badge-purple { background: rgba(139, 92, 246, 0.15); color: var(--color-purple); }
 
 /* Vertical Week-by-Week Roster Stack */

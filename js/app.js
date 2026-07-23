@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Tip distribution calculation based on Two-Step Team Allocation (Team Pool -> Intra-Team Coins Pro-Rata)
+  // Tip distribution calculation based on 3-Team Allocation (Front, Kitchen, Cleaning for Roy)
   const calculateTipDistribution = () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
@@ -298,16 +298,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const frontStaff = appState.staff.filter(s => s.role === 'FRONT');
     const kitchenStaff = appState.staff.filter(s => s.role === 'KITCHEN');
+    const cleanerStaff = appState.staff.filter(s => s.role === 'CLEANER');
+
     const frontHeadcount = frontStaff.length || 1;
     const kitchenHeadcount = kitchenStaff.length || 1;
-    const totalHeadcount = frontHeadcount + kitchenHeadcount;
+    const cleanerHeadcount = cleanerStaff.length || 1;
+    const totalHeadcount = frontHeadcount + kitchenHeadcount + cleanerHeadcount;
 
     // Amount pool left to distribute pro-rata after deducting winner bonus
     const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
 
-    // Step 1: Inter-Team Allocation by Headcount Proportionate Weighting
+    // Step 1: Inter-Team Allocation across the 3 Teams by Headcount Ratio
     const frontAllocatedPool = poolForProRata * (frontHeadcount / totalHeadcount);
     const kitchenAllocatedPool = poolForProRata * (kitchenHeadcount / totalHeadcount);
+    const cleanerAllocatedPool = poolForProRata * (cleanerHeadcount / totalHeadcount);
 
     let empStats = appState.staff.map(emp => {
       const points = getEmployeePoints(emp.id);
@@ -335,13 +339,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalFrontCoins = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.points, 0);
     const totalKitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.points, 0);
+    const totalCleanerCoins = empStats.filter(e => e.role === 'CLEANER').reduce((sum, e) => sum + e.points, 0);
 
     // Step 2: Intra-Team Individual Pro-Rata Distribution by Department Coins
     empStats.forEach(emp => {
-      const isFront = emp.role === 'FRONT';
-      const teamPool = isFront ? frontAllocatedPool : kitchenAllocatedPool;
-      const teamCoins = isFront ? totalFrontCoins : totalKitchenCoins;
-      const teamSize = isFront ? frontHeadcount : kitchenHeadcount;
+      let teamPool = kitchenAllocatedPool;
+      let teamCoins = totalKitchenCoins;
+      let teamSize = kitchenHeadcount;
+
+      if (emp.role === 'FRONT') {
+        teamPool = frontAllocatedPool;
+        teamCoins = totalFrontCoins;
+        teamSize = frontHeadcount;
+      } else if (emp.role === 'CLEANER') {
+        teamPool = cleanerAllocatedPool;
+        teamCoins = totalCleanerCoins;
+        teamSize = cleanerHeadcount;
+      }
 
       emp.teamCoins = teamCoins;
 
@@ -378,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
     const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
+    const cleanerPool = empStats.filter(e => e.role === 'CLEANER').reduce((sum, e) => sum + e.tipAmount, 0);
     const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
 
     // Sort employees in strict descending order by total coin count (highest to lowest)
@@ -389,10 +404,13 @@ document.addEventListener('DOMContentLoaded', () => {
       totalTips, 
       frontPool, 
       kitchenPool, 
+      cleanerPool,
       frontHeadcount, 
-      kitchenHeadcount,
+      kitchenHeadcount, 
+      cleanerHeadcount,
       frontAllocatedPool,
-      kitchenAllocatedPool
+      kitchenAllocatedPool,
+      cleanerAllocatedPool
     };
   };
 
@@ -1402,25 +1420,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputBonus = document.getElementById('input-eotm-bonus');
     if (inputBonus) inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
 
-    const { empStats, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount, frontAllocatedPool, kitchenAllocatedPool } = calculateTipDistribution();
+    const { empStats, totalTips, frontPool, kitchenPool, cleanerPool, frontHeadcount, kitchenHeadcount, cleanerHeadcount, frontAllocatedPool, kitchenAllocatedPool, cleanerAllocatedPool } = calculateTipDistribution();
 
-    // Render Two-Step Team Allocation Equity Banner
+    // Render 3-Team Allocation Equity Banner
     const elHeadcountBanner = document.getElementById('summary-headcount-equity');
     if (elHeadcountBanner) {
       const fPoolStr = (frontAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const kPoolStr = (kitchenAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const cPoolStr = (cleanerAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       elHeadcountBanner.innerHTML = `
-        <div style="padding:0.85rem 1.15rem; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(59,130,246,0.12)); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.35); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+        <div style="padding:0.85rem 1.15rem; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(20,184,166,0.12)); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.35); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
           <div>
             <span style="font-size:0.88rem; color:var(--text-main); font-weight:700; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem;">
-              <i data-lucide="scale" style="color:#c084fc;"></i> Two-Step Team Pool Distribution Active (Inter-Team Pool -> Intra-Team Coins Pro-Rata)
+              <i data-lucide="scale" style="color:#c084fc;"></i> 3-Team Headcount Equity Active (Front: ${frontHeadcount} | Kitchen: ${kitchenHeadcount} | Cleaning: ${cleanerHeadcount})
             </span>
             <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">
-              Total distributable tips are split between team pools by headcount ratio (<strong>Front Pool: ${fPoolStr} €</strong> | <strong>Kitchen Pool: ${kPoolStr} €</strong>), then distributed to members pro-rata by individual Coins earned within their department.
+              Total tip pool is allocated across 3 distinct teams (<strong>Front: ${fPoolStr} €</strong> | <strong>Kitchen: ${kPoolStr} €</strong> | <strong>Cleaning: ${cPoolStr} €</strong>), then distributed to members pro-rata by Coins earned within their department.
             </p>
           </div>
-          <span class="badge badge-purple" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">⚖️ Fair Inter-Team & Intra-Team Distribution</span>
+          <span class="badge badge-purple" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">⚖️ 3-Team Headcount Proportional Allocation</span>
         </div>
       `;
     }
@@ -1431,14 +1450,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const elKitchenAmt = document.getElementById('summary-kitchen-amount');
     if (elKitchenAmt) elKitchenAmt.textContent = `${kitchenPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
 
+    const elCleanerAmt = document.getElementById('summary-cleaner-amount');
+    if (elCleanerAmt) elCleanerAmt.textContent = `${cleanerPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+
     const frontCoins = empStats.filter(e => e.role === 'FRONT').reduce((s, e) => s + e.points, 0);
     const kitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((s, e) => s + e.points, 0);
+    const cleanerCoins = empStats.filter(e => e.role === 'CLEANER').reduce((s, e) => s + e.points, 0);
 
     const elFrontSub = document.getElementById('summary-front-sub');
     if (elFrontSub) elFrontSub.textContent = `${frontCoins} Coins earned (Front)`;
 
     const elKitchenSub = document.getElementById('summary-kitchen-sub');
     if (elKitchenSub) elKitchenSub.textContent = `${kitchenCoins} Coins earned (Kitchen)`;
+
+    const elCleanerSub = document.getElementById('summary-cleaner-sub');
+    if (elCleanerSub) elCleanerSub.textContent = `${cleanerCoins} Coins earned (Cleaning)`;
 
     // Detailed Editable Table (Sorted in descending order by total coin count)
     const tbody = document.getElementById('tips-detail-tbody');
@@ -1453,6 +1479,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasOverride = emp.manualPercent !== null;
         const isCrownWinner = emp.id === appState.eotmWinnerId;
 
+        let roleBadgeClass = 'badge-kitchen';
+        let roleBadgeText = 'Kitchen';
+        if (emp.role === 'FRONT') {
+          roleBadgeClass = 'badge-front';
+          roleBadgeText = 'Front';
+        } else if (emp.role === 'CLEANER') {
+          roleBadgeClass = 'badge-cleaner';
+          roleBadgeText = 'Cleaning';
+        }
+
         tr.innerHTML = `
           <td>
             <div class="staff-info">
@@ -1465,8 +1501,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </td>
           <td>
-            <span class="badge ${emp.role === 'FRONT' ? 'badge-front' : 'badge-kitchen'}">
-              ${emp.role === 'FRONT' ? 'Front' : 'Kitchen'} - ${emp.title}
+            <span class="badge ${roleBadgeClass}">
+              ${roleBadgeText} - ${emp.title}
             </span>
           </td>
           <td><strong class="text-gold">${emp.points} Coins</strong></td>
