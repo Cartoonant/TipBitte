@@ -1432,66 +1432,138 @@ document.addEventListener('DOMContentLoaded', () => {
   const SHEET_ID = '1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0';
   const DEFAULT_GIDS = ['0', '1', '2', '3', '4'];
 
+  const splitCSVRow = (rowText) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < rowText.length; i++) {
+      const char = rowText[i];
+      if (char === '"' || char === "'") {
+        inQuotes = !inQuotes;
+      } else if ((char === ',' || char === '\t' || char === ';') && !inQuotes) {
+        result.push(current.trim().replace(/^["']|["']$/g, ''));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim().replace(/^["']|["']$/g, ''));
+    return result;
+  };
+
   const parseCSVTasks = (csvText) => {
     if (!csvText || !csvText.trim()) return [];
-    const lines = csvText.split(/\r?\n/);
+    const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return [];
+
+    // Default Column Mapping for Tasks, Description, Team, Period, Reccurence, Reward
+    let colIdx = {
+      title: 0,
+      desc: 1,
+      team: 2,
+      period: 3,
+      recurrence: 4,
+      reward: 5
+    };
+
+    let startRow = 0;
+
+    // Detect header row if present
+    const firstRowParts = splitCSVRow(lines[0]);
+    const lowerParts = firstRowParts.map(p => p.toLowerCase());
+
+    const tasksHeaderIdx = lowerParts.findIndex(p => p.includes('task') || p.includes('tâche'));
+    if (tasksHeaderIdx !== -1) {
+      startRow = 1; // skip header line
+      colIdx.title = tasksHeaderIdx;
+
+      const descIdx = lowerParts.findIndex(p => p.includes('desc'));
+      if (descIdx !== -1) colIdx.desc = descIdx;
+
+      const teamIdx = lowerParts.findIndex(p => p.includes('team') || p.includes('scope') || p.includes('équipe'));
+      if (teamIdx !== -1) colIdx.team = teamIdx;
+
+      const periodIdx = lowerParts.findIndex(p => p.includes('period') || p.includes('période') || p.includes('shift'));
+      if (periodIdx !== -1) colIdx.period = periodIdx;
+
+      const recIdx = lowerParts.findIndex(p => p.includes('reccurence') || p.includes('recurrence') || p.includes('récurrence'));
+      if (recIdx !== -1) colIdx.recurrence = recIdx;
+
+      const rewardIdx = lowerParts.findIndex(p => p.includes('reward') || p.includes('coin') || p.includes('point'));
+      if (rewardIdx !== -1) colIdx.reward = rewardIdx;
+    }
+
     const imported = [];
     let currentSectionScope = 'EVERYONE';
 
-    lines.forEach((line, index) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
+    for (let i = startRow; i < lines.length; i++) {
+      const parts = splitCSVRow(lines[i]);
+      if (parts.length === 0 || !parts.some(p => p.length > 0)) continue;
 
-      const parts = trimmed.split(/,|\t|;/);
-      const cleanParts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
+      const rawTitle = parts[colIdx.title] || parts[0] || '';
+      if (!rawTitle || rawTitle.toLowerCase() === 'tasks' || rawTitle.toLowerCase() === 'task name') continue;
 
-      // Find first non-empty column
-      const firstCol = cleanParts.find(p => p.length > 0) || '';
-      if (!firstCol || firstCol.toLowerCase() === 'task name') return;
+      const lowerTitle = rawTitle.toLowerCase();
 
-      const lower = firstCol.toLowerCase();
-
-      // Track Section Headers in Google Sheet (e.g. "Roy Tasks", "Cleaner Tasks", "Front Tasks", "Kitchen Tasks")
-      if (lower.includes('roy') || lower.includes('cleaner') || lower.includes('cleaning tasks')) {
+      // Section Header tracking
+      if (lowerTitle.includes('roy') || lowerTitle.includes('cleaner')) {
         currentSectionScope = 'CLEANER';
-        return;
-      } else if (lower.includes('front tasks') || lower.includes('floor tasks') || lower.includes('service tasks')) {
+        if (parts.length <= 2) continue;
+      } else if (lowerTitle.includes('front tasks')) {
         currentSectionScope = 'FRONT';
-        return;
-      } else if (lower.includes('kitchen tasks') || lower.includes('cook tasks') || lower.includes('prep tasks')) {
+        if (parts.length <= 2) continue;
+      } else if (lowerTitle.includes('kitchen tasks')) {
         currentSectionScope = 'KITCHEN';
-        return;
-      } else if (lower === 'dayly tasks' || lower.includes('general tasks')) {
-        currentSectionScope = 'EVERYONE';
-        return;
+        if (parts.length <= 2) continue;
       }
 
-      let title = firstCol;
-      let scope = cleanParts[2] ? cleanParts[2].toUpperCase() : '';
-      let period = cleanParts[3] ? cleanParts[3].toUpperCase() : '';
-      let recurrence = cleanParts[4] ? cleanParts[4].toUpperCase() : 'DAILY';
-      let points = parseInt(cleanParts[5]) || 10;
-      let desc = cleanParts[1] && cleanParts[1] !== title ? cleanParts[1] : `Standard operational task: ${title}`;
+      let title = rawTitle;
+      let rawDesc = parts[colIdx.desc] !== undefined ? parts[colIdx.desc] : '';
+      let desc = rawDesc && rawDesc !== title ? rawDesc : `Standard operational task: ${title}`;
 
-      // Smart Scope Auto-Detection if unassigned
-      if (!scope || !['FRONT', 'KITCHEN', 'EVERYONE', 'CLEANER'].includes(scope)) {
-        if (lower.includes('roy') || lower.includes('mop') || lower.includes('sweep') || lower.includes('cleaner')) {
+      let rawTeam = (parts[colIdx.team] || '').toUpperCase();
+      let scope = rawTeam;
+
+      // Smart Scope Mapping for Team column
+      if (rawTeam.includes('ROY') || rawTeam.includes('CLEAN') || rawTeam.includes('SANITA')) {
+        scope = 'CLEANER';
+      } else if (rawTeam.includes('FRONT') || rawTeam.includes('FLOOR') || rawTeam.includes('SERVICE') || rawTeam.includes('BAR')) {
+        scope = 'FRONT';
+      } else if (rawTeam.includes('KITCHEN') || rawTeam.includes('COOK') || rawTeam.includes('PREP')) {
+        scope = 'KITCHEN';
+      } else if (rawTeam.includes('EVERYONE') || rawTeam.includes('ALL') || rawTeam.includes('BOTH')) {
+        scope = 'EVERYONE';
+      } else {
+        // Fallback auto-detection if scope column is unassigned
+        if (lowerTitle.includes('roy') || lowerTitle.includes('mop') || lowerTitle.includes('sweep') || lowerTitle.includes('cleaner') || lowerTitle.includes('restroom')) {
           scope = 'CLEANER';
-        } else if (lower.includes('thrash') || lower.includes('trash') || lower.includes('karton') || lower.includes('basement') || lower.includes('deliveries') || lower.includes('meat') || lower.includes('groceries') || lower.includes('freezer')) {
+        } else if (lowerTitle.includes('thrash') || lowerTitle.includes('trash') || lowerTitle.includes('karton') || lowerTitle.includes('basement') || lowerTitle.includes('deliveries') || lowerTitle.includes('meat') || lowerTitle.includes('groceries') || lowerTitle.includes('freezer') || lowerTitle.includes('fridge')) {
           scope = 'KITCHEN';
-        } else if (lower.includes('dine-in') || lower.includes('carpet') || lower.includes('wall') || lower.includes('door') || lower.includes('wickelraum')) {
+        } else if (lowerTitle.includes('dine-in') || lowerTitle.includes('carpet') || lowerTitle.includes('wall') || lowerTitle.includes('door') || lowerTitle.includes('wickelraum') || lowerTitle.includes('terrace')) {
           scope = 'FRONT';
         } else {
           scope = currentSectionScope;
         }
       }
 
-      if (!period || !['MORNING', 'AFTERNOON', 'EVENING', 'ANYTIME'].includes(period)) {
-        period = 'ANYTIME';
-      }
+      let rawPeriod = (parts[colIdx.period] || '').toUpperCase();
+      let period = 'ANYTIME';
+      if (rawPeriod.includes('MORN')) period = 'MORNING';
+      else if (rawPeriod.includes('AFTER') || rawPeriod.includes('NOON')) period = 'AFTERNOON';
+      else if (rawPeriod.includes('EVEN') || rawPeriod.includes('NIGHT')) period = 'EVENING';
+      else period = 'ANYTIME';
+
+      let rawRec = (parts[colIdx.recurrence] || '').toUpperCase();
+      let recurrence = 'DAILY';
+      if (rawRec.includes('WEEK')) recurrence = 'WEEKLY';
+      else if (rawRec.includes('ONE') || rawRec.includes('HERO') || rawRec.includes('SINGLE')) recurrence = 'ONEOFF';
+      else recurrence = 'DAILY';
+
+      let rawReward = parts[colIdx.reward] || '';
+      let points = parseInt(rawReward.replace(/\D/g, '')) || 10;
 
       imported.push({
-        id: 'cat-gs-' + index + '-' + Date.now(),
+        id: 'cat-gs-' + i + '-' + Date.now(),
         title: title,
         scope: scope,
         period: period,
@@ -1499,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recurrence: recurrence,
         desc: desc
       });
-    });
+    }
 
     return imported;
   };
