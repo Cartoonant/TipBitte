@@ -364,41 +364,73 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', appState.theme);
   };
 
-  const renderHeaderLiveDate = () => {
-    const liveDateEl = document.getElementById('header-live-date');
-    if (!liveDateEl) return;
+  const getTodayDateString = () => {
     const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const dateStr = now.toLocaleDateString('en-US', options);
-    liveDateEl.innerHTML = `<i data-lucide="clock" class="selector-icon text-gold" style="width:16px; height:16px;"></i> <span>${dateStr}</span>`;
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const isStaffWorkingOnDate = (emp, dateStr) => {
+    if (!emp || !dateStr) return false;
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return false;
+    const yyyy = parseInt(parts[0]);
+    const mm = parseInt(parts[1]);
+    const dd = parseInt(parts[2]);
+
+    const dateObj = new Date(yyyy, mm - 1, dd);
+    const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+    const defaultOffDays = (emp.offDays !== undefined) ? emp.offDays : (DEFAULT_OFF_DAYS_CONFIG[emp.id] || []);
+    if (defaultOffDays.includes(dayOfWeek)) {
+      return false; // Scheduled OFF on this day of week!
+    }
+
+    const monthKey = `${yyyy}-${String(mm).padStart(2, '0')}`;
+    const empMonthSched = appState.schedules?.[monthKey]?.[emp.id];
+    if (empMonthSched && empMonthSched[dd] === false) {
+      return false; // Manually marked OFF
+    }
+
+    return true; // Working day!
+  };
+
+  const renderHeaderLiveDate = () => {
+    const el = document.getElementById('header-live-date');
+    if (!el) return;
+
+    const selectedDate = appState.selectedDate || getTodayDateString();
+    const [yyyy, mm, dd] = selectedDate.split('-').map(Number);
+    const dObj = new Date(yyyy, mm - 1, dd);
+    const formattedDate = dObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    el.innerHTML = `<i data-lucide="clock" class="selector-icon text-gold"></i> <span>Selected: ${formattedDate}</span>`;
     if (window.lucide) lucide.createIcons();
   };
 
-  const renderMonthSelector = () => {
-    const select = document.getElementById('current-month-select');
-    if (!select) return;
+  const renderDatePicker = () => {
+    const picker = document.getElementById('selected-date-picker');
+    if (!picker) return;
 
-    const now = new Date();
-    const currentYr = now.getFullYear();
-    const currentMo = now.getMonth(); // 0-indexed
-
-    let optionsHTML = '';
-    // Generate rolling months (from 2 months ago to 9 months ahead)
-    for (let i = -2; i <= 9; i++) {
-      const d = new Date(currentYr, currentMo + i, 1);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const key = `${yyyy}-${mm}`;
-      const monthName = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const isCurrentDeviceMonth = (i === 0);
-      optionsHTML += `<option value="${key}">${monthName} ${isCurrentDeviceMonth ? '(Current)' : ''}</option>`;
+    if (!appState.selectedDate) {
+      appState.selectedDate = getTodayDateString();
     }
-
-    select.innerHTML = optionsHTML;
-    select.value = appState.currentMonth || getCurrentMonthKey();
+    picker.value = appState.selectedDate;
 
     const heroMonth = document.getElementById('hero-month-name');
-    if (heroMonth) heroMonth.textContent = select.options[select.selectedIndex]?.text || appState.currentMonth;
+    if (heroMonth) {
+      const [yyyy, mm, dd] = appState.selectedDate.split('-').map(Number);
+      const dObj = new Date(yyyy, mm - 1, dd);
+      const monthName = dObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      heroMonth.textContent = `${monthName} (Day ${dd})`;
+    }
   };
 
   // Dashboard & Leaderboard Renderer (Unified Global Ranking & Role Permissions)
@@ -1460,76 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const getTodayDateString = () => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
 
-  const isStaffWorkingOnDate = (emp, dateStr) => {
-    if (!emp || !dateStr) return false;
-    const parts = dateStr.split('-');
-    if (parts.length < 3) return false;
-    const yyyy = parseInt(parts[0]);
-    const mm = parseInt(parts[1]);
-    const dd = parseInt(parts[2]);
-
-    const dateObj = new Date(yyyy, mm - 1, dd);
-    const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-
-    // Check fixed weekly off days (e.g. Vinod off Thu=4, Siri off Tue=2/Wed=3, Aadhi off Thu=4, etc.)
-    const defaultOffDays = (emp.offDays !== undefined) ? emp.offDays : (DEFAULT_OFF_DAYS_CONFIG[emp.id] || []);
-    if (defaultOffDays.includes(dayOfWeek)) {
-      return false; // Scheduled OFF on this day of week!
-    }
-
-    // Check custom roster schedule overrides for this month
-    const monthKey = `${yyyy}-${String(mm).padStart(2, '0')}`;
-    const empMonthSched = appState.schedules?.[monthKey]?.[emp.id];
-    if (empMonthSched && empMonthSched[dd] === false) {
-      return false; // Manually marked OFF
-    }
-
-    return true; // Working day!
-  };
-
-  const renderHeaderLiveDate = () => {
-    const el = document.getElementById('header-live-date');
-    if (!el) return;
-
-    const selectedDate = appState.selectedDate || getTodayDateString();
-    const [yyyy, mm, dd] = selectedDate.split('-').map(Number);
-    const dObj = new Date(yyyy, mm - 1, dd);
-    const formattedDate = dObj.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-
-    el.innerHTML = `<i data-lucide="clock" class="selector-icon text-gold"></i> <span>Selected: ${formattedDate}</span>`;
-    if (window.lucide) lucide.createIcons();
-  };
-
-  const renderDatePicker = () => {
-    const picker = document.getElementById('selected-date-picker');
-    if (!picker) return;
-
-    if (!appState.selectedDate) {
-      appState.selectedDate = getTodayDateString();
-    }
-    picker.value = appState.selectedDate;
-
-    const heroMonth = document.getElementById('hero-month-name');
-    if (heroMonth) {
-      const [yyyy, mm, dd] = appState.selectedDate.split('-').map(Number);
-      const dObj = new Date(yyyy, mm - 1, dd);
-      const monthName = dObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      heroMonth.textContent = `${monthName} (Day ${dd})`;
-    }
-  };
 
   // Automated Monthly Smart Fair Rotation Engine (31 Days)
   // Rule 1: Fixed assignments for Roy (Cleaner) and Aadhi (Recipe/Spices) - ONLY WHEN WORKING
