@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tipbitte-resto-v2';
+const CACHE_NAME = 'tipbitte-resto-v3';
 const ASSETS = [
   './',
   './index.html',

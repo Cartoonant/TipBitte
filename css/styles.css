@@ -281,17 +281,6 @@ button, input, select, textarea {
   border-left: 3px solid var(--color-primary);
 }
 
-.nav-btn-deploy {
-  margin-top: 1rem;
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-green);
-}
-
-.nav-btn-deploy:hover {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--color-green);
-}
-
 .badge-count {
   margin-left: auto;
   background: var(--color-danger);
@@ -925,50 +914,6 @@ button, input, select, textarea {
   color: #fff;
   font-weight: 800;
   font-size: 1rem;
-}
-
-/* Deploy Guide */
-.deploy-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.deploy-card {
-  background: var(--bg-card-solid);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  display: flex;
-  gap: 1.25rem;
-}
-
-.deploy-step-num {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.deploy-step-content ol {
-  margin-left: 1.25rem;
-  margin-top: 0.5rem;
-  color: var(--text-muted);
-}
-.deploy-step-content li { margin-bottom: 0.35rem; }
-.deploy-step-content code {
-  background: var(--bg-input);
-  padding: 0.15rem 0.4rem;
-  border-radius: var(--radius-sm);
-  color: var(--color-gold);
-  font-size: 0.85rem;
 }
 
 /* Modals */

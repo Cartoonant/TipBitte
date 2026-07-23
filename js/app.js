@@ -2810,7 +2810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const switchTab = (tabId) => {
     const isManager = appState.activeRole === 'MANAGER';
     // Prevent employee from navigating to restricted tabs
-    if (!isManager && (tabId === 'tips' || tabId === 'staff' || tabId === 'deploy' || tabId === 'approvals')) {
+    if (!isManager && (tabId === 'tips' || tabId === 'staff' || tabId === 'approvals')) {
       showToast("Access restricted: Manager account required for this section.");
       tabId = 'dashboard';
     }

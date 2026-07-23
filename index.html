@@ -23,7 +23,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=1.0.2">
+  <link rel="stylesheet" href="css/styles.css?v=1.0.3">
 </head>
 <body>
 
@@ -109,10 +109,6 @@
         <button class="nav-btn manager-only-nav" data-tab="staff" data-manager-only="true">
           <i data-lucide="users"></i>
           <span>Team & Roles</span>
-        </button>
-        <button class="nav-btn nav-btn-deploy manager-only-nav" data-tab="deploy" data-manager-only="true">
-          <i data-lucide="globe"></i>
-          <span>Deploy Free</span>
         </button>
       </nav>
 
@@ -747,68 +743,6 @@
         </div>
       </section>
 
-      <!-- TAB 6: DUAL MOBILE PIPELINE & FREE CLOUD DEPLOYMENT GUIDE -->
-      <section id="tab-deploy" class="tab-content">
-        <div class="section-card margin-bottom">
-          <div class="section-header">
-            <div>
-              <h3><i data-lucide="smartphone" class="text-gold"></i> Dual Mobile Deployment Pipeline (PWA + Android Native Play Store)</h3>
-              <p class="text-muted">Deploy your application instantly as a high-performance PWA and publish the native Android app on Google Play Store using your Developer Account.</p>
-            </div>
-          </div>
-
-          <div class="deploy-steps">
-            <!-- PWA Mobile-First Card -->
-            <div class="deploy-card" style="border-left:4px solid var(--color-gold);">
-              <div class="deploy-step-num" style="background:var(--color-gold);">1</div>
-              <div class="deploy-step-content">
-                <h4>📱 Option 1: Instant Mobile PWA (iOS & Android)</h4>
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
-                  Instant updates, zero app store waiting time. Serves your staff on iPhone, Android, and tablets via a standalone app experience.
-                </p>
-                <ol style="font-size:0.85rem; padding-left:1.25rem;">
-                  <li>Host the application on a secure HTTPS server (e.g., Render, Railway, Vercel, or Netlify).</li>
-                  <li>On smartphones, open the app URL and tap <strong>"Add to Home Screen"</strong> (Ajouter à l'écran d'accueil).</li>
-                  <li>The app launches standalone with offline caching powered by <code>sw.js</code> and <code>manifest.json</code>.</li>
-                </ol>
-              </div>
-            </div>
-
-            <!-- Android Native TWA Play Store Card -->
-            <div class="deploy-card" style="border-left:4px solid var(--color-green);">
-              <div class="deploy-step-num" style="background:var(--color-green);">2</div>
-              <div class="deploy-step-content">
-                <h4>🤖 Option 2: Native Android App (Google Play Store Package)</h4>
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
-                  Package your PWA as an official Android <code>.aab</code> / <code>.apk</code> using Google's official Trusted Web Activity (TWA) Bubblewrap CLI.
-                </p>
-                <ol style="font-size:0.85rem; padding-left:1.25rem;">
-                  <li>Run <code>npx @bubblewrap/cli build</code> using the pre-configured <code>twa-manifest.json</code> in this project.</li>
-                  <li>Upload the generated Android App Bundle (<code>.aab</code>) to your <strong>Google Play Console</strong> developer account.</li>
-                  <li>Verify Digital Asset Links via <code>/.well-known/assetlinks.json</code> for seamless full-screen native execution.</li>
-                </ol>
-              </div>
-            </div>
-
-            <!-- Managed Cloud Backend Card -->
-            <div class="deploy-card" style="border-left:4px solid var(--color-primary);">
-              <div class="deploy-step-num" style="background:var(--color-primary);">3</div>
-              <div class="deploy-step-content">
-                <h4>☁️ Option 3: Free Cloud Backend Server (Render / Railway / Fly.io)</h4>
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
-                  Host the Node.js backend (<code>server.js</code> + <code>package.json</code>) with automatic Google Sheet synchronization and PDF SOP storage.
-                </p>
-                <ol style="font-size:0.85rem; padding-left:1.25rem;">
-                  <li>Connect your GitHub repository to <strong>Render.com</strong>, <strong>Railway.app</strong>, or <strong>Fly.io</strong>.</li>
-                  <li>Set build command: <code>npm install</code> and start command: <code>npm start</code>.</li>
-                  <li>Enjoy live health monitoring (<code>/healthz</code>), automatic SSL, and zero server maintenance!</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </main>
 
     <!-- Bottom Navigation Bar (Mobile) -->
@@ -873,6 +807,6 @@
   <!-- jsPDF Library for Automated Professional PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- Main JavaScript File -->
-  <script src="js/app.js?v=1.0.2"></script>
+  <script src="js/app.js?v=1.0.3"></script>
 </body>
 </html>
