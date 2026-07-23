@@ -658,11 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    const catCountEl = document.getElementById('catalogue-task-count');
-    if (catCountEl) {
-      const count = (appState.masterTaskCatalogue || []).length;
-      catCountEl.textContent = `${count} Task${count !== 1 ? 's' : ''} Loaded`;
-    }
+    renderMasterCatalogueList();
 
     // MANAGER VIEW: GLOBAL SCHEDULE GRID TABLE
     const schedTbody = document.getElementById('manager-schedule-tbody');
@@ -1515,9 +1511,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const syncGoogleSheetTasks = async (showNotification = true) => {
     const btnSync = document.getElementById('btn-sync-google-sheet');
+    const alertBox = document.getElementById('gs-sync-alert');
+    const alertMsg = document.getElementById('gs-sync-alert-msg');
+
     if (btnSync) {
       btnSync.disabled = true;
-      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing Google Sheet...`;
+      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
     }
 
     let csvText = null;
@@ -1544,27 +1543,94 @@ document.addEventListener('DOMContentLoaded', () => {
       if (parsed.length > 0) {
         appState.masterTaskCatalogue = parsed;
         saveState();
+        if (alertBox) alertBox.classList.add('hidden');
         renderAll();
         if (showNotification) {
           showToast(`⚡ Live Google Sheet synchronized! ${parsed.length} tasks loaded.`);
         }
         if (btnSync) {
           btnSync.disabled = false;
-          btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
+          btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets`;
         }
         if (window.lucide) lucide.createIcons();
         return;
       }
     }
 
-    console.error("Google Sheet Sync Error:", fetchError);
+    // Diagnostic & Fallback Alert Display (Plan B)
+    console.warn("Google Sheet Sync Warning / Fallback triggered:", fetchError);
+    if (alertBox && alertMsg) {
+      alertMsg.innerHTML = `<strong>Online fetch unavailable (CORS / Permissions).</strong> Local fallback active. Use <strong>"📋 Paste Raw CSV / Text"</strong> or <strong>"⚡ Reset Default"</strong> below to update tasks instantly!`;
+      alertBox.classList.remove('hidden');
+    }
     if (showNotification) {
-      showToast("Error syncing Google Sheet. Please check internet or sheet permissions.");
+      showToast("Online Google Sheet blocked by CORS. Local fallback active.");
     }
     if (btnSync) {
       btnSync.disabled = false;
-      btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (Live Link)`;
+      btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets`;
     }
+    if (window.lucide) lucide.createIcons();
+  };
+
+  // Catalogue preview & inline manager drawer renderer
+  const renderMasterCatalogueList = () => {
+    const catalogue = appState.masterTaskCatalogue || DEFAULT_MASTER_CATALOGUE;
+    const catCountEl = document.getElementById('catalogue-task-count');
+    if (catCountEl) {
+      catCountEl.textContent = `${catalogue.length} Task${catalogue.length !== 1 ? 's' : ''} Loaded`;
+    }
+
+    const container = document.getElementById('catalogue-items-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (catalogue.length === 0) {
+      container.innerHTML = `<p class="text-muted" style="font-size:0.8rem; margin:0.5rem 0;">No master catalogue tasks loaded. Use buttons above to import or paste tasks.</p>`;
+      return;
+    }
+
+    catalogue.forEach((task, idx) => {
+      const item = document.createElement('div');
+      item.style.display = 'flex';
+      item.style.alignItems = 'center';
+      item.style.justifyContent = 'space-between';
+      item.style.padding = '0.4rem 0.6rem';
+      item.style.background = 'var(--bg-card-solid)';
+      item.style.borderRadius = 'var(--radius-sm)';
+      item.style.border = '1px solid var(--border-color)';
+      item.style.fontSize = '0.8rem';
+
+      let scopeBadge = `<span class="badge badge-gold" style="font-size:0.6rem; padding:0.05rem 0.3rem;">${task.scope}</span>`;
+      if (task.scope === 'FRONT') scopeBadge = `<span class="badge badge-front" style="font-size:0.6rem; padding:0.05rem 0.3rem;">Front</span>`;
+      if (task.scope === 'KITCHEN') scopeBadge = `<span class="badge badge-kitchen" style="font-size:0.6rem; padding:0.05rem 0.3rem;">Kitchen</span>`;
+      if (task.scope === 'CLEANER') scopeBadge = `<span class="badge" style="background:#14b8a6; color:#fff; font-size:0.6rem; padding:0.05rem 0.3rem;">Roy Cleaner</span>`;
+
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:0.5rem; overflow:hidden;">
+          <strong style="color:var(--text-main); font-size:0.82rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${task.title}</strong>
+          ${scopeBadge}
+          <span class="text-gold" style="font-weight:700;">+${task.points} Coins</span>
+        </div>
+        <button type="button" class="btn-icon btn-delete-cat-item" data-index="${idx}" style="color:var(--color-danger); padding:0.15rem;" title="Delete task from catalogue">
+          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+        </button>
+      `;
+      container.appendChild(item);
+    });
+
+    container.querySelectorAll('.btn-delete-cat-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(e.currentTarget.dataset.index);
+        if (!isNaN(idx) && appState.masterTaskCatalogue[idx]) {
+          const removed = appState.masterTaskCatalogue.splice(idx, 1);
+          saveState();
+          renderAll();
+          showToast(`Removed "${removed[0].title}" from catalogue.`);
+        }
+      });
+    });
+
     if (window.lucide) lucide.createIcons();
   };
 
@@ -1572,6 +1638,77 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
   if (btnSyncSheet) {
     btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
+  }
+
+  // Close GS Sync Error Alert Listener
+  const btnCloseGsAlert = document.getElementById('btn-close-gs-alert');
+  if (btnCloseGsAlert) {
+    btnCloseGsAlert.addEventListener('click', () => {
+      const box = document.getElementById('gs-sync-alert');
+      if (box) box.classList.add('hidden');
+    });
+  }
+
+  // Toggle Paste CSV / Text Panel Listener
+  const btnTogglePaste = document.getElementById('btn-toggle-paste-csv');
+  const btnCancelPaste = document.getElementById('btn-cancel-paste-csv');
+  const pastePanel = document.getElementById('paste-csv-panel');
+
+  if (btnTogglePaste && pastePanel) {
+    btnTogglePaste.addEventListener('click', () => {
+      pastePanel.classList.toggle('hidden');
+      if (!pastePanel.classList.contains('hidden')) {
+        document.getElementById('input-paste-csv-text')?.focus();
+      }
+    });
+  }
+  if (btnCancelPaste && pastePanel) {
+    btnCancelPaste.addEventListener('click', () => pastePanel.classList.add('hidden'));
+  }
+
+  // Import Pasted CSV / Text Listener
+  const btnImportPasted = document.getElementById('btn-import-pasted-csv');
+  if (btnImportPasted) {
+    btnImportPasted.addEventListener('click', () => {
+      const text = document.getElementById('input-paste-csv-text')?.value || '';
+      if (!text.trim()) {
+        showToast("Please paste some text lines or CSV rows first.");
+        return;
+      }
+      const parsed = parseCSVTasks(text);
+      if (parsed.length > 0) {
+        appState.masterTaskCatalogue = parsed;
+        saveState();
+        if (pastePanel) pastePanel.classList.add('hidden');
+        renderAll();
+        showToast(`Loaded ${parsed.length} tasks from pasted text!`);
+      } else {
+        showToast("Could not parse any valid tasks from pasted text.");
+      }
+    });
+  }
+
+  // Reset Default Catalogue Listener
+  const btnResetDefault = document.getElementById('btn-reset-catalogue-default');
+  if (btnResetDefault) {
+    btnResetDefault.addEventListener('click', () => {
+      if (confirm("Restore built-in default task catalogue (13 tasks for Front, Kitchen, and Roy Cleaner)?")) {
+        appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
+        saveState();
+        renderAll();
+        showToast("Default task catalogue restored!");
+      }
+    });
+  }
+
+  // Toggle Master Catalogue List Drawer Listener
+  const btnToggleCatList = document.getElementById('btn-toggle-catalogue-list');
+  const catDrawer = document.getElementById('catalogue-list-drawer');
+  if (btnToggleCatList && catDrawer) {
+    btnToggleCatList.addEventListener('click', () => {
+      catDrawer.classList.toggle('hidden');
+      renderMasterCatalogueList();
+    });
   }
 
   // Generate Monthly Schedule Button Listener
