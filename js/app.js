@@ -2831,6 +2831,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Save active tab in LocalStorage and update URL hash for seamless page refreshes
+    try {
+      localStorage.setItem('tiprank_active_tab', tabId);
+      if (window.location.hash !== `#${tabId}`) {
+        history.replaceState(null, null, `#${tabId}`);
+      }
+    } catch (e) {}
+
     if (tabId === 'dashboard') renderDashboard();
     if (tabId === 'planning') renderPlanning();
     if (tabId === 'tasks') renderTasks();
@@ -3282,12 +3290,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Active Tab Resolution (URL Hash > LocalStorage > Dashboard Default)
+  const getInitialTab = () => {
+    const validTabs = ['dashboard', 'planning', 'tasks', 'sop', 'tips', 'staff', 'approvals'];
+    const hash = window.location.hash ? window.location.hash.replace('#', '').trim() : '';
+    if (hash && validTabs.includes(hash)) {
+      return hash;
+    }
+    const saved = localStorage.getItem('tiprank_active_tab');
+    if (saved && validTabs.includes(saved)) {
+      return saved;
+    }
+    return 'dashboard';
+  };
+
   // App Initialization
   loadState().then(() => {
     initSubtabs();
     initSchedulerForm();
     isInitialized = true;
     renderAll();
+    
+    // Restore Active Tab on page refresh / load
+    const activeTab = getInitialTab();
+    switchTab(activeTab);
+
+    // Bind URL Hash Change listener for seamless browser back/forward navigation
+    window.addEventListener('hashchange', () => {
+      const currentHash = window.location.hash ? window.location.hash.replace('#', '').trim() : '';
+      const validTabs = ['dashboard', 'planning', 'tasks', 'sop', 'tips', 'staff', 'approvals'];
+      if (currentHash && validTabs.includes(currentHash)) {
+        switchTab(currentHash);
+      }
+    });
+
     syncGoogleSheetTasks(false);
   });
 
