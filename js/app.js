@@ -1449,10 +1449,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const config = appState.tipsConfig[mKey] || { totalAmount: 0 };
 
     const inputPool = document.getElementById('input-total-tips');
-    if (inputPool) inputPool.value = config.totalAmount;
+    if (inputPool && document.activeElement !== inputPool) {
+      inputPool.value = config.totalAmount;
+    }
 
     const inputBonus = document.getElementById('input-eotm-bonus');
-    if (inputBonus) inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
+    if (inputBonus && document.activeElement !== inputBonus) {
+      inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
+    }
 
     const { empStats, totalTips, frontPool, kitchenPool, cleanerPool, frontHeadcount, kitchenHeadcount, cleanerHeadcount, frontAllocatedPool, kitchenAllocatedPool, cleanerAllocatedPool } = calculateTipDistribution();
 
@@ -3089,13 +3093,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Real-Time Input Listeners for Tip Pool & EOTM Bonus
+  const inputTotalTipsEl = document.getElementById('input-total-tips');
+  if (inputTotalTipsEl) {
+    const updatePool = (e) => {
+      const val = parseFloat(e.currentTarget.value);
+      if (!isNaN(val) && val >= 0) {
+        appState.tipsConfig[appState.currentMonth] = { totalAmount: val };
+        renderTips();
+      }
+    };
+    inputTotalTipsEl.addEventListener('input', updatePool);
+    inputTotalTipsEl.addEventListener('change', updatePool);
+  }
+
+  const inputBonusEl = document.getElementById('input-eotm-bonus');
+  if (inputBonusEl) {
+    const updateBonus = (e) => {
+      const val = parseFloat(e.currentTarget.value);
+      if (!isNaN(val) && val >= 0) {
+        appState.eotmBonusAmount = val;
+        renderTips();
+      }
+    };
+    inputBonusEl.addEventListener('input', updateBonus);
+    inputBonusEl.addEventListener('change', updateBonus);
+  }
+
   // Save Tip Pool Amount & EOTM Fixed Bonus Listener
   const btnSaveTips = document.getElementById('btn-save-tips');
   if (btnSaveTips) {
     btnSaveTips.addEventListener('click', async () => {
       const totalAmount = parseFloat(document.getElementById('input-total-tips')?.value) || 0;
       const bonusInput = document.getElementById('input-eotm-bonus');
-      const bonusAmount = bonusInput ? parseFloat(bonusInput.value) : 100;
+      const bonusAmount = bonusInput ? parseFloat(bonusInput.value) : appState.eotmBonusAmount;
 
       appState.tipsConfig[appState.currentMonth] = { totalAmount };
       if (!isNaN(bonusAmount) && bonusAmount >= 0) {
