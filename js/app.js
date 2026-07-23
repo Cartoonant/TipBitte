@@ -144,48 +144,77 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // 2. LOCALSTORAGE PERSISTENCE & INITIALIZATION
+  // 2. POSTGRESQL & LOCALSTORAGE PERSISTENCE ENGINE
   // ==========================================
 
   let isInitialized = false;
+  let syncTimeout = null;
+
+  const saveStateToCloud = () => {
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+      fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: appState })
+      }).catch(err => console.log('Cloud sync info:', err));
+    }, 600);
+  };
 
   const saveState = () => {
     localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
+    saveStateToCloud();
     if (isInitialized) {
       renderAll();
     }
   };
 
-  const loadState = () => {
+  const applyLoadedState = (rawState) => {
+    appState = rawState;
+    if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
+    if (!appState.activeRole) appState.activeRole = 'MANAGER';
+    if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
+    
+    // Clear legacy mock PDF files
+    if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
+      appState.sopDocuments = [];
+    }
+
+    // Ensure Roy (Cleaner) is present in staff
+    if (appState.staff && !appState.staff.some(s => s.id === 'emp-8' || s.name === 'Roy')) {
+      appState.staff.push({ id: 'emp-8', name: 'Roy', role: 'CLEANER', title: 'Cleaner', color: '#14b8a6', avatar: 'RY', offDays: [] });
+    }
+
+    if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
+      initDefaultState();
+    }
+
+    if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
+      appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
+      generateMonthlyFairRotation();
+    }
+  };
+
+  const loadState = async () => {
+    // Attempt load from PostgreSQL Cloud Database first
+    try {
+      const res = await fetch('/api/state');
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          applyLoadedState(json.data);
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('PostgreSQL cloud load info (falling back to LocalStorage):', e);
+    }
+
+    // Fallback to LocalStorage
     const saved = localStorage.getItem('tiprank_resto_state');
     if (saved) {
       try {
-        appState = JSON.parse(saved);
-        if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
-        if (!appState.activeRole) appState.activeRole = 'MANAGER';
-        if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
-        
-        // Ensure legacy mock PDF files are cleared
-        if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
-          appState.sopDocuments = [];
-        }
-
-        // Force reset tasks array to clean slate (0 approved or pending tasks)
-        appState.tasks = [];
-
-        // Ensure Roy (Cleaner) is present in staff
-        if (appState.staff && !appState.staff.some(s => s.id === 'emp-8' || s.name === 'Roy')) {
-          appState.staff.push({ id: 'emp-8', name: 'Roy', role: 'CLEANER', title: 'Cleaner', color: '#14b8a6', avatar: 'RY', offDays: [] });
-        }
-
-        if (!appState.staff || appState.staff.length === 0 || appState.staff.some(s => s.name.includes('Pal')) || !appState.staff.some(s => s.title === 'Kitchen Lead')) {
-          initDefaultState();
-        }
-
-        if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
-          appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
-          generateMonthlyFairRotation();
-        }
+        applyLoadedState(JSON.parse(saved));
       } catch (e) {
         console.error("Error reading LocalStorage state", e);
         initDefaultState();
@@ -3237,11 +3266,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // App Initialization
-  loadState();
-  initSubtabs();
-  initSchedulerForm();
-  isInitialized = true;
-  renderAll();
-  syncGoogleSheetTasks(false);
+  loadState().then(() => {
+    initSubtabs();
+    initSchedulerForm();
+    isInitialized = true;
+    renderAll();
+    syncGoogleSheetTasks(false);
+  });
 
 });

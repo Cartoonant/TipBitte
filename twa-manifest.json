@@ -8,13 +8,13 @@
   "backgroundColor": "#0F172A",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://tipbitte-resto.onrender.com/icons/icon-512.png",
-  "maskableIconUrl": "https://tipbitte-resto.onrender.com/icons/icon-512.png",
+  "iconUrl": "https://tipbitte.onrender.com/icons/icon-512.png",
+  "maskableIconUrl": "https://tipbitte.onrender.com/icons/icon-512.png",
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://tipbitte-resto.onrender.com/manifest.json",
+  "webManifestUrl": "https://tipbitte.onrender.com/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
