@@ -581,43 +581,29 @@
       <!-- TAB 4: TIP CALCULATOR (HYBRID: COIN-PROPORTIONS + MANUAL OVERRIDES & PERCENTAGES) -->
       <section id="tab-tips" class="tab-content">
         <div class="grid-2col">
-          <!-- Tip Parameters Form -->
+          <!-- Fixed Monthly Tips Pool Card -->
           <div class="section-card">
             <div class="section-header">
-              <h3><i data-lucide="coins" class="text-gold"></i> Monthly Tips Pool</h3>
+              <h3><i data-lucide="coins" class="text-gold"></i> Fixed Monthly Tips Pool</h3>
             </div>
             
-            <div class="form-group">
-              <label>Total Monthly Tips Amount (€)</label>
-              <div class="input-currency">
-                <input type="number" id="input-total-tips" class="form-control input-lg" placeholder="100.00" step="10" min="0" value="100" />
-                <span class="currency-symbol">€</span>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+              <div style="padding:1rem; background:var(--bg-input); border-radius:var(--radius-md); border:1px solid var(--border-color); text-align:center;">
+                <span style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Total Tips Pool</span>
+                <strong style="font-size:1.5rem; color:var(--color-gold); font-weight:800;">100.00 €</strong>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label>Employee of the Month Fixed Bonus (€)</label>
-              <div class="input-currency">
-                <input type="number" id="input-eotm-bonus" class="form-control" placeholder="0.00" step="5" min="0" value="0" />
-                <span class="currency-symbol">€</span>
+              <div style="padding:1rem; background:var(--bg-input); border-radius:var(--radius-md); border:1px solid var(--border-color); text-align:center;">
+                <span style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:0.25rem;">EOTM Winner Bonus</span>
+                <strong style="font-size:1.5rem; color:#c084fc; font-weight:800;">30.00 €</strong>
               </div>
             </div>
 
             <div class="info-box">
               <i data-lucide="sparkles" class="text-gold"></i>
               <div>
-                <strong>Hybrid Tip Distribution System:</strong>
-                <p>Base calculation is automatically computed pro-rata based on <strong>Coins earned</strong>. The manager can manually edit individual percentages (%) or final amounts (€) below anytime.</p>
+                <strong>Automated Equal-Pay Baseline System:</strong>
+                <p>Total pool is fixed at <strong>100.00 €</strong> with a <strong>30.00 € fixed bonus</strong> for the Employee of the Month. Tips are distributed 100% equally among all compliant team members (Front, Kitchen & Cleaning).</p>
               </div>
-            </div>
-
-            <div class="actions-stack">
-              <button id="btn-save-tips" class="btn btn-success btn-block">
-                <i data-lucide="check"></i> Save Pool Amount & Calculate Shares
-              </button>
-              <button id="btn-reset-tip-overrides" class="btn btn-outline btn-block">
-                <i data-lucide="rotate-ccw"></i> Reset All Shares to Clean Coin Proportions
-              </button>
             </div>
           </div>
 

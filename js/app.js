@@ -351,9 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Equal-Pay Baseline Calculation Engine with Manager Malus Differentiation
   const calculateTipDistribution = () => {
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 100 };
-    const totalTips = config.totalAmount !== undefined && config.totalAmount !== null ? parseFloat(config.totalAmount) : 100;
-    const bonusAmount = parseFloat(appState.eotmBonusAmount) || 0;
+    const totalTips = 100.00;
+    const bonusAmount = 30.00;
     const winnerId = appState.eotmWinnerId;
 
     const frontStaff = appState.staff.filter(s => s.role === 'FRONT');
@@ -367,9 +366,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Amount pool left to distribute pro-rata after deducting winner bonus
     const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
 
-    // Calculate Malus Penalty Score per employee (100 = 100% compliant baseline)
+    // Calculate Coins earned & Malus Penalty Score per employee
     let empStats = appState.staff.map(emp => {
       const att = getEmployeeAttendance(emp.id, appState.currentMonth);
+      const earnedCoins = getEmployeePoints(emp.id, appState.currentMonth);
       
       // Calculate net malus penalties accumulated by this employee this month
       const malusPenalties = (appState.tasks || [])
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         avatar: emp.avatar,
         workedDays: att.workedDays,
         workedHours: att.workedHours,
-        points: 0 - malusPenalties,
+        points: earnedCoins,
         malusPenalties: malusPenalties,
         complianceScore: complianceScore,
         baselinePercent: 0,
@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const totalComplianceScores = empStats.reduce((sum, e) => sum + e.complianceScore, 0) || 1;
+    const totalEarnedCoins = empStats.reduce((sum, e) => sum + e.points, 0);
 
     // Calculate Equal-Pay Baseline with Malus Penalty Differentiation
     empStats.forEach(emp => {
@@ -429,15 +430,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
     const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
     const cleanerPool = empStats.filter(e => e.role === 'CLEANER').reduce((sum, e) => sum + e.tipAmount, 0);
-    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.complianceScore, 0);
 
     // Sort employees in descending order of compliance score (highest to lowest)
     empStats.sort((a, b) => b.complianceScore - a.complianceScore);
 
     return { 
       empStats, 
-      grandTotalPoints, 
+      grandTotalPoints: totalEarnedCoins, 
       totalTips, 
+      bonusAmount,
       frontPool, 
       kitchenPool, 
       cleanerPool,
@@ -527,9 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Dashboard & Leaderboard Renderer (Unified Global Ranking & Role Permissions)
   const renderDashboard = () => {
     const isManager = appState.activeRole === 'MANAGER';
-    const { empStats, grandTotalPoints } = calculateTipDistribution();
-    const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
-    const totalTips = parseFloat(config.totalAmount) || 0;
+    const { empStats, grandTotalPoints, totalTips } = calculateTipDistribution();
 
     // Populate Manager Employee of the Month Dropdown
     const selectEotm = document.getElementById('select-eotm-winner');
@@ -543,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Overview Cards
     const elTips = document.getElementById('stat-total-tips');
-    if (elTips) elTips.textContent = `${totalTips.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
+    if (elTips) elTips.textContent = `${totalTips.toFixed(2)} €`;
 
     const ratePerCoin = grandTotalPoints > 0 ? (totalTips / grandTotalPoints).toFixed(2) : '0.00';
     const elRate = document.getElementById('stat-tips-rate');
@@ -561,12 +560,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const frontCount = appState.staff.filter(s => s.role === 'FRONT').length;
     const kitchenCount = appState.staff.filter(s => s.role === 'KITCHEN').length;
+    const cleanerCount = appState.staff.filter(s => s.role === 'CLEANER').length;
     
     const elStaffCount = document.getElementById('stat-staff-count');
     if (elStaffCount) elStaffCount.textContent = appState.staff.length;
 
     const elTeamBreakdown = document.getElementById('stat-team-breakdown');
-    if (elTeamBreakdown) elTeamBreakdown.textContent = `${frontCount} Front / ${kitchenCount} Kitchen`;
+    if (elTeamBreakdown) elTeamBreakdown.textContent = `${frontCount} Front / ${kitchenCount} Kitchen / ${cleanerCount} Cleaning`;
 
     // Unified Global Ranking
     let filteredList = [...empStats];
@@ -3090,54 +3090,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('task-bonus-desc').value = '';
       saveState();
       showToast("Initiative submitted! Pending manager approval.");
-    });
-  }
-
-  // Real-Time Input Listeners for Tip Pool & EOTM Bonus
-  const inputTotalTipsEl = document.getElementById('input-total-tips');
-  if (inputTotalTipsEl) {
-    const updatePool = (e) => {
-      const val = parseFloat(e.currentTarget.value);
-      if (!isNaN(val) && val >= 0) {
-        appState.tipsConfig[appState.currentMonth] = { totalAmount: val };
-        renderTips();
-      }
-    };
-    inputTotalTipsEl.addEventListener('input', updatePool);
-    inputTotalTipsEl.addEventListener('change', updatePool);
-  }
-
-  const inputBonusEl = document.getElementById('input-eotm-bonus');
-  if (inputBonusEl) {
-    const updateBonus = (e) => {
-      const val = parseFloat(e.currentTarget.value);
-      if (!isNaN(val) && val >= 0) {
-        appState.eotmBonusAmount = val;
-        renderTips();
-      }
-    };
-    inputBonusEl.addEventListener('input', updateBonus);
-    inputBonusEl.addEventListener('change', updateBonus);
-  }
-
-  // Save Tip Pool Amount & EOTM Fixed Bonus Listener
-  const btnSaveTips = document.getElementById('btn-save-tips');
-  if (btnSaveTips) {
-    btnSaveTips.addEventListener('click', async () => {
-      const totalInput = document.getElementById('input-total-tips');
-      const parsedTotal = totalInput && totalInput.value !== '' ? parseFloat(totalInput.value) : 100;
-      const totalAmount = !isNaN(parsedTotal) ? parsedTotal : 100;
-      const bonusInput = document.getElementById('input-eotm-bonus');
-      const bonusAmount = bonusInput && bonusInput.value !== '' ? parseFloat(bonusInput.value) : appState.eotmBonusAmount;
-
-      appState.tipsConfig[appState.currentMonth] = { totalAmount };
-      if (!isNaN(bonusAmount) && bonusAmount >= 0) {
-        appState.eotmBonusAmount = bonusAmount;
-      }
-
-      saveState();
-      await revalidateStateFromCloud();
-      showToast("Tip pool amount & EOTM Bonus saved and synced to Google Sheet!");
     });
   }
 
