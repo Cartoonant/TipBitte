@@ -267,111 +267,30 @@
               </div>
             </div>
 
-            <!-- Google Sheet Sync Status Alert (Shown on Error / Notice) -->
-            <div id="gs-sync-alert" class="alert hidden" style="margin-bottom:1rem; padding:0.75rem 1rem; border-radius:var(--radius-md); font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">
-              <div style="display:flex; align-items:center; gap:0.5rem;">
-                <i data-lucide="alert-triangle" style="flex-shrink:0;"></i>
-                <span id="gs-sync-alert-msg">Google Sheet sync notice</span>
-              </div>
-              <button type="button" id="btn-close-gs-alert" class="btn-icon" style="color:currentColor; padding:0.2rem; background:none; border:none; cursor:pointer;" title="Dismiss">
-                <i data-lucide="x" style="width:14px; height:14px;"></i>
-              </button>
-            </div>
-
-            <!-- Primary Action Buttons: Sync Google Sheets, Paste CSV, Upload File, Reset Default & Generate Schedule -->
-            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center;">
-              <button id="btn-sync-google-sheet" class="btn btn-gold glow" style="flex:1; min-width:180px; justify-content:center; padding:0.75rem 1rem; font-weight:700;">
+            <!-- Primary Action Buttons: Sync Google Sheets, Import File & Generate Schedule -->
+            <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
+              <button id="btn-sync-google-sheet" class="btn btn-gold glow" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
                 <i data-lucide="refresh-cw"></i> Sync Google Sheets
               </button>
 
-              <button id="btn-toggle-paste-csv" class="btn btn-primary" style="flex:1; min-width:180px; justify-content:center; padding:0.75rem 1rem; font-weight:700;">
-                <i data-lucide="clipboard"></i> Paste Raw CSV / Text
-              </button>
-
-              <label class="btn btn-outline" style="cursor:pointer; flex:1; min-width:160px; justify-content:center; padding:0.75rem 1rem; font-weight:700;">
-                <i data-lucide="upload-cloud"></i> Import File
-                <input type="file" id="input-update-tasks-file" accept=".csv,.json,.xlsx,.txt" class="hidden-file-input" />
+              <label class="btn btn-primary" style="cursor:pointer; flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
+                <i data-lucide="upload-cloud"></i> Import File (CSV / JSON)
+                <input type="file" id="input-update-tasks-file" accept=".csv,.json,.xlsx" class="hidden-file-input" />
               </label>
 
-              <button id="btn-reset-catalogue-default" class="btn btn-outline" style="flex:1; min-width:160px; justify-content:center; padding:0.75rem 1rem; font-weight:700; color:var(--text-muted);" title="Restore Built-in Task Catalogue (Front, Kitchen & Roy)">
-                <i data-lucide="rotate-ccw"></i> Reset Default
-              </button>
-
-              <button id="btn-generate-monthly-schedule" class="btn btn-gold" style="flex:1; min-width:180px; justify-content:center; padding:0.75rem 1rem; font-weight:700;">
-                <i data-lucide="sparkles"></i> Generate Schedule
+              <button id="btn-generate-monthly-schedule" class="btn btn-outline" style="flex:1; justify-content:center; padding:0.85rem 1.25rem; font-weight:700;">
+                <i data-lucide="sparkles"></i> Generate Schedule (Fair Rotation)
               </button>
             </div>
 
-            <!-- Collapsible Paste CSV / Text Panel (Plan B Local Fallback) -->
-            <div id="paste-csv-panel" class="margin-top hidden" style="background:var(--bg-input); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-                <label style="font-weight:700; font-size:0.85rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
-                  <i data-lucide="clipboard" class="text-gold"></i> Paste Unified Google Sheet Cells or CSV Rows:
-                </label>
-                <span class="text-muted" style="font-size:0.75rem;">Structure: Tasks, Description, Team, Period, Reccurence, Reward</span>
-              </div>
-              <textarea id="input-paste-csv-text" class="form-control" rows="5" style="font-family:monospace; font-size:0.82rem; margin-bottom:0.75rem;" placeholder="Paste Google Sheet rows or CSV text here...&#10;Columns: Tasks, Description, Team, Period, Reccurence, Reward&#10;Example:&#10;Put thrash out, Empty kitchen bins & drop waste, Kitchen, Evening, Daily, 15&#10;Broom dine-in area, Sweep floor and align tables, Front, Morning, Daily, 10&#10;Deep floor mop, Sweep and mop all floors, Cleaner, Evening, Daily, 15"></textarea>
-              <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                <button type="button" id="btn-cancel-paste-csv" class="btn btn-outline btn-sm">Cancel</button>
-                <button type="button" id="btn-import-pasted-csv" class="btn btn-gold btn-sm">
-                  <i data-lucide="check"></i> Load Pasted Tasks
-                </button>
-              </div>
-            </div>
-
-            <!-- Active Master Catalogue Summary & Preview Drawer -->
+            <!-- Active Master Catalogue Summary Bar -->
             <div style="margin-top:1.25rem; padding:0.75rem 1rem; background:var(--bg-input); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
               <span class="text-muted" style="font-size:0.85rem;">
                 <i data-lucide="link-2" class="text-green"></i> Live Sheet Link: <a href="https://docs.google.com/spreadsheets/d/1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0/edit?usp=sharing" target="_blank" style="color:var(--color-gold); text-decoration:underline; font-weight:600;">Catalogue Sheet</a>
               </span>
-              <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                <span class="text-muted" style="font-size:0.85rem;">
-                  <i data-lucide="database" class="text-blue"></i> Active Catalogue: <strong id="catalogue-task-count" class="text-gold">13 Tasks Loaded</strong>
-                </span>
-                <button type="button" id="btn-toggle-gids-config" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.75rem;" title="Configure GIDs for 5 Google Sheet pages">
-                  <i data-lucide="settings"></i> Sheet GIDs (5 Tabs)
-                </button>
-                <button type="button" id="btn-toggle-catalogue-list" class="btn btn-outline btn-sm" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
-                  <i data-lucide="list"></i> View / Manage Tasks
-                </button>
-              </div>
-            </div>
-
-            <!-- Collapsible Multi-Tab Sheet GID Settings Panel -->
-            <div id="gids-config-panel" class="margin-top hidden" style="background:var(--bg-input); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <div style="margin-bottom:0.75rem;">
-                <strong style="font-size:0.88rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
-                  <i data-lucide="layers" class="text-gold"></i> Configure Multi-Tab Sheet GIDs (5 Pages Sync)
-                </strong>
-                <p class="text-muted" style="font-size:0.8rem; margin:0.25rem 0 0 0;">
-                  Enter comma-separated Sheet GIDs or Google Sheet tab URLs for all 5 pages. The app will fetch each tab and merge all tasks into one unified catalogue!
-                </p>
-              </div>
-
-              <div style="margin-bottom:0.75rem;">
-                <label style="font-size:0.78rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.25rem;">
-                  Sheet GIDs (e.g. 0, 1, 2, 3, 4 or custom GID numbers):
-                </label>
-                <input type="text" id="input-gids-list" class="form-control" style="font-family:monospace; font-size:0.85rem;" placeholder="0, 1, 2, 3, 4" value="0, 1, 2, 3, 4" />
-              </div>
-
-              <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                <button type="button" id="btn-cancel-gids-config" class="btn btn-outline btn-sm">Cancel</button>
-                <button type="button" id="btn-save-gids-config" class="btn btn-gold btn-sm">
-                  <i data-lucide="save"></i> Save GIDs & Sync All Pages
-                </button>
-              </div>
-            </div>
-
-            <!-- Loaded Catalogue Inline Management List (Collapsible) -->
-            <div id="catalogue-list-drawer" class="margin-top hidden" style="background:var(--bg-input); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-              <h4 style="margin:0 0 0.75rem 0; font-size:0.88rem; color:var(--text-main); display:flex; align-items:center; justify-content:space-between;">
-                <span>📋 Loaded Master Task Catalogue Items</span>
-                <span style="font-weight:normal; font-size:0.75rem;" class="text-muted">Delete or inspect catalogue tasks</span>
-              </h4>
-              <div id="catalogue-items-container" style="display:flex; flex-direction:column; gap:0.4rem; max-height:260px; overflow-y:auto; padding-right:0.25rem;">
-                <!-- Dynamic catalogue item cards -->
-              </div>
+              <span class="text-muted" style="font-size:0.85rem;">
+                <i data-lucide="database" class="text-blue"></i> Active Catalogue: <strong id="catalogue-task-count" class="text-gold">13 Tasks Loaded</strong>
+              </span>
             </div>
           </div>
 

@@ -658,7 +658,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const isManager = appState.activeRole === 'MANAGER';
     const activeEmp = appState.staff.find(s => s.id === appState.activeRole);
 
-    renderMasterCatalogueList();
+    const catCountEl = document.getElementById('catalogue-task-count');
+    if (catCountEl) {
+      const count = (appState.masterTaskCatalogue || []).length;
+      catCountEl.textContent = `${count} Task${count !== 1 ? 's' : ''} Loaded`;
+    }
 
     // MANAGER VIEW: GLOBAL SCHEDULE GRID TABLE
     const schedTbody = document.getElementById('manager-schedule-tbody');
@@ -1428,9 +1432,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
-  // Google Sheet Multi-Tab GIDs & Fallback Stack
+  // Google Sheet Single Sheet Live Sync
   const SHEET_ID = '1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0';
-  const DEFAULT_GIDS = ['0', '1', '2', '3', '4'];
 
   const splitCSVRow = (rowText) => {
     const result = [];
@@ -1456,37 +1459,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return [];
 
-    // Default Column Mapping for Tasks, Description, Team, Period, Reccurence, Reward
-    let colIdx = {
-      title: 0,
-      desc: 1,
-      team: 2,
-      period: 3,
-      recurrence: 4,
-      reward: 5
-    };
-
+    // Map columns based exclusively on header row: Tasks, Description, Team, Period, Reccurence, Reward
+    let colIdx = { title: 0, desc: 1, team: 2, period: 3, recurrence: 4, reward: 5 };
     let startRow = 0;
 
-    // Detect header row if present
     const firstRowParts = splitCSVRow(lines[0]);
     const lowerParts = firstRowParts.map(p => p.toLowerCase());
 
-    const tasksHeaderIdx = lowerParts.findIndex(p => p.includes('task') || p.includes('tâche'));
-    if (tasksHeaderIdx !== -1) {
-      startRow = 1; // skip header line
-      colIdx.title = tasksHeaderIdx;
+    const tasksIdx = lowerParts.findIndex(p => p.includes('task'));
+    if (tasksIdx !== -1) {
+      startRow = 1;
+      colIdx.title = tasksIdx;
 
       const descIdx = lowerParts.findIndex(p => p.includes('desc'));
       if (descIdx !== -1) colIdx.desc = descIdx;
 
-      const teamIdx = lowerParts.findIndex(p => p.includes('team') || p.includes('scope') || p.includes('équipe'));
+      const teamIdx = lowerParts.findIndex(p => p.includes('team') || p.includes('scope'));
       if (teamIdx !== -1) colIdx.team = teamIdx;
 
-      const periodIdx = lowerParts.findIndex(p => p.includes('period') || p.includes('période') || p.includes('shift'));
+      const periodIdx = lowerParts.findIndex(p => p.includes('period'));
       if (periodIdx !== -1) colIdx.period = periodIdx;
 
-      const recIdx = lowerParts.findIndex(p => p.includes('reccurence') || p.includes('recurrence') || p.includes('récurrence'));
+      const recIdx = lowerParts.findIndex(p => p.includes('reccurence') || p.includes('recurrence'));
       if (recIdx !== -1) colIdx.recurrence = recIdx;
 
       const rewardIdx = lowerParts.findIndex(p => p.includes('reward') || p.includes('coin') || p.includes('point'));
@@ -1494,73 +1488,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const imported = [];
-    let currentSectionScope = 'EVERYONE';
 
     for (let i = startRow; i < lines.length; i++) {
       const parts = splitCSVRow(lines[i]);
       if (parts.length === 0 || !parts.some(p => p.length > 0)) continue;
 
-      const rawTitle = parts[colIdx.title] || parts[0] || '';
-      if (!rawTitle || rawTitle.toLowerCase() === 'tasks' || rawTitle.toLowerCase() === 'task name') continue;
+      const title = parts[colIdx.title] || parts[0] || '';
+      if (!title || title.toLowerCase() === 'tasks' || title.toLowerCase() === 'task name') continue;
 
-      const lowerTitle = rawTitle.toLowerCase();
+      const rawDesc = parts[colIdx.desc] !== undefined ? parts[colIdx.desc] : '';
+      const desc = rawDesc && rawDesc !== title ? rawDesc : `Operational task: ${title}`;
 
-      // Section Header tracking
-      if (lowerTitle.includes('roy') || lowerTitle.includes('cleaner')) {
-        currentSectionScope = 'CLEANER';
-        if (parts.length <= 2) continue;
-      } else if (lowerTitle.includes('front tasks')) {
-        currentSectionScope = 'FRONT';
-        if (parts.length <= 2) continue;
-      } else if (lowerTitle.includes('kitchen tasks')) {
-        currentSectionScope = 'KITCHEN';
-        if (parts.length <= 2) continue;
-      }
+      const rawTeam = (parts[colIdx.team] || '').toUpperCase();
+      let scope = 'EVERYONE';
+      if (rawTeam.includes('ROY') || rawTeam.includes('CLEAN')) scope = 'CLEANER';
+      else if (rawTeam.includes('FRONT') || rawTeam.includes('FLOOR') || rawTeam.includes('BAR')) scope = 'FRONT';
+      else if (rawTeam.includes('KITCHEN') || rawTeam.includes('COOK') || rawTeam.includes('PREP')) scope = 'KITCHEN';
+      else if (rawTeam.includes('EVERYONE') || rawTeam.includes('ALL')) scope = 'EVERYONE';
+      else scope = 'EVERYONE';
 
-      let title = rawTitle;
-      let rawDesc = parts[colIdx.desc] !== undefined ? parts[colIdx.desc] : '';
-      let desc = rawDesc && rawDesc !== title ? rawDesc : `Standard operational task: ${title}`;
-
-      let rawTeam = (parts[colIdx.team] || '').toUpperCase();
-      let scope = rawTeam;
-
-      // Smart Scope Mapping for Team column
-      if (rawTeam.includes('ROY') || rawTeam.includes('CLEAN') || rawTeam.includes('SANITA')) {
-        scope = 'CLEANER';
-      } else if (rawTeam.includes('FRONT') || rawTeam.includes('FLOOR') || rawTeam.includes('SERVICE') || rawTeam.includes('BAR')) {
-        scope = 'FRONT';
-      } else if (rawTeam.includes('KITCHEN') || rawTeam.includes('COOK') || rawTeam.includes('PREP')) {
-        scope = 'KITCHEN';
-      } else if (rawTeam.includes('EVERYONE') || rawTeam.includes('ALL') || rawTeam.includes('BOTH')) {
-        scope = 'EVERYONE';
-      } else {
-        // Fallback auto-detection if scope column is unassigned
-        if (lowerTitle.includes('roy') || lowerTitle.includes('mop') || lowerTitle.includes('sweep') || lowerTitle.includes('cleaner') || lowerTitle.includes('restroom')) {
-          scope = 'CLEANER';
-        } else if (lowerTitle.includes('thrash') || lowerTitle.includes('trash') || lowerTitle.includes('karton') || lowerTitle.includes('basement') || lowerTitle.includes('deliveries') || lowerTitle.includes('meat') || lowerTitle.includes('groceries') || lowerTitle.includes('freezer') || lowerTitle.includes('fridge')) {
-          scope = 'KITCHEN';
-        } else if (lowerTitle.includes('dine-in') || lowerTitle.includes('carpet') || lowerTitle.includes('wall') || lowerTitle.includes('door') || lowerTitle.includes('wickelraum') || lowerTitle.includes('terrace')) {
-          scope = 'FRONT';
-        } else {
-          scope = currentSectionScope;
-        }
-      }
-
-      let rawPeriod = (parts[colIdx.period] || '').toUpperCase();
+      const rawPeriod = (parts[colIdx.period] || '').toUpperCase();
       let period = 'ANYTIME';
       if (rawPeriod.includes('MORN')) period = 'MORNING';
       else if (rawPeriod.includes('AFTER') || rawPeriod.includes('NOON')) period = 'AFTERNOON';
       else if (rawPeriod.includes('EVEN') || rawPeriod.includes('NIGHT')) period = 'EVENING';
       else period = 'ANYTIME';
 
-      let rawRec = (parts[colIdx.recurrence] || '').toUpperCase();
+      const rawRec = (parts[colIdx.recurrence] || '').toUpperCase();
       let recurrence = 'DAILY';
       if (rawRec.includes('WEEK')) recurrence = 'WEEKLY';
       else if (rawRec.includes('ONE') || rawRec.includes('HERO') || rawRec.includes('SINGLE')) recurrence = 'ONEOFF';
       else recurrence = 'DAILY';
 
-      let rawReward = parts[colIdx.reward] || '';
-      let points = parseInt(rawReward.replace(/\D/g, '')) || 10;
+      const rawReward = parts[colIdx.reward] || '';
+      const points = parseInt(rawReward.replace(/\D/g, '')) || 10;
 
       imported.push({
         id: 'cat-gs-' + i + '-' + Date.now(),
@@ -1576,95 +1537,51 @@ document.addEventListener('DOMContentLoaded', () => {
     return imported;
   };
 
-  const fetchTabCSV = async (sheetId, gid) => {
+  const syncGoogleSheetTasks = async (showNotification = true) => {
+    const btnSync = document.getElementById('btn-sync-google-sheet');
+    if (btnSync) {
+      btnSync.disabled = true;
+      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
+    }
+
     const urls = [
-      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`)}`
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`
     ];
 
+    let csvText = null;
     for (const url of urls) {
       try {
         const response = await fetch(url);
         if (response.ok) {
           const text = await response.text();
           if (text && text.trim().length > 10) {
-            return text;
+            csvText = text;
+            break;
           }
         }
       } catch (err) {
-        // continue fallback
+        // next fallback
       }
     }
-    return null;
-  };
 
-  const syncGoogleSheetTasks = async (showNotification = true) => {
-    const btnSync = document.getElementById('btn-sync-google-sheet');
-    const alertBox = document.getElementById('gs-sync-alert');
-    const alertMsg = document.getElementById('gs-sync-alert-msg');
-
-    if (btnSync) {
-      btnSync.disabled = true;
-      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing 5 Tabs...`;
-    }
-
-    const sheetId = appState.googleSheetId || SHEET_ID;
-    const gidsToFetch = (appState.googleSheetGids && appState.googleSheetGids.length > 0)
-      ? appState.googleSheetGids
-      : DEFAULT_GIDS;
-
-    let allMergedTasks = [];
-    let successfulTabsCount = 0;
-    const seenTitles = new Set();
-    let fetchError = null;
-
-    for (const gid of gidsToFetch) {
-      try {
-        const csvText = await fetchTabCSV(sheetId, gid);
-        if (csvText) {
-          const parsed = parseCSVTasks(csvText);
-          if (parsed.length > 0) {
-            successfulTabsCount++;
-            parsed.forEach(task => {
-              const key = task.title.toLowerCase().trim();
-              if (!seenTitles.has(key)) {
-                seenTitles.add(key);
-                allMergedTasks.push(task);
-              }
-            });
-          }
+    if (csvText) {
+      const parsed = parseCSVTasks(csvText);
+      if (parsed.length > 0) {
+        appState.masterTaskCatalogue = parsed;
+        saveState();
+        renderAll();
+        if (showNotification) {
+          showToast(`⚡ Synchronized Google Sheet! ${parsed.length} tasks loaded.`);
         }
-      } catch (err) {
-        fetchError = err;
       }
-    }
-
-    if (allMergedTasks.length > 0) {
-      appState.masterTaskCatalogue = allMergedTasks;
-      saveState();
-      if (alertBox) alertBox.classList.add('hidden');
-      renderAll();
+    } else {
       if (showNotification) {
-        showToast(`⚡ Synchronized ${successfulTabsCount} Google Sheet tab(s)! ${allMergedTasks.length} tasks merged.`);
+        showToast("Unable to fetch live Google Sheet. Check internet connection.");
       }
-      if (btnSync) {
-        btnSync.disabled = false;
-        btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (${successfulTabsCount} Tabs)`;
-      }
-      if (window.lucide) lucide.createIcons();
-      return;
     }
 
-    // Diagnostic & Fallback Alert Display (Plan B)
-    console.warn("Google Sheet Sync Warning / Fallback triggered:", fetchError);
-    if (alertBox && alertMsg) {
-      alertMsg.innerHTML = `<strong>Online fetch unavailable (CORS / Permissions).</strong> Local fallback active. Use <strong>"📋 Paste Raw CSV / Text"</strong> or <strong>"⚡ Reset Default"</strong> below to update tasks instantly!`;
-      alertBox.classList.remove('hidden');
-    }
-    if (showNotification) {
-      showToast("Online Google Sheet blocked by CORS. Local fallback active.");
-    }
     if (btnSync) {
       btnSync.disabled = false;
       btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets`;
@@ -1672,115 +1589,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  // Catalogue preview & inline manager drawer renderer
-  const renderMasterCatalogueList = () => {
-    const catalogue = appState.masterTaskCatalogue || DEFAULT_MASTER_CATALOGUE;
-    const catCountEl = document.getElementById('catalogue-task-count');
-    if (catCountEl) {
-      catCountEl.textContent = `${catalogue.length} Task${catalogue.length !== 1 ? 's' : ''} Loaded`;
-    }
-
-    const container = document.getElementById('catalogue-items-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-    if (catalogue.length === 0) {
-      container.innerHTML = `<p class="text-muted" style="font-size:0.8rem; margin:0.5rem 0;">No master catalogue tasks loaded. Use buttons above to import or paste tasks.</p>`;
-      return;
-    }
-
-    catalogue.forEach((task, idx) => {
-      const item = document.createElement('div');
-      item.style.display = 'flex';
-      item.style.alignItems = 'center';
-      item.style.justifyContent = 'space-between';
-      item.style.padding = '0.4rem 0.6rem';
-      item.style.background = 'var(--bg-card-solid)';
-      item.style.borderRadius = 'var(--radius-sm)';
-      item.style.border = '1px solid var(--border-color)';
-      item.style.fontSize = '0.8rem';
-
-      let scopeBadge = `<span class="badge badge-gold" style="font-size:0.6rem; padding:0.05rem 0.3rem;">${task.scope}</span>`;
-      if (task.scope === 'FRONT') scopeBadge = `<span class="badge badge-front" style="font-size:0.6rem; padding:0.05rem 0.3rem;">Front</span>`;
-      if (task.scope === 'KITCHEN') scopeBadge = `<span class="badge badge-kitchen" style="font-size:0.6rem; padding:0.05rem 0.3rem;">Kitchen</span>`;
-      if (task.scope === 'CLEANER') scopeBadge = `<span class="badge" style="background:#14b8a6; color:#fff; font-size:0.6rem; padding:0.05rem 0.3rem;">Roy Cleaner</span>`;
-
-      item.innerHTML = `
-        <div style="display:flex; align-items:center; gap:0.5rem; overflow:hidden;">
-          <strong style="color:var(--text-main); font-size:0.82rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${task.title}</strong>
-          ${scopeBadge}
-          <span class="text-gold" style="font-weight:700;">+${task.points} Coins</span>
-        </div>
-        <button type="button" class="btn-icon btn-delete-cat-item" data-index="${idx}" style="color:var(--color-danger); padding:0.15rem;" title="Delete task from catalogue">
-          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
-        </button>
-      `;
-      container.appendChild(item);
-    });
-
-    container.querySelectorAll('.btn-delete-cat-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.currentTarget.dataset.index);
-        if (!isNaN(idx) && appState.masterTaskCatalogue[idx]) {
-          const removed = appState.masterTaskCatalogue.splice(idx, 1);
-          saveState();
-          renderAll();
-          showToast(`Removed "${removed[0].title}" from catalogue.`);
-        }
-      });
-    });
-
-    if (window.lucide) lucide.createIcons();
-  };
-
   // Live Google Sheet Sync Listener
   const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
   if (btnSyncSheet) {
     btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
-  }
-
-  // Toggle GID Settings Panel Listener
-  const btnToggleGids = document.getElementById('btn-toggle-gids-config');
-  const btnCancelGids = document.getElementById('btn-cancel-gids-config');
-  const btnSaveGids = document.getElementById('btn-save-gids-config');
-  const gidsPanel = document.getElementById('gids-config-panel');
-
-  if (btnToggleGids && gidsPanel) {
-    btnToggleGids.addEventListener('click', () => {
-      gidsPanel.classList.toggle('hidden');
-      if (!gidsPanel.classList.contains('hidden')) {
-        const inputGids = document.getElementById('input-gids-list');
-        if (inputGids) {
-          inputGids.value = (appState.googleSheetGids || DEFAULT_GIDS).join(', ');
-        }
-      }
-    });
-  }
-  if (btnCancelGids && gidsPanel) {
-    btnCancelGids.addEventListener('click', () => gidsPanel.classList.add('hidden'));
-  }
-  if (btnSaveGids) {
-    btnSaveGids.addEventListener('click', () => {
-      const raw = document.getElementById('input-gids-list')?.value || '';
-      // Extract GIDs from comma-separated input or URLs containing gid=\d+
-      const extracted = [];
-      const parts = raw.split(/[\s,]+/);
-      parts.forEach(p => {
-        const match = p.match(/gid=(\d+)/i) || p.match(/^\d+$/);
-        if (match) {
-          const gidVal = match[1] || match[0];
-          if (gidVal && !extracted.includes(gidVal)) {
-            extracted.push(gidVal);
-          }
-        }
-      });
-
-      appState.googleSheetGids = extracted.length > 0 ? extracted : DEFAULT_GIDS;
-      saveState();
-      if (gidsPanel) gidsPanel.classList.add('hidden');
-      showToast(`Saved ${appState.googleSheetGids.length} Sheet GID(s)! Triggering sync...`);
-      syncGoogleSheetTasks(true);
-    });
   }
 
   // Close GS Sync Error Alert Listener
