@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Tip distribution calculation based on 3-Team Allocation (Front, Kitchen, Cleaning for Roy)
+  // Equal-Pay Baseline Calculation Engine with Manager Malus Differentiation
   const calculateTipDistribution = () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
@@ -301,19 +301,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const frontHeadcount = frontStaff.length || 1;
     const kitchenHeadcount = kitchenStaff.length || 1;
     const cleanerHeadcount = cleanerStaff.length || 1;
-    const totalHeadcount = frontHeadcount + kitchenHeadcount + cleanerHeadcount;
 
     // Amount pool left to distribute pro-rata after deducting winner bonus
     const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
 
-    // Step 1: Inter-Team Allocation across the 3 Teams by Headcount Ratio
-    const frontAllocatedPool = poolForProRata * (frontHeadcount / totalHeadcount);
-    const kitchenAllocatedPool = poolForProRata * (kitchenHeadcount / totalHeadcount);
-    const cleanerAllocatedPool = poolForProRata * (cleanerHeadcount / totalHeadcount);
-
+    // Calculate Malus Penalty Score per employee (100 = 100% compliant baseline)
     let empStats = appState.staff.map(emp => {
-      const points = getEmployeePoints(emp.id);
       const att = getEmployeeAttendance(emp.id, appState.currentMonth);
+      
+      // Calculate net malus penalties accumulated by this employee this month
+      const malusPenalties = (appState.tasks || [])
+        .filter(t => t.employeeId === emp.id && (t.isMalus === true || t.points < 0 || t.status === 'REJECTED'))
+        .reduce((sum, t) => sum + Math.abs(t.points || 15), 0);
+
+      // Compliance score: Baseline 100 points, minus malus penalties accrued
+      const complianceScore = Math.max(0, 100 - malusPenalties);
 
       return {
         id: emp.id,
@@ -324,9 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
         avatar: emp.avatar,
         workedDays: att.workedDays,
         workedHours: att.workedHours,
-        points: points,
-        teamCoins: 0,
-        intraTeamShare: 0,
+        points: 0 - malusPenalties,
+        malusPenalties: malusPenalties,
+        complianceScore: complianceScore,
         baselinePercent: 0,
         manualPercent: null,
         tipSharePercent: 0,
@@ -335,50 +337,24 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     });
 
-    const totalFrontCoins = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.points, 0);
-    const totalKitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.points, 0);
-    const totalCleanerCoins = empStats.filter(e => e.role === 'CLEANER').reduce((sum, e) => sum + e.points, 0);
+    const totalComplianceScores = empStats.reduce((sum, e) => sum + e.complianceScore, 0) || 1;
 
-    // Step 2: Intra-Team Individual Pro-Rata Distribution by Department Coins
+    // Calculate Equal-Pay Baseline with Malus Penalty Differentiation
     empStats.forEach(emp => {
-      let teamPool = kitchenAllocatedPool;
-      let teamCoins = totalKitchenCoins;
-      let teamSize = kitchenHeadcount;
-
-      if (emp.role === 'FRONT') {
-        teamPool = frontAllocatedPool;
-        teamCoins = totalFrontCoins;
-        teamSize = frontHeadcount;
-      } else if (emp.role === 'CLEANER') {
-        teamPool = cleanerAllocatedPool;
-        teamCoins = totalCleanerCoins;
-        teamSize = cleanerHeadcount;
-      }
-
-      emp.teamCoins = teamCoins;
-
-      // Intra-team individual coin ratio (Employee Coins / Total Department Coins)
-      if (teamCoins > 0) {
-        emp.intraTeamShare = emp.points / teamCoins;
-      } else {
-        emp.intraTeamShare = 1 / teamSize;
-      }
-
-      // Base tip amount allocated from department pool
-      let calculatedTipAmt = emp.intraTeamShare * teamPool;
-
-      // Overall baseline percentage relative to the distributable pool
-      emp.baselinePercent = poolForProRata > 0 ? parseFloat(((calculatedTipAmt / poolForProRata) * 100).toFixed(2)) : 0;
+      // Baseline percentage relative to total compliance pool (Equal split when malus = 0)
+      emp.baselinePercent = parseFloat(((emp.complianceScore / totalComplianceScores) * 100).toFixed(2));
 
       // Check for manual overrides from Manager
       const override = appState.manualTipOverrides ? appState.manualTipOverrides[emp.id] : null;
       if (override && override.percent !== undefined && override.percent !== null) {
         emp.manualPercent = parseFloat(override.percent);
         emp.tipSharePercent = emp.manualPercent;
-        calculatedTipAmt = (emp.tipSharePercent / 100) * poolForProRata;
       } else {
         emp.tipSharePercent = emp.baselinePercent;
       }
+
+      // Base tip amount allocated from pool
+      let calculatedTipAmt = (emp.tipSharePercent / 100) * poolForProRata;
 
       // Add EOTM fixed bonus to winner
       if (emp.id === winnerId) {
@@ -391,10 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
     const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
     const cleanerPool = empStats.filter(e => e.role === 'CLEANER').reduce((sum, e) => sum + e.tipAmount, 0);
-    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
+    const grandTotalPoints = empStats.reduce((sum, e) => sum + e.complianceScore, 0);
 
-    // Sort employees in strict descending order by total coin count (highest to lowest)
-    empStats.sort((a, b) => b.points - a.points);
+    // Sort employees in descending order of compliance score (highest to lowest)
+    empStats.sort((a, b) => b.complianceScore - a.complianceScore);
 
     return { 
       empStats, 
@@ -405,10 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cleanerPool,
       frontHeadcount, 
       kitchenHeadcount, 
-      cleanerHeadcount,
-      frontAllocatedPool,
-      kitchenAllocatedPool,
-      cleanerAllocatedPool
+      cleanerHeadcount
     };
   };
 
@@ -1421,24 +1394,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { empStats, totalTips, frontPool, kitchenPool, cleanerPool, frontHeadcount, kitchenHeadcount, cleanerHeadcount, frontAllocatedPool, kitchenAllocatedPool, cleanerAllocatedPool } = calculateTipDistribution();
 
-    // Render 3-Team Allocation Equity Banner
+    // Render Equal-Pay Baseline Equity Banner
     const elHeadcountBanner = document.getElementById('summary-headcount-equity');
     if (elHeadcountBanner) {
-      const fPoolStr = (frontAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const kPoolStr = (kitchenAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const cPoolStr = (cleanerAllocatedPool || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
       elHeadcountBanner.innerHTML = `
         <div style="padding:0.85rem 1.15rem; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(20,184,166,0.12)); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.35); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
           <div>
             <span style="font-size:0.88rem; color:var(--text-main); font-weight:700; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem;">
-              <i data-lucide="scale" style="color:#c084fc;"></i> 3-Team Headcount Equity Active (Front: ${frontHeadcount} | Kitchen: ${kitchenHeadcount} | Cleaning: ${cleanerHeadcount})
+              <i data-lucide="scale" style="color:#c084fc;"></i> Automated Equal-Pay Baseline Active (100% Equal Tip Share per Employee)
             </span>
             <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">
-              Total tip pool is allocated across 3 distinct teams (<strong>Front: ${fPoolStr} €</strong> | <strong>Kitchen: ${kPoolStr} €</strong> | <strong>Cleaning: ${cPoolStr} €</strong>), then distributed to members pro-rata by Coins earned within their department.
+              All active team members receive an equal baseline share of the tip pool. Financial variations occur <strong>strictly via Manager Audit Malus Penalties</strong> applied for non-compliant tasks.
             </p>
           </div>
-          <span class="badge badge-purple" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">⚖️ 3-Team Headcount Proportional Allocation</span>
+          <span class="badge badge-purple" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">⚖️ Equal-Pay Baseline + Malus Differentiation</span>
         </div>
       `;
     }
@@ -1452,26 +1421,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const elCleanerAmt = document.getElementById('summary-cleaner-amount');
     if (elCleanerAmt) elCleanerAmt.textContent = `${cleanerPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
 
-    const frontCoins = empStats.filter(e => e.role === 'FRONT').reduce((s, e) => s + e.points, 0);
-    const kitchenCoins = empStats.filter(e => e.role === 'KITCHEN').reduce((s, e) => s + e.points, 0);
-    const cleanerCoins = empStats.filter(e => e.role === 'CLEANER').reduce((s, e) => s + e.points, 0);
+    const frontSub = empStats.filter(e => e.role === 'FRONT').length;
+    const kitchenSub = empStats.filter(e => e.role === 'KITCHEN').length;
+    const cleanerSub = empStats.filter(e => e.role === 'CLEANER').length;
 
     const elFrontSub = document.getElementById('summary-front-sub');
-    if (elFrontSub) elFrontSub.textContent = `${frontCoins} Coins earned (Front)`;
+    if (elFrontSub) elFrontSub.textContent = `${frontSub} Staff (Front)`;
 
     const elKitchenSub = document.getElementById('summary-kitchen-sub');
-    if (elKitchenSub) elKitchenSub.textContent = `${kitchenCoins} Coins earned (Kitchen)`;
+    if (elKitchenSub) elKitchenSub.textContent = `${kitchenSub} Staff (Kitchen)`;
 
     const elCleanerSub = document.getElementById('summary-cleaner-sub');
-    if (elCleanerSub) elCleanerSub.textContent = `${cleanerCoins} Coins earned (Cleaning)`;
+    if (elCleanerSub) elCleanerSub.textContent = `${cleanerSub} Staff (Cleaning)`;
 
-    // Detailed Editable Table (Sorted in descending order by total coin count)
+    // Detailed Editable Table (Sorted in descending order by compliance score)
     const tbody = document.getElementById('tips-detail-tbody');
     if (tbody) {
       tbody.innerHTML = '';
 
-      // Sort employees by total coins descending (highest to lowest)
-      empStats.sort((a, b) => b.points - a.points);
+      // Sort employees by compliance score descending (highest to lowest)
+      empStats.sort((a, b) => b.complianceScore - a.complianceScore);
 
       empStats.forEach(emp => {
         const tr = document.createElement('tr');
@@ -1486,6 +1455,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (emp.role === 'CLEANER') {
           roleBadgeClass = 'badge-cleaner';
           roleBadgeText = 'Cleaning';
+        }
+
+        let statusDisplay = `<span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7; border:1px solid rgba(16,185,129,0.3);">✔ 100% Compliant</span>`;
+        if (emp.malusPenalties > 0) {
+          statusDisplay = `<span class="badge badge-danger">⚠️ -${emp.malusPenalties} Malus Penalty</span>`;
         }
 
         tr.innerHTML = `
@@ -1504,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ${roleBadgeText} - ${emp.title}
             </span>
           </td>
-          <td><strong class="text-gold">${emp.points} Coins</strong></td>
+          <td>${statusDisplay}</td>
           <td><span class="text-muted">${emp.baselinePercent.toFixed(2)}%</span></td>
           <td>
             <div style="display:flex; align-items:center; gap:0.25rem;">
@@ -2210,16 +2184,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (rawRec.includes('WEEK')) recurrence = 'WEEKLY';
       else if (rawRec.includes('ONE') || rawRec.includes('HERO') || rawRec.includes('SINGLE')) recurrence = 'ONEOFF';
 
-      const rawReward = parts[colIdx.reward] || '';
-      let points = parseInt(rawReward.replace(/\D/g, '')) || 10;
-      if (isNaN(points) || points <= 0) points = 10;
-
       imported.push({
         id: 'cat-gs-' + i + '-' + Date.now(),
         title: title,
         scope: scope,
         period: period,
-        points: points,
+        points: 0,
         recurrence: recurrence,
         desc: desc
       });
