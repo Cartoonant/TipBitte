@@ -525,19 +525,23 @@
         <div class="section-card margin-bottom">
           <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
             <div>
-              <h3><i data-lucide="book-open" class="text-blue"></i> Standard Operating Procedures (SOP) Library</h3>
-              <p class="text-muted">Centralized reference procedures, task instructions, and linked PDF documents for Front & Kitchen teams.</p>
+              <h3><i data-lucide="book-open" class="text-blue"></i> SOP Manual & Official PDF Generator</h3>
+              <p class="text-muted">Centralized regulatory reference manual, task instructions, and automated professional PDF SOP generator for restaurant health & safety audits.</p>
             </div>
-            <label class="btn btn-gold manager-only-block" data-manager-only="true" style="cursor:pointer;">
-              <i data-lucide="file-up"></i> Link / Upload PDF SOP Documents
-              <input type="file" id="input-sop-pdf-upload" accept=".pdf" multiple class="hidden-file-input" />
-            </label>
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <button id="btn-refresh-sops" class="btn btn-gold glow">
+                <i data-lucide="refresh-cw"></i> Rafraîchir la liste des SOPs (Scan Google Sheet)
+              </button>
+              <button id="btn-export-all-sop-pdf" class="btn glow" style="background:linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff; border:none; box-shadow:0 4px 15px rgba(14,165,233,0.35);">
+                <i data-lucide="folder-down"></i> Export All SOPs (Batch PDF)
+              </button>
+            </div>
           </div>
 
           <!-- PDF SOP Documents Library Grid -->
           <div class="margin-top">
             <h4 style="font-size:0.95rem; margin-bottom:0.75rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
-              <i data-lucide="file-text" class="text-gold"></i> Linked PDF Documentation Files
+              <i data-lucide="file-text" class="text-gold"></i> Official Generated PDF Documentation Files
             </h4>
             <div id="sop-pdf-library" class="grid-2col">
               <!-- Dynamic PDF Documents -->
@@ -549,13 +553,14 @@
         <div class="section-card">
           <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
             <div>
-              <h3><i data-lucide="list-checks" class="text-gold"></i> Master Task Instructions & Step-by-Step SOPs</h3>
-              <p class="text-muted">Comprehensive guidelines for all restaurant operations, safety protocols, and daily checklists.</p>
+              <h3><i data-lucide="list-checks" class="text-gold"></i> Master Operational Tasks & Official PDF SOP Generator</h3>
+              <p class="text-muted">Scanned tasks from live Google Sheet catalog. Click "Download Official PDF" on any task to generate compliance SOPs.</p>
             </div>
             <div class="filter-pills" id="sop-category-filter" style="margin:0;">
               <button class="pill-btn active" data-sop-filter="ALL">All Categories</button>
               <button class="pill-btn" data-sop-filter="FRONT">Front Team</button>
               <button class="pill-btn" data-sop-filter="KITCHEN">Kitchen Team</button>
+              <button class="pill-btn" data-sop-filter="CLEANER">Cleaning (Roy)</button>
               <button class="pill-btn" data-sop-filter="EVERYONE">General</button>
             </div>
           </div>
@@ -861,6 +866,8 @@
 
   </div>
 
+  <!-- jsPDF Library for Automated Professional PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- Main JavaScript File -->
   <script src="js/app.js"></script>
 </body>

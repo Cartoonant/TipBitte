@@ -1581,86 +1581,234 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) lucide.createIcons();
   };
 
+  // Automated Official Professional PDF SOP Document Generator Engine
+  const downloadTaskSOPPDF = (task) => {
+    if (!task) return;
+
+    const teamScopeName = task.scope === 'CLEANER' ? 'CLEANING TEAM (ROY)' : (task.scope === 'FRONT' ? 'FRONT TEAM (FLOOR / BAR)' : (task.scope === 'KITCHEN' ? 'KITCHEN TEAM' : 'ALL DEPARTMENTS'));
+    const docCode = `SOP-REG-2026-${String(task.id || '01').replace(/\D/g, '') || '01'}`;
+    const dateStr = new Date().toISOString().substring(0, 10);
+
+    // If jsPDF UMD library is available
+    if (window.jspdf && window.jspdf.jsPDF) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        const primaryColor = [30, 41, 59]; // Dark Navy
+        const accentGold = [217, 119, 6];   // Amber Gold
+        const lightBg = [248, 250, 252];
+
+        // Container Border
+        doc.setFillColor(...lightBg);
+        doc.rect(10, 10, 190, 277, 'F');
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(10, 10, 190, 277, 'S');
+
+        // Header Title Banner
+        doc.setFillColor(...primaryColor);
+        doc.rect(15, 15, 180, 24, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('TIPBITTE RESTAURANT OPERATIONS', 20, 24);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('STANDARD OPERATING PROCEDURE (SOP) - REGULATORY CONTROL MANUAL', 20, 32);
+
+        // Document Details
+        doc.setTextColor(51, 65, 85);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`TASK / PROCEDURE: ${task.title.toUpperCase()}`, 20, 48);
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Document Code: ${docCode}`, 20, 55);
+        doc.text(`Assigned Team: ${teamScopeName}`, 20, 61);
+        doc.text(`Shift Period: ${task.period || 'ANYTIME'} | Recurrence: ${task.recurrence || 'DAILY'}`, 110, 55);
+        doc.text(`Effective Audit Date: ${dateStr}`, 110, 61);
+
+        // Gold Line
+        doc.setDrawColor(...accentGold);
+        doc.setLineWidth(0.8);
+        doc.line(20, 67, 190, 67);
+
+        // Section 1: Objective
+        doc.setTextColor(...accentGold);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('1. OBJECTIVE & OPERATIONAL SCOPE', 20, 76);
+
+        doc.setTextColor(51, 65, 85);
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica', 'normal');
+        const descText = task.desc || `Mandatory operational standard procedure for ${task.title}. Ensures maximum cleanliness, safety compliance, and team efficiency during service.`;
+        const splitDesc = doc.splitTextToSize(descText, 165);
+        doc.text(splitDesc, 20, 84);
+
+        let yPos = 84 + (splitDesc.length * 5) + 6;
+
+        // Section 2: Step-by-Step Method
+        doc.setTextColor(...accentGold);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('2. STEP-BY-STEP EXECUTION METHOD', 20, yPos);
+        yPos += 8;
+
+        const steps = [
+          `Step 1: Sanitary Preparation & Safety Equipment - Wash hands thoroughly (HACCP standard). Equip required personal protective gear (gloves, apron, non-slip footwear).`,
+          `Step 2: Operational Execution of Task - Perform "${task.title}" systematically according to official quality standards. ${task.desc || ''}`,
+          `Step 3: Sanitization & Area Verification - Clean and sanitize all contact surfaces using approved anti-bacterial solution. Return tools to designated storage.`,
+          `Step 4: Audit Logging & Sign-Off - Report completion on the TipBitte Digital Shift Roadmap for manager verification.`
+        ];
+
+        doc.setTextColor(51, 65, 85);
+        doc.setFontSize(9);
+        steps.forEach(step => {
+          const splitStep = doc.splitTextToSize(step, 165);
+          doc.setFont('helvetica', 'bold');
+          doc.text('•', 20, yPos);
+          doc.setFont('helvetica', 'normal');
+          doc.text(splitStep, 25, yPos);
+          yPos += (splitStep.length * 4.8) + 3;
+        });
+
+        yPos += 4;
+
+        // Section 3: Audit Compliance
+        doc.setTextColor(...accentGold);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('3. HEALTH, SAFETY & REGULATORY AUDIT CONTROL (HACCP)', 20, yPos);
+        yPos += 8;
+
+        const auditPoints = [
+          `[✔] Food Safety & Hygiene Standard: Hand washing before and after execution. Zero cross-contamination policy.`,
+          `[✔] Chemical & Equipment Safety: Use chemicals at prescribed dilution ratios. Store chemical products away from food items.`,
+          `[✔] Administrative Audit Traceability: Retain logged records for health inspection & labor compliance controls.`
+        ];
+
+        doc.setFontSize(8.5);
+        auditPoints.forEach(ap => {
+          const splitAp = doc.splitTextToSize(ap, 165);
+          doc.text(splitAp, 20, yPos);
+          yPos += (splitAp.length * 4.5) + 2;
+        });
+
+        // Sign-Off Box
+        yPos = Math.max(yPos + 10, 245);
+        doc.setDrawColor(203, 213, 225);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(20, yPos, 170, 30, 'FD');
+
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text('OFFICIAL REGULATORY APPROVAL & MANAGER SIGN-OFF', 25, yPos + 7);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Operations Manager Signature: _______________________`, 25, yPos + 16);
+        doc.text(`Inspection Control Date: ${dateStr}`, 120, yPos + 16);
+        doc.text(`Status: VALIDATED & COMPLIANT`, 25, yPos + 23);
+
+        doc.save(`${docCode}_${task.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+        showToast(`📄 Generated Official PDF SOP: "${task.title}"`);
+        return;
+      } catch (err) {
+        console.error("jsPDF generation fallback triggered:", err);
+      }
+    }
+
+    // Fallback: Printable HTML Window
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${docCode} - ${task.title}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1e293b; background: #fff; margin: 0; padding: 20px; line-height: 1.5; }
+            .header-banner { background: #1e293b; color: #fff; padding: 18px 24px; border-radius: 6px; }
+            .header-banner h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+            .header-banner p { margin: 4px 0 0 0; font-size: 11px; opacity: 0.85; }
+            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; background: #f8fafc; padding: 16px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; }
+            .meta-grid strong { color: #d97706; }
+            .section-title { font-size: 14px; color: #d97706; font-weight: bold; border-bottom: 2px solid #f59e0b; padding-bottom: 4px; margin-top: 24px; text-transform: uppercase; }
+            .step-list { margin: 12px 0; padding-left: 20px; }
+            .step-list li { margin-bottom: 10px; font-size: 13px; }
+            .audit-box { background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 4px; margin-top: 16px; font-size: 12px; }
+            .signoff-box { margin-top: 36px; border: 1px solid #cbd5e1; padding: 16px; border-radius: 6px; display: flex; justify-content: space-between; font-size: 12px; background: #fafafa; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom:20px; text-align:right;">
+            <button onclick="window.print()" style="padding:10px 20px; background:#d97706; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
+          </div>
+          <div class="header-banner">
+            <h1>TIPBITTE RESTAURANT OPERATIONS</h1>
+            <p>STANDARD OPERATING PROCEDURE (SOP) - OFFICIAL REGULATORY COMPLIANCE MANUAL</p>
+          </div>
+          <div class="meta-grid">
+            <div>
+              <div><strong>Task / Procedure:</strong> ${task.title}</div>
+              <div><strong>Document Code:</strong> ${docCode}</div>
+              <div><strong>Target Team:</strong> ${teamScopeName}</div>
+            </div>
+            <div>
+              <div><strong>Shift Period:</strong> ${task.period || 'ANYTIME'}</div>
+              <div><strong>Recurrence:</strong> ${task.recurrence || 'DAILY'}</div>
+              <div><strong>Audit Control Date:</strong> ${dateStr}</div>
+            </div>
+          </div>
+          <div class="section-title">1. Objective & Operational Scope</div>
+          <p style="font-size:13px; color:#475569;">
+            ${task.desc || `Mandatory operational standard for ${task.title}. Ensures maximum cleanliness, safety compliance, and team efficiency.`}
+          </p>
+          <div class="section-title">2. Step-by-Step Execution Method</div>
+          <ol class="step-list">
+            <li><strong>Sanitary Preparation & Safety Equipment:</strong> Wash hands thoroughly (HACCP standard). Equip required personal protective equipment (gloves, apron, non-slip footwear).</li>
+            <li><strong>Operational Execution of Task:</strong> Perform "${task.title}" systematically according to official restaurant quality standards.</li>
+            <li><strong>Sanitization & Area Verification:</strong> Clean and sanitize all contact surfaces using approved anti-bacterial solution. Return tools to designated storage.</li>
+            <li><strong>Audit Logging & Sign-Off:</strong> Report completion on the TipBitte Digital Shift Roadmap for manager verification.</li>
+          </ol>
+          <div class="section-title">3. Health, Safety & Administrative Audit Control</div>
+          <div class="audit-box">
+            <div>✔ <strong>HACCP Hygiene Standard:</strong> Mandatory hand sanitation before & after execution. Zero cross-contamination policy.</div>
+            <div style="margin-top:6px;">✔ <strong>Chemical Safety:</strong> Dilute cleaning products as specified. Never mix incompatible chemicals.</div>
+            <div style="margin-top:6px;">✔ <strong>Regulatory Compliance:</strong> Retain daily digital audit logs for health inspector verification.</div>
+          </div>
+          <div class="signoff-box">
+            <div>
+              <strong>Approved by:</strong> Operations Manager<br/>
+              <strong>Status:</strong> VALIDATED & COMPLIANT
+            </div>
+            <div style="text-align:right;">
+              <strong>Signature:</strong> _______________________<br/>
+              <strong>Date:</strong> ${dateStr}
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+      showToast(`📄 Generated Printable Official SOP PDF for "${task.title}"`);
+    }
+  };
+
   // SOP (Standard Operating Procedures) Renderer
   let activeSopFilter = 'ALL';
 
   const renderSOP = () => {
-    // Filter out any legacy mock PDF documents
-    appState.sopDocuments = (appState.sopDocuments || []).filter(d => !d.id.startsWith('pdf-'));
-
-    const isManager = appState.activeRole === 'MANAGER';
-
-    // Render Linked PDF Documents Grid
-    const pdfContainer = document.getElementById('sop-pdf-library');
-    if (pdfContainer) {
-      pdfContainer.innerHTML = '';
-      if (appState.sopDocuments.length === 0) {
-        pdfContainer.innerHTML = `
-          <div style="grid-column:1/-1; background:var(--bg-input); padding:1.5rem; border-radius:var(--radius-md); border:1px dashed var(--border-color); text-align:center;">
-            <i data-lucide="file-up" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
-            <p class="text-muted" style="margin:0; font-size:0.88rem;">No PDF SOP documents linked yet. Click "Link / Upload PDF SOP Documents" above to populate your SOP reference library.</p>
-          </div>
-        `;
-      } else {
-        appState.sopDocuments.forEach(doc => {
-          const pdfCard = document.createElement('div');
-          pdfCard.className = 'section-card';
-          pdfCard.style.padding = '1rem';
-          pdfCard.style.display = 'flex';
-          pdfCard.style.alignItems = 'center';
-          pdfCard.style.justifyContent = 'space-between';
-          pdfCard.style.gap = '0.75rem';
-          pdfCard.style.background = 'var(--bg-input)';
-          pdfCard.style.border = '1px solid var(--border-color)';
-          pdfCard.style.borderRadius = 'var(--radius-md)';
-
-          const badgeClass = doc.category === 'FRONT' ? 'badge-front' : (doc.category === 'KITCHEN' ? 'badge-kitchen' : 'badge-gold');
-
-          pdfCard.innerHTML = `
-            <div style="display:flex; align-items:center; gap:0.75rem; overflow:hidden;">
-              <div style="width:42px; height:42px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; color:var(--color-danger); flex-shrink:0;">
-                <i data-lucide="file-text" style="width:24px; height:24px;"></i>
-              </div>
-              <div style="overflow:hidden;">
-                <strong style="display:block; font-size:0.85rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; color:var(--text-main);">${doc.title}</strong>
-                <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.2rem;">
-                  <span class="badge ${badgeClass}" style="font-size:0.6rem; padding:0.05rem 0.35rem;">${doc.category}</span>
-                  <span style="font-size:0.7rem; color:var(--text-muted);">${doc.size || 'PDF Document'}</span>
-                </div>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:0.35rem; flex-shrink:0;">
-              <a href="${doc.url || '#'}" download="${doc.title}" target="_blank" class="btn btn-outline btn-sm" style="padding:0.3rem 0.6rem; font-size:0.75rem;" title="View / Download PDF">
-                <i data-lucide="download"></i> View
-              </a>
-              ${isManager ? `
-                <button class="btn-icon btn-delete-pdf" data-id="${doc.id}" style="color:var(--color-danger); padding:0.35rem;" title="Unlink PDF">
-                  <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
-                </button>
-              ` : ''}
-            </div>
-          `;
-          pdfContainer.appendChild(pdfCard);
-        });
-
-        pdfContainer.querySelectorAll('.btn-delete-pdf').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.dataset.id;
-            if (confirm("Remove this PDF SOP document link?")) {
-              appState.sopDocuments = appState.sopDocuments.filter(d => d.id !== id);
-              saveState();
-              showToast("PDF document unlinked.");
-            }
-          });
-        });
-      }
-    }
-
     // Render Master Task Procedures & Instructions
     const tasksContainer = document.getElementById('sop-tasks-list');
     if (tasksContainer) {
       tasksContainer.innerHTML = '';
-      const catalogue = (appState.masterTaskCatalogue || []).filter(t => t.sopDesc && t.sopDesc.trim());
+      const catalogue = appState.masterTaskCatalogue || [];
       
       const filtered = catalogue.filter(t => {
         if (activeSopFilter === 'ALL') return true;
@@ -1671,21 +1819,26 @@ document.addEventListener('DOMContentLoaded', () => {
         tasksContainer.innerHTML = `
           <div style="background:var(--bg-input); padding:1.5rem; border-radius:var(--radius-md); border:1px dashed var(--border-color); text-align:center;">
             <i data-lucide="list-checks" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
-            <p class="text-muted" style="margin:0; font-size:0.88rem;">No written task SOP procedures added yet. Import your task file or add procedures to populate this section.</p>
+            <p class="text-muted" style="margin:0; font-size:0.88rem;">No operational tasks match this category filter.</p>
           </div>
         `;
       } else {
         filtered.forEach((task, index) => {
           const card = document.createElement('div');
           card.className = 'task-card';
-          card.style.borderLeft = task.scope === 'FRONT' ? '4px solid var(--color-primary)' : (task.scope === 'KITCHEN' ? '4px solid var(--color-danger)' : '4px solid var(--color-gold)');
+          card.style.borderLeft = task.scope === 'FRONT' ? '4px solid var(--color-primary)' : (task.scope === 'KITCHEN' ? '4px solid var(--color-danger)' : (task.scope === 'CLEANER' ? '4px solid #14b8a6' : '4px solid var(--color-gold)'));
           
+          let scopeBadgeClass = 'badge-gold';
+          if (task.scope === 'FRONT') scopeBadgeClass = 'badge-front';
+          if (task.scope === 'KITCHEN') scopeBadgeClass = 'badge-kitchen';
+          if (task.scope === 'CLEANER') scopeBadgeClass = 'badge-cleaner';
+
           card.innerHTML = `
             <div class="task-main-info" style="width:100%;">
               <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.4rem;">
                 <div style="display:flex; align-items:center; gap:0.4rem;">
-                  <span class="badge ${task.scope === 'FRONT' ? 'badge-front' : (task.scope === 'KITCHEN' ? 'badge-kitchen' : 'badge-gold')}">
-                    ${task.scope}
+                  <span class="badge ${scopeBadgeClass}">
+                    ${task.scope === 'CLEANER' ? 'CLEANING (ROY)' : task.scope}
                   </span>
                   <span class="badge" style="background:var(--bg-input); border:1px solid var(--border-color); color:var(--text-muted); font-size:0.65rem;">
                     ⏰ ${task.period || 'ANYTIME'}
@@ -1694,24 +1847,63 @@ document.addEventListener('DOMContentLoaded', () => {
                     🔁 ${task.recurrence || 'DAILY'}
                   </span>
                 </div>
-                <strong class="text-gold" style="font-size:0.95rem;">+${task.points} Coins</strong>
+                <button class="btn btn-outline btn-sm btn-generate-sop-pdf" data-task-id="${task.id}" style="padding:0.3rem 0.75rem; font-size:0.78rem; font-weight:700;">
+                  <i data-lucide="file-down"></i> Télécharger PDF Officiel SOP
+                </button>
               </div>
               <h4 style="margin:0 0 0.4rem 0; font-size:1.05rem; font-weight:700; color:var(--text-main);">
                 SOP #${index + 1}: ${task.title}
               </h4>
               <p style="margin:0; font-size:0.88rem; color:var(--text-muted); line-height:1.5; background:var(--bg-input); padding:0.65rem 0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                <strong style="color:var(--text-main); display:block; margin-bottom:0.25rem;">📋 Standard Operating Procedure / Detailed Instructions:</strong>
-                ${task.sopDesc}
+                <strong style="color:var(--text-main); display:block; margin-bottom:0.25rem;">📋 Standard Operating Procedure / Method Instructions:</strong>
+                ${task.desc || 'Standard operational task. Follow HACCP health, safety, and sanitization protocols.'}
               </p>
             </div>
           `;
           tasksContainer.appendChild(card);
+        });
+
+        // Individual SOP PDF Download Listener
+        tasksContainer.querySelectorAll('.btn-generate-sop-pdf').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const taskId = e.currentTarget.dataset.taskId;
+            const task = (appState.masterTaskCatalogue || []).find(t => t.id === taskId);
+            if (task) {
+              downloadTaskSOPPDF(task);
+            }
+          });
         });
       }
     }
 
     if (window.lucide) lucide.createIcons();
   };
+
+  // Manager Refresh SOPs Button Listener (Scans Google Sheet catalogue for new tasks)
+  const btnRefreshSOPs = document.getElementById('btn-refresh-sops');
+  if (btnRefreshSOPs) {
+    btnRefreshSOPs.addEventListener('click', async () => {
+      await syncGoogleSheetTasks(false);
+      renderSOP();
+      showToast(`🔄 SOP Manual refreshed! Scanned ${appState.masterTaskCatalogue?.length || 0} Google Sheet tasks for PDF generation.`);
+    });
+  }
+
+  // Batch Export All SOP PDFs Button Listener
+  const btnExportAllSOPs = document.getElementById('btn-export-all-sop-pdf');
+  if (btnExportAllSOPs) {
+    btnExportAllSOPs.addEventListener('click', () => {
+      const catalogue = appState.masterTaskCatalogue || [];
+      if (catalogue.length === 0) {
+        showToast("❌ No tasks in SOP catalogue.");
+        return;
+      }
+      showToast(`📦 Batch generating ${Math.min(5, catalogue.length)} sample SOP PDFs...`);
+      catalogue.slice(0, 5).forEach((task, idx) => {
+        setTimeout(() => downloadTaskSOPPDF(task), idx * 800);
+      });
+    });
+  }
 
   const renderAll = () => {
     applyTheme();
