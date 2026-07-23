@@ -818,20 +818,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Filter tasks strictly for the selected day number of the month
-      let visibleScheduledTasks = (appState.scheduledDailyTasks || []).filter(t => t.day === selectedDay);
+      // Check if Opening or Closing Shift processes have been validated today across ANY employee
+      const hasOpeningValidation = (appState.tasks || []).some(t => t.desc.includes('[Opening Shift Process]') && t.status !== 'REJECTED');
+      const hasClosingValidation = (appState.tasks || []).some(t => t.desc.includes('[Closing Shift Process]') && t.status !== 'REJECTED');
 
+      // Helper function to check if a task has been completed / validated by ANY team member today
+      const getTaskCompletion = (taskTitle, taskDesc, taskPeriod) => {
+        const txt = (taskTitle + ' ' + (taskDesc || '') + ' ' + (taskPeriod || '')).toLowerCase();
+        
+        // If Closing shift is validated by anyone, all closing tasks are completed!
+        if (hasClosingValidation && txt.includes('closing')) {
+          const cTask = appState.tasks.find(t => t.desc.includes('[Closing Shift Process]') && t.status !== 'REJECTED');
+          return cTask || { status: 'PENDING', employeeId: appState.activeRole };
+        }
+        
+        // If Opening shift is validated by anyone, all opening tasks are completed!
+        if (hasOpeningValidation && (txt.includes('opening') || txt.includes('procedure'))) {
+          const oTask = appState.tasks.find(t => t.desc.includes('[Opening Shift Process]') && t.status !== 'REJECTED');
+          return oTask || { status: 'PENDING', employeeId: appState.activeRole };
+        }
+
+        // Check individual shared or specific task completion by title across ANY employee
+        return (appState.tasks || []).find(t => t.status !== 'REJECTED' && (t.desc === `Daily Task Completed: ${taskTitle}` || (t.desc && t.desc.includes(taskTitle))));
+      };
+
+      // Filter tasks strictly for the selected day number of the month
+      let allScheduledForDay = (appState.scheduledDailyTasks || []).filter(t => t.day === selectedDay);
+
+      // Separate into ACTIVE (pending) tasks and COMPLETED (validated) tasks
+      const activeTasks = [];
+      const completedTasks = [];
+
+      allScheduledForDay.forEach(task => {
+        const completion = getTaskCompletion(task.title, task.desc, task.period);
+        if (completion) {
+          completedTasks.push({ ...task, completion });
+        } else {
+          activeTasks.push(task);
+        }
+      });
+
+      // Filter active tasks for the current employee if not manager
+      let visibleScheduledTasks = activeTasks;
       if (!isManager && activeEmp) {
         visibleScheduledTasks = visibleScheduledTasks.filter(t => t.employeeId === activeEmp.id);
       }
 
       if (visibleScheduledTasks.length === 0) {
-        dailyGrid.innerHTML = `
-          <div style="text-align:center; padding:2rem 1rem; width:100%;" class="text-muted">
-            <i data-lucide="calendar-x" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
-            <p style="margin:0;">No shift tasks assigned ${!isManager ? 'to you' : ''} for <strong>${dayAbbr}, ${selectedDateStr}</strong>.</p>
-          </div>
-        `;
+        if (completedTasks.length > 0 && !isManager) {
+          dailyGrid.innerHTML = `
+            <div style="text-align:center; padding:2.5rem 1rem; background:rgba(16,185,129,0.08); border-radius:var(--radius-md); border:1px solid rgba(16,185,129,0.2); width:100%;">
+              <div style="font-size:2.8rem; margin-bottom:0.5rem;">🎉</div>
+              <h3 style="color:var(--color-green); margin-bottom:0.5rem;">All Shift Tasks Validated!</h3>
+              <p class="text-muted" style="max-width:420px; margin:0 auto;">All shift & closing tasks for <strong>${dayAbbr}, ${selectedDateStr}</strong> have been validated and cleared from your roadmap.</p>
+            </div>
+          `;
+        } else {
+          dailyGrid.innerHTML = `
+            <div style="text-align:center; padding:2rem 1rem; width:100%;" class="text-muted">
+              <i data-lucide="calendar-x" class="text-gold" style="width:32px; height:32px; margin-bottom:0.5rem;"></i>
+              <p style="margin:0;">No active shift tasks pending ${!isManager ? 'for you' : ''} for <strong>${dayAbbr}, ${selectedDateStr}</strong>.</p>
+            </div>
+          `;
+        }
       } else {
         // Daily Header Banner with Date Info
         const banner = document.createElement('div');
@@ -848,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span style="font-size:0.85rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
             <i data-lucide="calendar" class="text-gold"></i> Shift Roadmap for ${dayAbbr}, ${selectedDateStr}
           </span>
-          <span class="badge badge-gold" style="font-size:0.7rem;">${visibleScheduledTasks.length} Task${visibleScheduledTasks.length !== 1 ? 's' : ''} Assigned</span>
+          <span class="badge badge-gold" style="font-size:0.7rem;">${visibleScheduledTasks.length} Active Task${visibleScheduledTasks.length !== 1 ? 's' : ''} Pending</span>
         `;
         dailyGrid.appendChild(banner);
 
@@ -857,24 +906,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const item = document.createElement('div');
           item.className = 'task-item';
 
-          // Check if task completion submission exists for this employee
-          const existingSubmission = (appState.tasks || []).find(t => t.employeeId === task.employeeId && t.desc === `Daily Task Completed: ${task.title}`);
-
           let statusAction = `
             <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
               <i data-lucide="check-circle"></i> Mark Done
             </button>
           `;
-
-          if (existingSubmission) {
-            if (existingSubmission.status === 'PENDING') {
-              statusAction = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">⏳ Pending Approval</span>`;
-            } else if (existingSubmission.status === 'APPROVED') {
-              statusAction = `<span class="badge badge-purple">✔ Approved (+${task.points} Coins)</span>`;
-            } else if (existingSubmission.status === 'REJECTED') {
-              statusAction = `<span class="badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger); border:1px solid rgba(239,68,68,0.3);">❌ Rejected</span>`;
-            }
-          }
 
           let periodBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">🕒 Anytime</span>`;
           if (task.period === 'MORNING') periodBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">🌅 Morning</span>`;
@@ -907,6 +943,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      // Collapsible/Visible Section for Completed & Cleared Tasks Today
+      if (completedTasks.length > 0) {
+        const completedSection = document.createElement('div');
+        completedSection.style.gridColumn = '1 / -1';
+        completedSection.style.marginTop = '1.25rem';
+        completedSection.style.padding = '0.85rem 1rem';
+        completedSection.style.background = 'rgba(16,185,129,0.05)';
+        completedSection.style.borderRadius = 'var(--radius-md)';
+        completedSection.style.border = '1px solid rgba(16,185,129,0.2)';
+
+        let completedCardsHTML = '';
+        completedTasks.forEach(item => {
+          const validatorEmp = appState.staff.find(s => s.id === item.completion.employeeId) || { name: 'Team Member' };
+          const statusBadge = item.completion.status === 'APPROVED' 
+            ? `<span class="badge badge-purple" style="font-size:0.68rem;">✔ Approved (+${item.points} Coins)</span>` 
+            : `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3); font-size:0.68rem;">⏳ Pending Manager Approval</span>`;
+
+          completedCardsHTML += `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:0.45rem 0.65rem; background:var(--bg-card); border-radius:var(--radius-md); margin-top:0.4rem; border:1px solid var(--border-color);">
+              <div>
+                <strong style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted);">${item.title}</strong>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.15rem;">
+                  Validated by <strong>${validatorEmp.name}</strong> for the shift team
+                </div>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+          `;
+        });
+
+        completedSection.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.85rem; font-weight:700; color:var(--color-green); display:flex; align-items:center; gap:0.4rem;">
+              <i data-lucide="check-check"></i> Completed & Cleared Shift Tasks (${completedTasks.length})
+            </span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Synchronized across all team roadmaps</span>
+          </div>
+          ${completedCardsHTML}
+        `;
+        dailyGrid.appendChild(completedSection);
+      }
+
       // Employee claim task listener
       dailyGrid.querySelectorAll('.btn-claim-task').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -924,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           appState.tasks.push(newSubmission);
           saveState();
-          showToast("Task completed and submitted for manager approval!");
+          showToast(`Task "${desc}" validated and cleared from all team roadmaps!`);
         });
       });
 
