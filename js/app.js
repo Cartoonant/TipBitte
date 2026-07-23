@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appState = rawState;
     if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
     if (!appState.activeRole) appState.activeRole = 'MANAGER';
-    if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
+    if (appState.eotmBonusAmount === undefined || appState.eotmBonusAmount === null) appState.eotmBonusAmount = 0;
     
     // Clear legacy mock PDF files
     if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.masterTaskCatalogue = JSON.parse(JSON.stringify(DEFAULT_MASTER_CATALOGUE));
     appState.activeRole = 'MANAGER';
     appState.eotmWinnerId = null;
-    appState.eotmBonusAmount = 100;
+    appState.eotmBonusAmount = 0;
     appState.tasks = [];
     appState.schedules = {};
     appState.tipsConfig = {};
@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const inputBonus = document.getElementById('input-eotm-bonus');
     if (inputBonus && document.activeElement !== inputBonus) {
-      inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
+      inputBonus.value = appState.eotmBonusAmount !== undefined && appState.eotmBonusAmount !== null ? appState.eotmBonusAmount : 0;
     }
 
     const { empStats, totalTips, frontPool, kitchenPool, cleanerPool, frontHeadcount, kitchenHeadcount, cleanerHeadcount, frontAllocatedPool, kitchenAllocatedPool, cleanerAllocatedPool } = calculateTipDistribution();
