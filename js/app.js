@@ -1428,14 +1428,9 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✨ Generated 31-day automated monthly fair rotation across team!`);
   };
 
-  // Google Sheet Live Sync URL & Robust CORS Fallback Stack
+  // Google Sheet Multi-Tab GIDs & Fallback Stack
   const SHEET_ID = '1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0';
-
-  const GOOGLE_SHEET_URLS = [
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`
-  ];
+  const DEFAULT_GIDS = ['0', '1', '2', '3', '4'];
 
   const parseCSVTasks = (csvText) => {
     if (!csvText || !csvText.trim()) return [];
@@ -1447,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const trimmed = line.trim();
       if (!trimmed) return;
 
-      const parts = trimmed.split(',');
+      const parts = trimmed.split(/,|\t|;/);
       const cleanParts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
 
       // Find first non-empty column
@@ -1509,6 +1504,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return imported;
   };
 
+  const fetchTabCSV = async (sheetId, gid) => {
+    const urls = [
+      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
+      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`)}`
+    ];
+
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 10) {
+            return text;
+          }
+        }
+      } catch (err) {
+        // continue fallback
+      }
+    }
+    return null;
+  };
+
   const syncGoogleSheetTasks = async (showNotification = true) => {
     const btnSync = document.getElementById('btn-sync-google-sheet');
     const alertBox = document.getElementById('gs-sync-alert');
@@ -1516,21 +1534,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnSync) {
       btnSync.disabled = true;
-      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
+      btnSync.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing 5 Tabs...`;
     }
 
-    let csvText = null;
+    const sheetId = appState.googleSheetId || SHEET_ID;
+    const gidsToFetch = (appState.googleSheetGids && appState.googleSheetGids.length > 0)
+      ? appState.googleSheetGids
+      : DEFAULT_GIDS;
+
+    let allMergedTasks = [];
+    let successfulTabsCount = 0;
+    const seenTitles = new Set();
     let fetchError = null;
 
-    // Try endpoints in cascade (gviz/tq -> export?format=csv -> allorigins proxy)
-    for (const url of GOOGLE_SHEET_URLS) {
+    for (const gid of gidsToFetch) {
       try {
-        const response = await fetch(url);
-        if (response.ok) {
-          const text = await response.text();
-          if (text && text.trim().length > 10) {
-            csvText = text;
-            break;
+        const csvText = await fetchTabCSV(sheetId, gid);
+        if (csvText) {
+          const parsed = parseCSVTasks(csvText);
+          if (parsed.length > 0) {
+            successfulTabsCount++;
+            parsed.forEach(task => {
+              const key = task.title.toLowerCase().trim();
+              if (!seenTitles.has(key)) {
+                seenTitles.add(key);
+                allMergedTasks.push(task);
+              }
+            });
           }
         }
       } catch (err) {
@@ -1538,23 +1568,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (csvText) {
-      const parsed = parseCSVTasks(csvText);
-      if (parsed.length > 0) {
-        appState.masterTaskCatalogue = parsed;
-        saveState();
-        if (alertBox) alertBox.classList.add('hidden');
-        renderAll();
-        if (showNotification) {
-          showToast(`⚡ Live Google Sheet synchronized! ${parsed.length} tasks loaded.`);
-        }
-        if (btnSync) {
-          btnSync.disabled = false;
-          btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets`;
-        }
-        if (window.lucide) lucide.createIcons();
-        return;
+    if (allMergedTasks.length > 0) {
+      appState.masterTaskCatalogue = allMergedTasks;
+      saveState();
+      if (alertBox) alertBox.classList.add('hidden');
+      renderAll();
+      if (showNotification) {
+        showToast(`⚡ Synchronized ${successfulTabsCount} Google Sheet tab(s)! ${allMergedTasks.length} tasks merged.`);
       }
+      if (btnSync) {
+        btnSync.disabled = false;
+        btnSync.innerHTML = `<i data-lucide="refresh-cw"></i> Sync Google Sheets (${successfulTabsCount} Tabs)`;
+      }
+      if (window.lucide) lucide.createIcons();
+      return;
     }
 
     // Diagnostic & Fallback Alert Display (Plan B)
@@ -1638,6 +1665,50 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
   if (btnSyncSheet) {
     btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
+  }
+
+  // Toggle GID Settings Panel Listener
+  const btnToggleGids = document.getElementById('btn-toggle-gids-config');
+  const btnCancelGids = document.getElementById('btn-cancel-gids-config');
+  const btnSaveGids = document.getElementById('btn-save-gids-config');
+  const gidsPanel = document.getElementById('gids-config-panel');
+
+  if (btnToggleGids && gidsPanel) {
+    btnToggleGids.addEventListener('click', () => {
+      gidsPanel.classList.toggle('hidden');
+      if (!gidsPanel.classList.contains('hidden')) {
+        const inputGids = document.getElementById('input-gids-list');
+        if (inputGids) {
+          inputGids.value = (appState.googleSheetGids || DEFAULT_GIDS).join(', ');
+        }
+      }
+    });
+  }
+  if (btnCancelGids && gidsPanel) {
+    btnCancelGids.addEventListener('click', () => gidsPanel.classList.add('hidden'));
+  }
+  if (btnSaveGids) {
+    btnSaveGids.addEventListener('click', () => {
+      const raw = document.getElementById('input-gids-list')?.value || '';
+      // Extract GIDs from comma-separated input or URLs containing gid=\d+
+      const extracted = [];
+      const parts = raw.split(/[\s,]+/);
+      parts.forEach(p => {
+        const match = p.match(/gid=(\d+)/i) || p.match(/^\d+$/);
+        if (match) {
+          const gidVal = match[1] || match[0];
+          if (gidVal && !extracted.includes(gidVal)) {
+            extracted.push(gidVal);
+          }
+        }
+      });
+
+      appState.googleSheetGids = extracted.length > 0 ? extracted : DEFAULT_GIDS;
+      saveState();
+      if (gidsPanel) gidsPanel.classList.add('hidden');
+      showToast(`Saved ${appState.googleSheetGids.length} Sheet GID(s)! Triggering sync...`);
+      syncGoogleSheetTasks(true);
+    });
   }
 
   // Close GS Sync Error Alert Listener
