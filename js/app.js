@@ -144,26 +144,50 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // 2. POSTGRESQL & LOCALSTORAGE PERSISTENCE ENGINE
+  // 2. GOOGLE SHEET CLOUD PERSISTENCE & REVALIDATION ENGINE
   // ==========================================
 
   let isInitialized = false;
-  let syncTimeout = null;
 
-  const saveStateToCloud = () => {
-    if (syncTimeout) clearTimeout(syncTimeout);
-    syncTimeout = setTimeout(() => {
-      fetch('/api/state', {
+  const saveStateToCloud = async (immediate = false) => {
+    try {
+      const res = await fetch(`/api/state?t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        cache: 'no-store',
         body: JSON.stringify({ state: appState })
-      }).catch(err => console.log('Cloud sync info:', err));
-    }, 600);
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          applyLoadedState(json.data);
+          localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
+        }
+      }
+    } catch (err) {
+      console.log('Cloud sync info:', err);
+    }
+  };
+
+  const revalidateStateFromCloud = async () => {
+    try {
+      const res = await fetch(`/api/state?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          applyLoadedState(json.data);
+          localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
+          if (isInitialized) renderAll();
+        }
+      }
+    } catch (e) {
+      console.log('Revalidation info:', e);
+    }
   };
 
   const saveState = () => {
     localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
-    saveStateToCloud();
+    saveStateToCloud(true);
     if (isInitialized) {
       renderAll();
     }
@@ -196,9 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const loadState = async () => {
-    // Attempt load from PostgreSQL Cloud Database first
+    // Attempt load from Google Sheet Cloud Backend with anti-cache revalidation
     try {
-      const res = await fetch('/api/state');
+      const res = await fetch(`/api/state?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         if (json && json.success && json.data) {
@@ -207,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (e) {
-      console.log('PostgreSQL cloud load info (falling back to LocalStorage):', e);
+      console.log('Google Sheet cloud load info (falling back to LocalStorage):', e);
     }
 
     // Fallback to LocalStorage
@@ -3068,11 +3092,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Save Tip Pool Amount Listener
   const btnSaveTips = document.getElementById('btn-save-tips');
   if (btnSaveTips) {
-    btnSaveTips.addEventListener('click', () => {
+    btnSaveTips.addEventListener('click', async () => {
       const totalAmount = parseFloat(document.getElementById('input-total-tips').value) || 0;
       appState.tipsConfig[appState.currentMonth] = { totalAmount };
       saveState();
-      showToast("Tip pool amount saved and shares recalculated!");
+      await revalidateStateFromCloud();
+      showToast("Tip pool amount saved and synced to Google Sheet!");
     });
   }
 

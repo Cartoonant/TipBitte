@@ -30,6 +30,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Bypass PWA Cache for all live API endpoints
+  if (event.request.url.includes('/api/')) {
+    return event.respondWith(fetch(event.request));
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

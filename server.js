@@ -140,6 +140,9 @@ app.get('/healthz', (req, res) => {
 
 // REST API: Load Persistent State from Google Sheet Backend
 app.get('/api/state', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.status(200).json({ 
     success: true, 
     data: cachedState, 
@@ -149,13 +152,14 @@ app.get('/api/state', (req, res) => {
 
 // REST API: Save State & Push Task Validations to Google Sheet
 app.post('/api/state', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
   const { state } = req.body;
   if (!state) {
     return res.status(400).json({ success: false, error: 'Missing state payload' });
   }
 
   await syncStateToGoogleSheet(state);
-  res.status(200).json({ success: true, mode: 'google_sheet_synced' });
+  res.status(200).json({ success: true, data: cachedState, mode: 'google_sheet_synced' });
 });
 
 // Proxy route to fetch live Google Sheet tasks CSV
