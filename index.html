@@ -487,6 +487,35 @@
               <!-- Dynamic History List -->
             </div>
           </div>
+
+          <!-- Manager Audit Log & Task Penalties System -->
+          <div id="manager-audit-log-block" class="section-card margin-top">
+            <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <h3><i data-lucide="shield-alert" class="text-danger"></i> Manager Audit Log & Task Penalties</h3>
+                <p class="text-muted">Audit log of task rejections, non-compliance flags, and automated coin penalties (malus) applied for month-end audit.</p>
+              </div>
+              <span class="badge badge-danger" id="audit-log-count-badge">0 Audit Entries</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Team Member</th>
+                    <th>Task / Action Description</th>
+                    <th>Status / Audit Decision</th>
+                    <th>Penalty Applied (Malus)</th>
+                    <th>Audit Reason & Note</th>
+                  </tr>
+                </thead>
+                <tbody id="manager-audit-log-tbody">
+                  <!-- Dynamic Audit Log Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -616,6 +645,9 @@
               <i data-lucide="printer"></i> Print Breakdown
             </button>
           </div>
+
+          <!-- Headcount Ratio Equity Proportional Weighting Info Banner -->
+          <div id="summary-headcount-equity"></div>
 
           <div class="table-responsive">
             <table class="data-table">

@@ -289,16 +289,25 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
-  // Tip distribution calculation based on Coins + EOTM Bonus (Hybrid Model)
+  // Tip distribution calculation based on Coins + Headcount Proportional Weighting + EOTM Bonus
   const calculateTipDistribution = () => {
     const config = appState.tipsConfig[appState.currentMonth] || { totalAmount: 2600 };
     const totalTips = parseFloat(config.totalAmount) || 0;
     const bonusAmount = parseFloat(appState.eotmBonusAmount) || 0;
     const winnerId = appState.eotmWinnerId;
 
+    const frontStaff = appState.staff.filter(s => s.role === 'FRONT');
+    const kitchenStaff = appState.staff.filter(s => s.role === 'KITCHEN');
+    const frontHeadcount = frontStaff.length || 1;
+    const kitchenHeadcount = kitchenStaff.length || 1;
+
     let empStats = appState.staff.map(emp => {
       const points = getEmployeePoints(emp.id);
       const att = getEmployeeAttendance(emp.id, appState.currentMonth);
+      const teamHeadcount = emp.role === 'FRONT' ? frontHeadcount : kitchenHeadcount;
+      // Headcount-weighted coins: normalizes coins per-capita across team sizes
+      const weightedPoints = points * (1 / teamHeadcount);
+
       return {
         id: emp.id,
         name: emp.name,
@@ -309,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         workedDays: att.workedDays,
         workedHours: att.workedHours,
         points: points,
+        weightedPoints: weightedPoints,
         baselinePercent: 0,
         manualPercent: null,
         tipSharePercent: 0,
@@ -318,14 +328,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const grandTotalPoints = empStats.reduce((sum, e) => sum + e.points, 0);
+    const grandTotalWeightedPoints = empStats.reduce((sum, e) => sum + e.weightedPoints, 0);
 
     // Amount pool left to distribute pro-rata after deducting winner bonus
     const poolForProRata = winnerId && totalTips >= bonusAmount ? totalTips - bonusAmount : totalTips;
 
-    // Baseline Coin-Proportions calculation
+    // Baseline Coin-Proportions calculation with Headcount Weighting Equity
     empStats.forEach(emp => {
-      if (grandTotalPoints > 0) {
-        emp.baselinePercent = parseFloat(((emp.points / grandTotalPoints) * 100).toFixed(2));
+      if (grandTotalWeightedPoints > 0) {
+        emp.baselinePercent = parseFloat(((emp.weightedPoints / grandTotalWeightedPoints) * 100).toFixed(2));
       } else {
         emp.baselinePercent = appState.staff.length > 0 ? parseFloat((100 / appState.staff.length).toFixed(2)) : 0;
       }
@@ -356,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sort employees in strict descending order by total coin count (highest to lowest)
     empStats.sort((a, b) => b.points - a.points);
 
-    return { empStats, grandTotalPoints, totalTips, frontPool, kitchenPool };
+    return { empStats, grandTotalPoints, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount };
   };
 
   // ==========================================
@@ -1190,25 +1201,48 @@ document.addEventListener('DOMContentLoaded', () => {
           if (task) {
             task.status = 'APPROVED';
             saveState();
+            renderAll();
             showToast("Task entry approved! Coins awarded.");
           }
         });
       });
 
+      // Manager Task Rejection with Automated Malus Penalty & Audit Log Entry
       pendingList.querySelectorAll('.btn-reject').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const taskId = e.currentTarget.dataset.id;
           const task = appState.tasks.find(t => t.id === taskId);
           if (task) {
+            const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Employee' };
+            const reason = prompt(`Enter rejection reason for ${emp.name} (Penalty will be recorded in Manager Audit Log):`, "Non-compliant execution") || "Non-compliant execution";
+
             task.status = 'REJECTED';
+            task.rejectionReason = reason;
+            task.rejectedAt = Date.now();
+
+            // Automated Coin Penalty (Malus deduction: e.g. -15 or -30 Coins)
+            const penaltyCoins = Math.min(task.points || 15, 30);
+            appState.tasks.unshift({
+              id: `malus-${task.id}-${Date.now()}`,
+              employeeId: task.employeeId,
+              desc: `⚠️ MANAGER MALUS PENALTY: Task Rejection for "${task.desc}" (Reason: ${reason})`,
+              points: -penaltyCoins,
+              status: 'APPROVED',
+              timestamp: Date.now(),
+              isMalus: true,
+              targetTaskId: task.id,
+              reason: reason
+            });
+
             saveState();
-            showToast("Task entry rejected.");
+            renderAll();
+            showToast(`❌ Task rejected! Automated penalty of -${penaltyCoins} Coins applied to ${emp.name} & recorded in Audit Log.`);
           }
         });
       });
     }
 
-    // Manager View: Approved Tasks History
+    // Manager View: Approved Tasks History & Revoke Handler
     const historyList = document.getElementById('validated-tasks-list');
     if (historyList) {
       const validatedTasks = appState.tasks.filter(t => t.status === 'APPROVED').reverse();
@@ -1217,19 +1251,113 @@ document.addEventListener('DOMContentLoaded', () => {
       if (validatedTasks.length === 0) {
         historyList.innerHTML = `<p class="text-muted">No approved tasks yet this month.</p>`;
       } else {
-        validatedTasks.slice(0, 8).forEach(task => {
-          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown' };
+        validatedTasks.slice(0, 10).forEach(task => {
+          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unknown', avatar: 'UN', color: '#64748b' };
           const item = document.createElement('div');
           item.className = 'task-item';
-          item.style.opacity = '0.85';
+          item.style.display = 'flex';
+          item.style.alignItems = 'center';
+          item.style.justifyContent = 'space-between';
+
+          const isMalusEntry = task.points < 0 || task.isMalus;
+
           item.innerHTML = `
             <div>
-              <div class="task-user">${emp.name}</div>
-              <div class="task-desc">${task.desc}</div>
+              <div class="task-user" style="display:flex; align-items:center; gap:0.4rem;">
+                <div class="avatar" style="background-color:${emp.color}; width:20px; height:20px; font-size:0.6rem;">${emp.avatar}</div>
+                <strong>${emp.name}</strong>
+              </div>
+              <div class="task-desc" style="margin-top:0.2rem;">${task.desc}</div>
             </div>
-            <span class="badge badge-purple">+${task.points} Coins awarded</span>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <span class="badge ${isMalusEntry ? 'badge-danger' : 'badge-purple'}">${task.points >= 0 ? '+' : ''}${task.points} Coins</span>
+              ${!isMalusEntry ? `
+                <button class="btn btn-danger-outline btn-sm btn-revoke-approved" data-id="${task.id}" title="Revoke task & apply penalty" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
+                  <i data-lucide="shield-alert"></i> Revoke
+                </button>
+              ` : ''}
+            </div>
           `;
           historyList.appendChild(item);
+        });
+
+        // Revoke Approved Task Listener
+        historyList.querySelectorAll('.btn-revoke-approved').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const taskId = e.currentTarget.dataset.id;
+            const task = appState.tasks.find(t => t.id === taskId);
+            if (task) {
+              const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Employee' };
+              const reason = prompt(`Revoke task for ${emp.name}? Enter rejection/penalty reason:`, "Non-compliant after audit") || "Non-compliant after audit";
+
+              task.status = 'REJECTED';
+              task.rejectionReason = reason;
+              task.rejectedAt = Date.now();
+
+              const penaltyCoins = Math.min(task.points || 15, 30);
+              appState.tasks.unshift({
+                id: `malus-revoke-${task.id}-${Date.now()}`,
+                employeeId: task.employeeId,
+                desc: `⚠️ MANAGER MALUS PENALTY: Revoked Task "${task.desc}" (Reason: ${reason})`,
+                points: -penaltyCoins,
+                status: 'APPROVED',
+                timestamp: Date.now(),
+                isMalus: true,
+                targetTaskId: task.id,
+                reason: reason
+              });
+
+              saveState();
+              renderAll();
+              showToast(`⚠️ Task revoked! Penalty of -${penaltyCoins} Coins applied to ${emp.name} & logged.`);
+            }
+          });
+        });
+      }
+    }
+
+    // Manager View: Audit Log Table Renderer
+    const auditTbody = document.getElementById('manager-audit-log-tbody');
+    const auditBadge = document.getElementById('audit-log-count-badge');
+    if (auditTbody) {
+      auditTbody.innerHTML = '';
+      const auditEntries = appState.tasks.filter(t => t.status === 'REJECTED' || t.isMalus === true).sort((a, b) => b.timestamp - a.timestamp);
+
+      if (auditBadge) auditBadge.textContent = `${auditEntries.length} Audit Entries`;
+
+      if (auditEntries.length === 0) {
+        auditTbody.innerHTML = `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:1.5rem;">No task rejections or penalties recorded in the audit log. Clean history! 🎉</td></tr>`;
+      } else {
+        auditEntries.forEach(entry => {
+          const emp = appState.staff.find(s => s.id === entry.employeeId) || { name: 'Unknown', avatar: 'UN', color: '#64748b', title: '' };
+          const dateStr = new Date(entry.timestamp).toLocaleString();
+          const tr = document.createElement('tr');
+
+          let penaltyDisplay = `<strong style="color:var(--color-danger); font-weight:800;">${entry.points} Coins</strong>`;
+          if (entry.status === 'REJECTED' && !entry.isMalus) {
+            penaltyDisplay = `<span class="badge badge-danger">Task Forfeited</span>`;
+          }
+
+          tr.innerHTML = `
+            <td style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div class="avatar" style="background-color: ${emp.color}; width: 24px; height: 24px; font-size: 0.65rem;">${emp.avatar}</div>
+                <strong>${emp.name}</strong> (${emp.role})
+              </div>
+            </td>
+            <td style="max-width:280px; font-size:0.85rem;">${entry.desc}</td>
+            <td>
+              <span class="badge" style="background:rgba(239,68,68,0.15); color:#fca5a5; border:1px solid rgba(239,68,68,0.3);">
+                ❌ Non-Compliant / Rejected
+              </span>
+            </td>
+            <td>${penaltyDisplay}</td>
+            <td>
+              <span style="font-size:0.8rem; color:var(--text-muted);">${entry.reason || entry.rejectionReason || 'Non-compliant execution'}</span>
+            </td>
+          `;
+          auditTbody.appendChild(tr);
         });
       }
     }
@@ -1248,7 +1376,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputBonus = document.getElementById('input-eotm-bonus');
     if (inputBonus) inputBonus.value = appState.eotmBonusAmount !== undefined ? appState.eotmBonusAmount : 100;
 
-    const { empStats, totalTips, frontPool, kitchenPool } = calculateTipDistribution();
+    const { empStats, totalTips, frontPool, kitchenPool, frontHeadcount, kitchenHeadcount } = calculateTipDistribution();
+
+    // Render Headcount Equity Ratio summary banner
+    const elHeadcountBanner = document.getElementById('summary-headcount-equity');
+    if (elHeadcountBanner) {
+      elHeadcountBanner.innerHTML = `
+        <div style="padding:0.75rem 1rem; background:rgba(168,85,247,0.12); border-radius:var(--radius-md); border:1px solid rgba(168,85,247,0.3); margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+          <span style="font-size:0.85rem; color:var(--text-main); font-weight:600; display:flex; align-items:center; gap:0.4rem;">
+            <i data-lucide="scale" style="color:#c084fc;"></i> <strong>Headcount Proportional Weighting Active:</strong> Front (${frontHeadcount} staff) vs Kitchen (${kitchenHeadcount} staff)
+          </span>
+          <span class="badge badge-purple" style="font-size:0.7rem;">⚖️ Normalized Per-Capita Equity</span>
+        </div>
+      `;
+    }
 
     const elFrontAmt = document.getElementById('summary-front-amount');
     if (elFrontAmt) elFrontAmt.textContent = `${frontPool.toLocaleString('en-US', { minimumFractionDigits: 2 })} €`;
