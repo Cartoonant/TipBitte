@@ -1663,21 +1663,72 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // ----------------------------------------------------
-      // RULE 2: SCHEDULE-BASED OPENING & CLOSING PROCEDURES (WORKING STAFF ONLY)
+      // RULE 2: STRICT KITCHEN & FRONT OPENING / CLOSING PAIRING RULES
       // ----------------------------------------------------
-      openingTasks.forEach((task, tIdx) => {
-        let assignedEmp = null;
-        if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
-          if (generalFrontStaff.length > 0) assignedEmp = generalFrontStaff[(day + tIdx) % generalFrontStaff.length];
-        } else if (task.scope === 'KITCHEN') {
-          if (generalKitchenStaff.length > 0) assignedEmp = generalKitchenStaff[(day + tIdx) % generalKitchenStaff.length];
+
+      // A) KITCHEN OPENING (DUO = 2 people, MUST include Aadhi if working)
+      const kitchenOpeningStaff = [];
+      const workingKitchenStaff = scheduledStaff.filter(s => s.role === 'KITCHEN' && s.name.toLowerCase() !== 'roy');
+      
+      const isAadhiWorkingToday = aadhiEmp && scheduledStaff.some(s => s.id === aadhiEmp.id);
+      if (isAadhiWorkingToday) {
+        kitchenOpeningStaff.push(aadhiEmp);
+      }
+      
+      const otherKitchenOpeningPool = workingKitchenStaff.filter(s => s.id !== aadhiEmp?.id);
+      if (otherKitchenOpeningPool.length > 0) {
+        const secondKitchenOpener = otherKitchenOpeningPool[day % otherKitchenOpeningPool.length];
+        if (secondKitchenOpener && !kitchenOpeningStaff.includes(secondKitchenOpener)) {
+          kitchenOpeningStaff.push(secondKitchenOpener);
         }
-        if (!assignedEmp && scheduledStaff.length > 0) {
-          const eligible = scheduledStaff.filter(s => s.name.toLowerCase() !== 'roy');
-          if (eligible.length > 0) assignedEmp = eligible[(day + tIdx) % eligible.length];
+      }
+      if (kitchenOpeningStaff.length < 2 && otherKitchenOpeningPool.length > 1) {
+        const extraOpener = otherKitchenOpeningPool[(day + 1) % otherKitchenOpeningPool.length];
+        if (extraOpener && !kitchenOpeningStaff.includes(extraOpener)) {
+          kitchenOpeningStaff.push(extraOpener);
+        }
+      }
+
+      // B) KITCHEN CLOSING (DUO = 2 people, MUST EXCLUDE AADHI)
+      const kitchenClosingStaff = [];
+      const eligibleKitchenClosingPool = workingKitchenStaff.filter(s => s.id !== aadhiEmp?.id);
+      if (eligibleKitchenClosingPool.length > 0) {
+        const p1 = eligibleKitchenClosingPool[day % eligibleKitchenClosingPool.length];
+        kitchenClosingStaff.push(p1);
+        if (eligibleKitchenClosingPool.length > 1) {
+          const p2 = eligibleKitchenClosingPool[(day + 1) % eligibleKitchenClosingPool.length];
+          if (p2 && p2.id !== p1.id) kitchenClosingStaff.push(p2);
+        }
+      }
+
+      // C) FRONT OPENING (SOLO = 1 person)
+      const frontOpeningStaff = [];
+      const workingFrontStaff = scheduledStaff.filter(s => s.role === 'FRONT' && s.name.toLowerCase() !== 'roy');
+      if (workingFrontStaff.length > 0) {
+        frontOpeningStaff.push(workingFrontStaff[day % workingFrontStaff.length]);
+      }
+
+      // D) FRONT CLOSING (DUO = 2 people if workingFront >= 2, otherwise SOLO = 1 person)
+      const frontClosingStaff = [];
+      if (workingFrontStaff.length >= 2) {
+        const fp1 = workingFrontStaff[day % workingFrontStaff.length];
+        const fp2 = workingFrontStaff[(day + 1) % workingFrontStaff.length];
+        frontClosingStaff.push(fp1);
+        if (fp2 && fp2.id !== fp1.id) frontClosingStaff.push(fp2);
+      } else if (workingFrontStaff.length === 1) {
+        frontClosingStaff.push(workingFrontStaff[0]);
+      }
+
+      // Assign Opening Tasks to target staff lists
+      openingTasks.forEach((task, tIdx) => {
+        let targetStaffList = [];
+        if (task.scope === 'KITCHEN') {
+          targetStaffList = kitchenOpeningStaff;
+        } else if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
+          targetStaffList = frontOpeningStaff;
         }
 
-        if (assignedEmp) {
+        targetStaffList.forEach(assignedEmp => {
           newScheduledTasks.push({
             id: `st-${monthKey}-${day}-${assignedEmp.id}-open-${tIdx}`,
             employeeId: assignedEmp.id,
@@ -1688,22 +1739,19 @@ document.addEventListener('DOMContentLoaded', () => {
             points: task.points || 25,
             desc: task.desc || 'Opening Procedure'
           });
-        }
+        });
       });
 
+      // Assign Closing Tasks to target staff lists
       closingTasks.forEach((task, tIdx) => {
-        let assignedEmp = null;
-        if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
-          if (generalFrontStaff.length > 0) assignedEmp = generalFrontStaff[(day + tIdx) % generalFrontStaff.length];
-        } else if (task.scope === 'KITCHEN') {
-          if (generalKitchenStaff.length > 0) assignedEmp = generalKitchenStaff[(day + tIdx) % generalKitchenStaff.length];
-        }
-        if (!assignedEmp && scheduledStaff.length > 0) {
-          const eligible = scheduledStaff.filter(s => s.name.toLowerCase() !== 'roy');
-          if (eligible.length > 0) assignedEmp = eligible[(day + tIdx) % eligible.length];
+        let targetStaffList = [];
+        if (task.scope === 'KITCHEN') {
+          targetStaffList = kitchenClosingStaff;
+        } else if (task.scope === 'FRONT' || task.scope === 'EVERYONE') {
+          targetStaffList = frontClosingStaff;
         }
 
-        if (assignedEmp) {
+        targetStaffList.forEach(assignedEmp => {
           newScheduledTasks.push({
             id: `st-${monthKey}-${day}-${assignedEmp.id}-close-${tIdx}`,
             employeeId: assignedEmp.id,
@@ -1714,7 +1762,7 @@ document.addEventListener('DOMContentLoaded', () => {
             points: task.points || 25,
             desc: task.desc || 'Closing Procedure'
           });
-        }
+        });
       });
 
       // ----------------------------------------------------
