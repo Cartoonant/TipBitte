@@ -353,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const frontPool = empStats.filter(e => e.role === 'FRONT').reduce((sum, e) => sum + e.tipAmount, 0);
     const kitchenPool = empStats.filter(e => e.role === 'KITCHEN').reduce((sum, e) => sum + e.tipAmount, 0);
 
+    // Sort employees in strict descending order by total coin count (highest to lowest)
+    empStats.sort((a, b) => b.points - a.points);
+
     return { empStats, grandTotalPoints, totalTips, frontPool, kitchenPool };
   };
 
@@ -1262,10 +1265,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const elKitchenSub = document.getElementById('summary-kitchen-sub');
     if (elKitchenSub) elKitchenSub.textContent = `${kitchenCoins} Coins earned (Kitchen)`;
 
-    // Detailed Editable Table
+    // Detailed Editable Table (Sorted in descending order by total coin count)
     const tbody = document.getElementById('tips-detail-tbody');
     if (tbody) {
       tbody.innerHTML = '';
+
+      // Sort employees by total coins descending (highest to lowest)
+      empStats.sort((a, b) => b.points - a.points);
 
       empStats.forEach(emp => {
         const tr = document.createElement('tr');
