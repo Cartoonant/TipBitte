@@ -3089,15 +3089,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Save Tip Pool Amount Listener
+  // Save Tip Pool Amount & EOTM Fixed Bonus Listener
   const btnSaveTips = document.getElementById('btn-save-tips');
   if (btnSaveTips) {
     btnSaveTips.addEventListener('click', async () => {
-      const totalAmount = parseFloat(document.getElementById('input-total-tips').value) || 0;
+      const totalAmount = parseFloat(document.getElementById('input-total-tips')?.value) || 0;
+      const bonusInput = document.getElementById('input-eotm-bonus');
+      const bonusAmount = bonusInput ? parseFloat(bonusInput.value) : 100;
+
       appState.tipsConfig[appState.currentMonth] = { totalAmount };
+      if (!isNaN(bonusAmount) && bonusAmount >= 0) {
+        appState.eotmBonusAmount = bonusAmount;
+      }
+
       saveState();
       await revalidateStateFromCloud();
-      showToast("Tip pool amount saved and synced to Google Sheet!");
+      showToast("Tip pool amount & EOTM Bonus saved and synced to Google Sheet!");
     });
   }
 
