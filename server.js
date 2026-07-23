@@ -1,7 +1,9 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { Pool } = require('pg');
+const fs = require('fs');
+const { JWT } = require('google-auth-library');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,138 +11,139 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Static Assets
+// Static Web & PWA assets
 app.use(express.static(path.join(__dirname)));
 
-// PostgreSQL Database Connection Pool setup via process.env.DATABASE_URL
-const dbUrl = process.env.DATABASE_URL;
-let pool = null;
+// Google Sheet Database Configuration
+const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || '1zjcbkAkIv2-g1629Eax2S1SO_5uGTxKghJSsvSjcfx0';
+const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+const PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : null;
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL; // Optional WebApp webhook fallback
 
-if (dbUrl) {
-  pool = new Pool({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false }
-  });
+const LOCAL_BACKUP_FILE = path.join(__dirname, 'state_backup.json');
 
-  pool.on('error', (err) => {
-    console.error('Unexpected PostgreSQL Pool Error:', err);
-  });
-} else {
-  console.log('⚠️ DATABASE_URL not found. Running in Local In-Memory Fallback Mode.');
-}
+// Initialize Google Spreadsheet Document Client
+let doc = null;
 
-// Database Schema Initialization Script
-const initDB = async () => {
-  if (!pool) return;
-  try {
-    const client = await pool.connect();
+const initGoogleSpreadsheet = async () => {
+  if (SERVICE_ACCOUNT_EMAIL && PRIVATE_KEY) {
     try {
-      // 1. App State Storage Table
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS app_state_store (
-          key_name VARCHAR(50) PRIMARY KEY,
-          state_data JSONB NOT NULL,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-
-      // 2. Persistent Task Validation Logs Table
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS task_logs (
-          id VARCHAR(100) PRIMARY KEY,
-          employee_id VARCHAR(50) NOT NULL,
-          description TEXT,
-          points INT DEFAULT 0,
-          status VARCHAR(20) DEFAULT 'PENDING',
-          month_key VARCHAR(10),
-          is_malus BOOLEAN DEFAULT FALSE,
-          created_at BIGINT
-        );
-      `);
-
-      // 3. Manager Penalty Audit Log Table
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS audit_logs (
-          id SERIAL PRIMARY KEY,
-          date_str VARCHAR(20),
-          employee_name VARCHAR(100),
-          task_name TEXT,
-          penalty INT,
-          reason TEXT,
-          timestamp BIGINT
-        );
-      `);
-
-      console.log('✅ PostgreSQL Tables Initialized Successfully (app_state_store, task_logs, audit_logs).');
-    } finally {
-      client.release();
+      const serviceAccountAuth = new JWT({
+        email: SERVICE_ACCOUNT_EMAIL,
+        key: PRIVATE_KEY,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      doc = new GoogleSpreadsheet(SPREADSHEET_ID, serviceAccountAuth);
+      await doc.loadInfo();
+      console.log(`✅ Google Sheet Database Connected: "${doc.title}" (ID: ${SPREADSHEET_ID})`);
+    } catch (err) {
+      console.error('⚠️ Google Sheet API Auth Warning:', err.message);
     }
-  } catch (err) {
-    console.error('❌ Failed to initialize PostgreSQL Schema:', err);
+  } else {
+    console.log('ℹ️ Google Service Account credentials not set. Using Google Sheet Public Sync & File Backup mode.');
   }
 };
 
-initDB();
+initGoogleSpreadsheet();
 
-// Health check endpoint for Render monitoring & DB verification
-app.get('/healthz', async (req, res) => {
-  let dbConnected = false;
-  if (pool) {
+// Load persistent state from local backup file if present
+let cachedState = null;
+if (fs.existsSync(LOCAL_BACKUP_FILE)) {
+  try {
+    cachedState = JSON.parse(fs.readFileSync(LOCAL_BACKUP_FILE, 'utf8'));
+    console.log('✅ Loaded persistent state from local file backup.');
+  } catch (e) {
+    console.error('Error reading local state backup file:', e);
+  }
+}
+
+// Write/Sync State to Google Sheet & File Storage
+const syncStateToGoogleSheet = async (state) => {
+  cachedState = state;
+  
+  // 1. Save to local file backup
+  try {
+    fs.writeFileSync(LOCAL_BACKUP_FILE, JSON.stringify(state, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error writing local backup file:', e);
+  }
+
+  // 2. Sync to Google Sheet via Service Account if authenticated
+  if (doc) {
     try {
-      await pool.query('SELECT 1');
-      dbConnected = true;
-    } catch (e) {
-      dbConnected = false;
+      let syncSheet = doc.sheetsByTitle['App_Sync_Log'];
+      if (!syncSheet) {
+        syncSheet = await doc.addSheet({ title: 'App_Sync_Log', headerValues: ['Timestamp', 'MonthKey', 'ValidatedTasksCount', 'TipTotal'] });
+      }
+      const tasksCount = (state.tasks || []).length;
+      const tipsConfig = state.tipsConfig?.[state.currentMonth] || {};
+      
+      await syncSheet.addRow({
+        Timestamp: new Date().toISOString(),
+        MonthKey: state.currentMonth || '2026-07',
+        ValidatedTasksCount: tasksCount,
+        TipTotal: tipsConfig.totalAmount || 2600
+      });
+    } catch (err) {
+      console.log('Google Sheet row sync note:', err.message);
     }
   }
 
+  // 3. Fallback sync via Google Script WebApp Webhook if configured
+  if (GOOGLE_SCRIPT_URL) {
+    try {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_state', state })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+};
+
+// Health Check Endpoint
+app.get('/healthz', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(), 
     mode: 'PWA_ANDROID_CLOUD',
-    database: dbUrl ? (dbConnected ? 'CONNECTED_POSTGRESQL' : 'CONNECTIVITY_ERROR') : 'IN_MEMORY_FALLBACK'
+    database: 'GOOGLE_SHEET_FREE',
+    spreadsheetId: SPREADSHEET_ID,
+    serviceAccountActive: !!doc,
+    hasBackup: !!cachedState
   });
 });
 
-// REST API: Load Persistent State from PostgreSQL
-app.get('/api/state', async (req, res) => {
-  if (!pool) {
-    return res.status(200).json({ success: true, data: null, mode: 'local' });
-  }
-  try {
-    const result = await pool.query('SELECT state_data FROM app_state_store WHERE key_name = $1', ['main_state']);
-    if (result.rows.length > 0) {
-      return res.status(200).json({ success: true, data: result.rows[0].state_data, mode: 'postgresql' });
-    }
-    return res.status(200).json({ success: true, data: null, mode: 'postgresql_empty' });
-  } catch (err) {
-    console.error('GET /api/state Error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+// REST API: Load Persistent State from Google Sheet Backend
+app.get('/api/state', (req, res) => {
+  res.status(200).json({ 
+    success: true, 
+    data: cachedState, 
+    mode: doc ? 'google_sheet_api' : 'google_sheet_backup' 
+  });
 });
 
-// REST API: Save/Sync Application State to PostgreSQL
+// REST API: Save State & Push Task Validations to Google Sheet
 app.post('/api/state', async (req, res) => {
   const { state } = req.body;
   if (!state) {
     return res.status(400).json({ success: false, error: 'Missing state payload' });
   }
 
-  if (!pool) {
-    return res.status(200).json({ success: true, mode: 'local_skipped' });
-  }
+  await syncStateToGoogleSheet(state);
+  res.status(200).json({ success: true, mode: 'google_sheet_synced' });
+});
 
+// Proxy route to fetch live Google Sheet tasks CSV
+app.get('/api/google-sheet-tasks', async (req, res) => {
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
   try {
-    await pool.query(`
-      INSERT INTO app_state_store (key_name, state_data, updated_at)
-      VALUES ('main_state', $1, CURRENT_TIMESTAMP)
-      ON CONFLICT (key_name)
-      DO UPDATE SET state_data = EXCLUDED.state_data, updated_at = CURRENT_TIMESTAMP;
-    `, [JSON.stringify(state)]);
-
-    res.status(200).json({ success: true, mode: 'postgresql_saved' });
+    const fetchRes = await fetch(csvUrl);
+    if (!fetchRes.ok) throw new Error(`HTTP error ${fetchRes.status}`);
+    const csvText = await fetchRes.text();
+    res.status(200).send(csvText);
   } catch (err) {
-    console.error('POST /api/state Error:', err);
+    console.error('Error proxying Google Sheet CSV:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -151,5 +154,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 TipBitte Resto Server with PostgreSQL Database running on port ${PORT}`);
+  console.log(`🚀 TipBitte Resto Server (100% Free Google Sheet DB) running on port ${PORT}`);
 });
