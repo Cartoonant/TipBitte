@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.tipbitte.restaurant.app",
+    "sha256_cert_fingerprints": [
+      "10:FA:FE:84:87:66:3A:BB:BB:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37:37"
+    ]
+  }
+}]

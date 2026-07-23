@@ -1,0 +1,30 @@
+{
+  "packageId": "com.tipbitte.restaurant.app",
+  "name": "TipBitte Resto Manager",
+  "launcherName": "TipBitte",
+  "display": "standalone",
+  "themeColor": "#D97706",
+  "navigationColor": "#0F172A",
+  "backgroundColor": "#0F172A",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://tipbitte-resto.onrender.com/icons/icon-512.png",
+  "maskableIconUrl": "https://tipbitte-resto.onrender.com/icons/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://tipbitte-resto.onrender.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

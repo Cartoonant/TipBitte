@@ -5,6 +5,15 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // PWA Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('PWA ServiceWorker registered successfully:', reg.scope))
+        .catch(err => console.log('ServiceWorker registration failed:', err));
+    });
+  }
+
   // ==========================================
   // 1. INITIAL STATE & REAL STAFF ROSTER (AUGUST 2026)
   // ==========================================

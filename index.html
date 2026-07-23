@@ -11,6 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
   
+  <!-- PWA & Android Mobile Manifest Declaration -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d97706">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TipBitte Resto">
+
   <!-- Lucide Icons & Canvas Confetti CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -754,50 +761,61 @@
         </div>
       </section>
 
-      <!-- TAB 6: FREE DEPLOYMENT GUIDE -->
+      <!-- TAB 6: DUAL MOBILE PIPELINE & FREE CLOUD DEPLOYMENT GUIDE -->
       <section id="tab-deploy" class="tab-content">
-        <div class="section-card">
+        <div class="section-card margin-bottom">
           <div class="section-header">
             <div>
-              <h3><i data-lucide="globe" class="text-blue"></i> Free Web Deployment Guide</h3>
-              <p class="text-muted">Easily host this web application online so your entire team can access it on their smartphone or shared restaurant tablet.</p>
+              <h3><i data-lucide="smartphone" class="text-gold"></i> Dual Mobile Deployment Pipeline (PWA + Android Native Play Store)</h3>
+              <p class="text-muted">Deploy your application instantly as a high-performance PWA and publish the native Android app on Google Play Store using your Developer Account.</p>
             </div>
           </div>
 
           <div class="deploy-steps">
-            <div class="deploy-card">
-              <div class="deploy-step-num">1</div>
+            <!-- PWA Mobile-First Card -->
+            <div class="deploy-card" style="border-left:4px solid var(--color-gold);">
+              <div class="deploy-step-num" style="background:var(--color-gold);">1</div>
               <div class="deploy-step-content">
-                <h4>Option A (Easiest) : Netlify Drop (Zero code drag & drop)</h4>
-                <ol>
-                  <li>Visit free website <strong><a href="https://app.netlify.com/drop" target="_blank" rel="noopener">Netlify Drop (app.netlify.com/drop)</a></strong>.</li>
-                  <li>Drag and drop this project folder containing <code>index.html</code>, <code>css</code>, and <code>js</code>.</li>
-                  <li>Your app goes live instantly with a secure HTTPS URL (e.g. <code>https://resto-tips.netlify.app</code>)!</li>
+                <h4>📱 Option 1: Instant Mobile PWA (iOS & Android)</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                  Instant updates, zero app store waiting time. Serves your staff on iPhone, Android, and tablets via a standalone app experience.
+                </p>
+                <ol style="font-size:0.85rem; padding-left:1.25rem;">
+                  <li>Host the application on a secure HTTPS server (e.g., Render, Railway, Vercel, or Netlify).</li>
+                  <li>On smartphones, open the app URL and tap <strong>"Add to Home Screen"</strong> (Ajouter à l'écran d'accueil).</li>
+                  <li>The app launches standalone with offline caching powered by <code>sw.js</code> and <code>manifest.json</code>.</li>
                 </ol>
               </div>
             </div>
 
-            <div class="deploy-card">
-              <div class="deploy-step-num">2</div>
+            <!-- Android Native TWA Play Store Card -->
+            <div class="deploy-card" style="border-left:4px solid var(--color-green);">
+              <div class="deploy-step-num" style="background:var(--color-green);">2</div>
               <div class="deploy-step-content">
-                <h4>Option B : GitHub + Vercel / GitHub Pages</h4>
-                <ol>
-                  <li>Create a free repository on <strong>GitHub.com</strong>.</li>
-                  <li>Push your files to the repository.</li>
-                  <li>Connect to <strong>Vercel.com</strong> or enable <strong>GitHub Pages</strong> in repo settings.</li>
-                  <li>Team members can add the web app link directly to their smartphone home screen!</li>
+                <h4>🤖 Option 2: Native Android App (Google Play Store Package)</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                  Package your PWA as an official Android <code>.aab</code> / <code>.apk</code> using Google's official Trusted Web Activity (TWA) Bubblewrap CLI.
+                </p>
+                <ol style="font-size:0.85rem; padding-left:1.25rem;">
+                  <li>Run <code>npx @bubblewrap/cli build</code> using the pre-configured <code>twa-manifest.json</code> in this project.</li>
+                  <li>Upload the generated Android App Bundle (<code>.aab</code>) to your <strong>Google Play Console</strong> developer account.</li>
+                  <li>Verify Digital Asset Links via <code>/.well-known/assetlinks.json</code> for seamless full-screen native execution.</li>
                 </ol>
               </div>
             </div>
 
-            <div class="deploy-card">
-              <div class="deploy-step-num">3</div>
+            <!-- Managed Cloud Backend Card -->
+            <div class="deploy-card" style="border-left:4px solid var(--color-primary);">
+              <div class="deploy-step-num" style="background:var(--color-primary);">3</div>
               <div class="deploy-step-content">
-                <h4>Option C : Shared Restaurant Tablet Setup</h4>
-                <ol>
-                  <li>Open the live URL on your restaurant iPad or Android tablet.</li>
-                  <li>Tap "Add to Home Screen" in browser options to create a full-screen app shortcut.</li>
-                  <li>Staff can log tasks and view Coins and tip shares in seconds!</li>
+                <h4>☁️ Option 3: Free Cloud Backend Server (Render / Railway / Fly.io)</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                  Host the Node.js backend (<code>server.js</code> + <code>package.json</code>) with automatic Google Sheet synchronization and PDF SOP storage.
+                </p>
+                <ol style="font-size:0.85rem; padding-left:1.25rem;">
+                  <li>Connect your GitHub repository to <strong>Render.com</strong>, <strong>Railway.app</strong>, or <strong>Fly.io</strong>.</li>
+                  <li>Set build command: <code>npm install</code> and start command: <code>npm start</code>.</li>
+                  <li>Enjoy live health monitoring (<code>/healthz</code>), automatic SSL, and zero server maintenance!</li>
                 </ol>
               </div>
             </div>
