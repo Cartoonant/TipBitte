@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved) {
       try {
         appState = JSON.parse(saved);
-        if (!appState.currentMonth || appState.currentMonth !== '2026-08') appState.currentMonth = '2026-08';
+        if (!appState.currentMonth) appState.currentMonth = getCurrentMonthKey();
         if (!appState.activeRole) appState.activeRole = 'MANAGER';
         if (appState.eotmBonusAmount === undefined) appState.eotmBonusAmount = 100;
         
@@ -160,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (appState.sopDocuments && appState.sopDocuments.some(d => d.id.startsWith('pdf-'))) {
           appState.sopDocuments = [];
         }
+
+        // Force reset tasks array to clean slate (0 approved or pending tasks)
+        appState.tasks = [];
 
         // Ensure Roy (Cleaner) is present in staff
         if (appState.staff && !appState.staff.some(s => s.id === 'emp-8' || s.name === 'Roy')) {
@@ -273,10 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   };
 
-  // Coins earned from approved entries
-  const getEmployeePoints = (empId) => {
-    return appState.tasks
-      .filter(t => t.employeeId === empId && t.status === 'APPROVED')
+  // Coins earned from approved entries (Scoped strictly by Month for automated monthly reset)
+  const getEmployeePoints = (empId, monthKey = appState.currentMonth) => {
+    return (appState.tasks || [])
+      .filter(t => {
+        if (t.employeeId !== empId || t.status !== 'APPROVED') return false;
+        const tMonth = t.monthKey || (t.timestamp ? new Date(t.timestamp).toISOString().substring(0, 7) : appState.currentMonth);
+        return tMonth === monthKey;
+      })
       .reduce((sum, t) => sum + (t.points || 0), 0);
   };
 
@@ -1093,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             desc: `Daily Task Completed: ${desc}`,
             points: pts,
             status: 'PENDING',
+            monthKey: appState.currentMonth || getCurrentMonthKey(),
             timestamp: Date.now()
           };
 
