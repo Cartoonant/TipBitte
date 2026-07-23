@@ -885,61 +885,107 @@ document.addEventListener('DOMContentLoaded', () => {
         // Daily Header Banner with Date Info
         const banner = document.createElement('div');
         banner.style.gridColumn = '1 / -1';
-        banner.style.padding = '0.6rem 0.9rem';
+        banner.style.padding = '0.75rem 1.1rem';
         banner.style.background = 'var(--bg-input)';
         banner.style.borderRadius = 'var(--radius-md)';
         banner.style.border = '1px solid var(--border-color)';
-        banner.style.marginBottom = '0.75rem';
+        banner.style.marginBottom = '0.5rem';
         banner.style.display = 'flex';
         banner.style.alignItems = 'center';
         banner.style.justifyContent = 'space-between';
         banner.innerHTML = `
-          <span style="font-size:0.85rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
+          <span style="font-size:0.9rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
             <i data-lucide="calendar" class="text-gold"></i> Shift Roadmap for ${dayAbbr}, ${selectedDateStr}
           </span>
-          <span class="badge badge-gold" style="font-size:0.7rem;">${visibleScheduledTasks.length} Active Task${visibleScheduledTasks.length !== 1 ? 's' : ''} Pending</span>
+          <span class="badge badge-gold" style="font-size:0.75rem; padding:0.25rem 0.6rem;">${visibleScheduledTasks.length} Active Task${visibleScheduledTasks.length !== 1 ? 's' : ''} Pending</span>
         `;
         dailyGrid.appendChild(banner);
 
-        visibleScheduledTasks.forEach(task => {
-          const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', title: '' };
-          const item = document.createElement('div');
-          item.className = 'task-item';
+        // Strict Chronological Shift Sections Mapping
+        const SHIFT_SECTIONS = [
+          { key: 'MORNING', title: '🌅 MORNING SHIFT — Opening Procedures & Morning Setup', icon: 'sun-medium', color: '#f59e0b' },
+          { key: 'AFTERNOON', title: '☀️ AFTERNOON SHIFT — Mid-Day Operations & Daily Tasks', icon: 'sun', color: '#10b981' },
+          { key: 'EVENING', title: '🌙 EVENING SHIFT — Closing Procedures & Night Cleaning', icon: 'moon', color: '#c084fc' },
+          { key: 'ANYTIME', title: '🕒 FLEXIBLE SHIFT — Anytime Operational Tasks', icon: 'clock', color: '#60a5fa' }
+        ];
 
-          let statusAction = `
-            <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}">
-              <i data-lucide="check-circle"></i> Mark Done
-            </button>
-          `;
+        SHIFT_SECTIONS.forEach(shift => {
+          const sectionTasks = visibleScheduledTasks.filter(t => (t.period || 'ANYTIME') === shift.key);
+          if (sectionTasks.length > 0) {
+            // Shift Timeline Section Header
+            const shiftHeader = document.createElement('div');
+            shiftHeader.className = 'shift-timeline-header';
+            shiftHeader.style.borderLeft = `4px solid ${shift.color}`;
+            shiftHeader.innerHTML = `
+              <i data-lucide="${shift.icon}" style="color:${shift.color}; width:20px; height:20px;"></i>
+              <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">${shift.title}</span>
+              <span class="badge" style="margin-left:auto; background:var(--bg-input); border:1px solid var(--border-color); color:var(--text-muted); font-size:0.7rem;">
+                ${sectionTasks.length} Task${sectionTasks.length !== 1 ? 's' : ''}
+              </span>
+            `;
+            dailyGrid.appendChild(shiftHeader);
 
-          let periodBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">🕒 Anytime</span>`;
-          if (task.period === 'MORNING') periodBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--color-gold); border:1px solid rgba(245,158,11,0.3);">🌅 Morning</span>`;
-          if (task.period === 'AFTERNOON') periodBadge = `<span class="badge" style="background:rgba(16,185,129,0.15); color:var(--color-green); border:1px solid rgba(16,185,129,0.3);">☀️ Afternoon</span>`;
-          if (task.period === 'EVENING') periodBadge = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">🌙 Evening</span>`;
+            sectionTasks.forEach(task => {
+              const emp = appState.staff.find(s => s.id === task.employeeId) || { name: 'Unassigned', avatar: 'UN', color: '#64748b', title: '' };
+              const item = document.createElement('div');
+              
+              // Team Scope styling & badge
+              let scopeClass = 'task-everyone';
+              let teamBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:#fcd34d; border:1px solid rgba(245,158,11,0.3); font-size:0.65rem;">👥 EVERYONE</span>`;
+              if (task.category === 'FRONT') {
+                scopeClass = 'task-front';
+                teamBadge = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-size:0.65rem;">🏛️ FRONT</span>`;
+              } else if (task.category === 'KITCHEN') {
+                scopeClass = 'task-kitchen';
+                teamBadge = `<span class="badge" style="background:rgba(239,68,68,0.15); color:#fca5a5; border:1px solid rgba(239,68,68,0.3); font-size:0.65rem;">👨‍🍳 KITCHEN</span>`;
+              } else if (task.category === 'CLEANER') {
+                scopeClass = 'task-cleaner';
+                teamBadge = `<span class="badge" style="background:rgba(20,184,166,0.15); color:#5eead4; border:1px solid rgba(20,184,166,0.3); font-size:0.65rem;">🧹 CLEANER</span>`;
+              }
 
-          item.innerHTML = `
-            <div>
-              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-                <strong class="task-user" style="font-size:1.05rem;">${task.title}</strong>
-                ${periodBadge}
-                ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Responsibility</span>` : ''}
-              </div>
-              ${task.desc ? `<p style="margin:0.2rem 0; font-size:0.85rem; color:var(--text-muted);">${task.desc}</p>` : ''}
-              <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
-                <div class="avatar" style="background-color: ${emp.color}; width:22px; height:22px; font-size:0.65rem;">${emp.avatar}</div>
-                <span>Nominatively assigned to: <strong>${emp.name}</strong> (${emp.title || emp.role})</span>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:1rem;">
-              <span class="task-pts">+${task.points} Coins</span>
-              ${!isManager ? statusAction : `
-                <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}">
-                  <i data-lucide="trash-2"></i> Remove
+              // Assignment Type Badge (Fixed vs Duo vs Rotational)
+              let typeBadge = `<span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7; border:1px solid rgba(16,185,129,0.3); font-size:0.65rem;">🔄 Rotational</span>`;
+              const titleLower = task.title.toLowerCase();
+              if (task.category === 'CLEANER' || titleLower.includes('roy') || titleLower.includes('aadhi') || (task.desc && task.desc.toLowerCase().includes('fixed'))) {
+                typeBadge = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:0.65rem;">📌 Fixed Dedicated</span>`;
+              } else if (titleLower.includes('opening') || titleLower.includes('closing') || titleLower.includes('procedure')) {
+                typeBadge = `<span class="badge" style="background:rgba(245,158,11,0.15); color:#fcd34d; border:1px solid rgba(245,158,11,0.3); font-size:0.65rem;">👥 Binôme Duo</span>`;
+              }
+
+              item.className = `task-item-card ${scopeClass}`;
+
+              let statusAction = `
+                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}" style="padding:0.4rem 0.85rem; font-weight:700;">
+                  <i data-lucide="check-circle"></i> Mark Done
                 </button>
-              `}
-            </div>
-          `;
-          dailyGrid.appendChild(item);
+              `;
+
+              item.innerHTML = `
+                <div style="flex:1;">
+                  <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                    <strong class="task-user" style="font-size:1.05rem; color:var(--text-main);">${task.title}</strong>
+                    ${teamBadge}
+                    ${typeBadge}
+                    ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Shift</span>` : ''}
+                  </div>
+                  ${task.desc ? `<p style="margin:0.25rem 0 0.4rem 0; font-size:0.85rem; color:var(--text-muted); line-height:1.4;">${task.desc}</p>` : ''}
+                  <div class="task-desc" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                    <div class="avatar" style="background-color: ${emp.color}; width:24px; height:24px; font-size:0.68rem;">${emp.avatar}</div>
+                    <span style="font-size:0.82rem;">Assigned to: <strong style="color:var(--text-main);">${emp.name}</strong> (${emp.title || emp.role})</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem; flex-shrink:0;">
+                  <span class="task-pts" style="font-weight:800; font-size:1rem; color:var(--color-gold);">+${task.points} Coins</span>
+                  ${!isManager ? statusAction : `
+                    <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}" title="Remove task">
+                      <i data-lucide="trash-2"></i> Remove
+                    </button>
+                  `}
+                </div>
+              `;
+              dailyGrid.appendChild(item);
+            });
+          }
         });
       }
 

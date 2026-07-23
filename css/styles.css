@@ -1207,8 +1207,55 @@ button, input, select, textarea {
     color: #000;
     background: #fff;
   }
-  .data-table th, .data-table td {
-    color: #000;
-    border-color: #ddd;
-  }
+
+/* Shift Section & Task Roadmap UI Overhaul */
+.shift-timeline-header {
+  grid-column: 1 / -1;
+  margin-top: 1.25rem;
+  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.95rem;
+  background: var(--bg-card-solid);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
 }
+
+.task-item-card {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  width: 100%;
+}
+
+.task-item-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-gold);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+.task-item-card.task-kitchen {
+  border-left: 4px solid #ef4444;
+}
+
+.task-item-card.task-front {
+  border-left: 4px solid var(--color-primary);
+}
+
+.task-item-card.task-cleaner {
+  border-left: 4px solid #14b8a6;
+}
+
+.task-item-card.task-everyone {
+  border-left: 4px solid var(--color-gold);
+}
+
