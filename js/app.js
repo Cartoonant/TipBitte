@@ -1459,69 +1459,96 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return [];
 
-    // Map columns based exclusively on header row: Tasks, Description, Team, Period, Reccurence, Reward
-    let colIdx = { title: 0, desc: 1, team: 2, period: 3, recurrence: 4, reward: 5 };
+    let colIdx = { title: -1, desc: -1, team: -1, period: -1, recurrence: -1, reward: -1 };
     let startRow = 0;
 
-    const firstRowParts = splitCSVRow(lines[0]);
-    const lowerParts = firstRowParts.map(p => p.toLowerCase());
+    // Scan up to the first 15 lines to find the row containing header "Tasks"
+    for (let r = 0; r < Math.min(15, lines.length); r++) {
+      const rowParts = splitCSVRow(lines[r]);
+      const lowerParts = rowParts.map(p => p.toLowerCase());
+      const tasksIdx = lowerParts.findIndex(p => p === 'tasks' || p === 'task' || p.includes('task'));
+      if (tasksIdx !== -1) {
+        startRow = r + 1;
+        colIdx.title = tasksIdx;
 
-    const tasksIdx = lowerParts.findIndex(p => p.includes('task'));
-    if (tasksIdx !== -1) {
-      startRow = 1;
-      colIdx.title = tasksIdx;
+        const descIdx = lowerParts.findIndex(p => p.includes('desc'));
+        if (descIdx !== -1) colIdx.desc = descIdx;
 
-      const descIdx = lowerParts.findIndex(p => p.includes('desc'));
-      if (descIdx !== -1) colIdx.desc = descIdx;
+        const teamIdx = lowerParts.findIndex(p => p.includes('team') || p.includes('scope'));
+        if (teamIdx !== -1) colIdx.team = teamIdx;
 
-      const teamIdx = lowerParts.findIndex(p => p.includes('team') || p.includes('scope'));
-      if (teamIdx !== -1) colIdx.team = teamIdx;
+        const periodIdx = lowerParts.findIndex(p => p.includes('period'));
+        if (periodIdx !== -1) colIdx.period = periodIdx;
 
-      const periodIdx = lowerParts.findIndex(p => p.includes('period'));
-      if (periodIdx !== -1) colIdx.period = periodIdx;
+        const recIdx = lowerParts.findIndex(p => p.includes('reccurence') || p.includes('recurrence'));
+        if (recIdx !== -1) colIdx.recurrence = recIdx;
 
-      const recIdx = lowerParts.findIndex(p => p.includes('reccurence') || p.includes('recurrence'));
-      if (recIdx !== -1) colIdx.recurrence = recIdx;
-
-      const rewardIdx = lowerParts.findIndex(p => p.includes('reward') || p.includes('coin') || p.includes('point'));
-      if (rewardIdx !== -1) colIdx.reward = rewardIdx;
+        const rewardIdx = lowerParts.findIndex(p => p.includes('reward') || p.includes('coin') || p.includes('point'));
+        if (rewardIdx !== -1) colIdx.reward = rewardIdx;
+        break;
+      }
     }
 
+    // Fallback default column indices if header row is not found
+    if (colIdx.title === -1) colIdx.title = 1;
+    if (colIdx.desc === -1) colIdx.desc = 2;
+    if (colIdx.team === -1) colIdx.team = 3;
+    if (colIdx.period === -1) colIdx.period = 4;
+    if (colIdx.recurrence === -1) colIdx.recurrence = 5;
+    if (colIdx.reward === -1) colIdx.reward = 6;
+
     const imported = [];
+    let currentSection = '';
 
     for (let i = startRow; i < lines.length; i++) {
       const parts = splitCSVRow(lines[i]);
       if (parts.length === 0 || !parts.some(p => p.length > 0)) continue;
 
-      const title = parts[colIdx.title] || parts[0] || '';
+      const rawSection = (parts[0] || '').trim();
+      if (rawSection) currentSection = rawSection;
+
+      const title = (parts[colIdx.title] || '').trim();
       if (!title || title.toLowerCase() === 'tasks' || title.toLowerCase() === 'task name') continue;
 
-      const rawDesc = parts[colIdx.desc] !== undefined ? parts[colIdx.desc] : '';
-      const desc = rawDesc && rawDesc !== title ? rawDesc : `Operational task: ${title}`;
+      const rawDesc = parts[colIdx.desc] !== undefined ? parts[colIdx.desc].trim() : '';
+      const desc = rawDesc && rawDesc !== title ? rawDesc : (currentSection ? `Section: ${currentSection}` : `Operational task: ${title}`);
 
       const rawTeam = (parts[colIdx.team] || '').toUpperCase();
       let scope = 'EVERYONE';
-      if (rawTeam.includes('ROY') || rawTeam.includes('CLEAN')) scope = 'CLEANER';
-      else if (rawTeam.includes('FRONT') || rawTeam.includes('FLOOR') || rawTeam.includes('BAR')) scope = 'FRONT';
-      else if (rawTeam.includes('KITCHEN') || rawTeam.includes('COOK') || rawTeam.includes('PREP')) scope = 'KITCHEN';
-      else if (rawTeam.includes('EVERYONE') || rawTeam.includes('ALL')) scope = 'EVERYONE';
-      else scope = 'EVERYONE';
+      if (rawTeam.includes('ROY') || rawTeam.includes('CLEAN')) {
+        scope = 'CLEANER';
+      } else if (rawTeam.includes('FRONT') || rawTeam.includes('FLOOR') || rawTeam.includes('BAR')) {
+        scope = 'FRONT';
+      } else if (rawTeam.includes('KITCHEN') || rawTeam.includes('COOK') || rawTeam.includes('PREP') || rawTeam.includes('AADHI')) {
+        scope = 'KITCHEN';
+      } else if (rawTeam.includes('EVERYONE') || rawTeam.includes('ALL')) {
+        scope = 'EVERYONE';
+      } else {
+        // Auto-detect based on section or title
+        const lowerTitle = title.toLowerCase();
+        if (lowerTitle.includes('roy') || lowerTitle.includes('mop') || lowerTitle.includes('vacuum') || lowerTitle.includes('vaccum')) {
+          scope = 'CLEANER';
+        } else if (lowerTitle.includes('front') || lowerTitle.includes('dine-in') || lowerTitle.includes('toilet')) {
+          scope = 'FRONT';
+        } else if (lowerTitle.includes('kitchen') || lowerTitle.includes('fridge')) {
+          scope = 'KITCHEN';
+        }
+      }
 
       const rawPeriod = (parts[colIdx.period] || '').toUpperCase();
       let period = 'ANYTIME';
       if (rawPeriod.includes('MORN')) period = 'MORNING';
       else if (rawPeriod.includes('AFTER') || rawPeriod.includes('NOON')) period = 'AFTERNOON';
       else if (rawPeriod.includes('EVEN') || rawPeriod.includes('NIGHT')) period = 'EVENING';
-      else period = 'ANYTIME';
 
       const rawRec = (parts[colIdx.recurrence] || '').toUpperCase();
       let recurrence = 'DAILY';
       if (rawRec.includes('WEEK')) recurrence = 'WEEKLY';
       else if (rawRec.includes('ONE') || rawRec.includes('HERO') || rawRec.includes('SINGLE')) recurrence = 'ONEOFF';
-      else recurrence = 'DAILY';
 
       const rawReward = parts[colIdx.reward] || '';
-      const points = parseInt(rawReward.replace(/\D/g, '')) || 10;
+      let points = parseInt(rawReward.replace(/\D/g, '')) || 10;
+      if (isNaN(points) || points <= 0) points = 10;
 
       imported.push({
         id: 'cat-gs-' + i + '-' + Date.now(),
@@ -1547,7 +1574,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const urls = [
       `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
       `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`)}`
     ];
 
     let csvText = null;
@@ -1558,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(url);
         if (response.ok) {
           const text = await response.text();
-          if (text && text.trim().length > 10) {
+          if (text && text.trim().length > 20) {
             csvText = text;
             break;
           }
