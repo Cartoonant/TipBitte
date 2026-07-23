@@ -253,17 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!appState.manualTipOverrides) appState.manualTipOverrides = {};
 
-    // Approved Demo Tasks & Initiatives to simulate pro-rata Coins & Tip distribution
-    if (!appState.tasks || appState.tasks.length === 0) {
-      appState.tasks = [
-        { id: 'demo-1', employeeId: 'emp-4', desc: 'Aadhi (Kitchen Lead): Kitchen prep list & zero food waste initiative', points: 140, status: 'APPROVED', timestamp: Date.now() - 86400000 },
-        { id: 'demo-2', employeeId: 'emp-2', desc: 'Vinod (Front Lead): Terrace management & guest satisfaction', points: 120, status: 'APPROVED', timestamp: Date.now() - 72000000 },
-        { id: 'demo-3', employeeId: 'emp-5', desc: 'Karthik (Kitchen): Preventive pizza oven & grill maintenance', points: 110, status: 'APPROVED', timestamp: Date.now() - 60000000 },
-        { id: 'demo-4', employeeId: 'emp-3', desc: 'Siri (Server): Upselling gourmet wines & dessert combos', points: 95, status: 'APPROVED', timestamp: Date.now() - 48000000 },
-        { id: 'demo-5', employeeId: 'emp-7', desc: 'Muthyam (Kitchen): Station sanitization & plate styling', points: 90, status: 'APPROVED', timestamp: Date.now() - 36000000 },
-        { id: 'demo-6', employeeId: 'emp-6', desc: 'Bhanu (Kitchen): Stock replenishment & prep support', points: 85, status: 'APPROVED', timestamp: Date.now() - 24000000 }
-      ];
-    }
+    // Initial state: 0 completed tasks, clean slate for real operations
+    appState.tasks = [];
 
     localStorage.setItem('tiprank_resto_state', JSON.stringify(appState));
   };
@@ -2298,112 +2289,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSyncSheet = document.getElementById('btn-sync-google-sheet');
   if (btnSyncSheet) {
     btnSyncSheet.addEventListener('click', () => syncGoogleSheetTasks(true));
-  }
-
-  // July Task & Coin Simulation Engine for Testing & Equity Validation
-  const simulateJulyTasksAndCoins = () => {
-    // 1. Ensure master task catalogue exists
-    if (!appState.masterTaskCatalogue || appState.masterTaskCatalogue.length === 0) {
-      syncGoogleSheetTasks(false);
-    }
-    
-    // Generate fair rotation schedule for July
-    generateMonthlyFairRotation();
-
-    // 2. Clear existing demo task submissions to simulate a clean July month
-    appState.tasks = [];
-
-    let totalTasksSimulated = 0;
-    let totalCoinsSimulated = 0;
-
-    // 3. Loop through all 31 days of July 2026 (July 1 - July 31)
-    for (let day = 1; day <= 31; day++) {
-      const dateStr = `2026-07-${day < 10 ? '0' + day : day}`;
-      const dayTasks = (appState.scheduledDailyTasks || []).filter(t => t.day === day);
-
-      const openingValidated = { KITCHEN: false, FRONT: false };
-      const closingValidated = { KITCHEN: false, FRONT: false };
-
-      dayTasks.forEach(task => {
-        const emp = appState.staff.find(s => s.id === task.employeeId);
-        if (!emp) return;
-
-        // Strict Availability Check: 0 coins credited on scheduled OFF days!
-        const isWorking = isStaffWorkingOnDate(emp, dateStr);
-        if (!isWorking) return;
-
-        const titleLower = task.title.toLowerCase();
-
-        // 4. Opening / Closing Shift Process Duo Simulation
-        if (titleLower.includes('opening') || titleLower.includes('closing')) {
-          const isOpening = titleLower.includes('opening');
-          const dept = (task.category === 'KITCHEN' || emp.role === 'KITCHEN') ? 'KITCHEN' : 'FRONT';
-          const validatedState = isOpening ? openingValidated : closingValidated;
-
-          if (!validatedState[dept]) {
-            validatedState[dept] = true;
-
-            // Find all working staff in this department assigned to opening/closing on this day
-            const deptShiftTasks = dayTasks.filter(t => {
-              const tTitle = t.title.toLowerCase();
-              const isMatch = isOpening ? tTitle.includes('opening') : tTitle.includes('closing');
-              const tEmp = appState.staff.find(s => s.id === t.employeeId);
-              return isMatch && tEmp && (tEmp.role === emp.role || emp.role === 'CLEANER');
-            });
-
-            let duoEmpIds = Array.from(new Set(deptShiftTasks.map(t => t.employeeId)));
-            if (duoEmpIds.length === 0) duoEmpIds = [emp.id];
-
-            // Award FULL 30 Coins to EACH individual in the pair!
-            duoEmpIds.forEach(empId => {
-              const partner = appState.staff.find(s => s.id === empId);
-              if (partner && isStaffWorkingOnDate(partner, dateStr)) {
-                appState.tasks.push({
-                  id: `sim-july-shift-${empId}-${day}-${isOpening ? 'op' : 'cl'}`,
-                  employeeId: empId,
-                  desc: `[July Simulation] ${isOpening ? '[Opening Shift Process]' : '[Closing Shift Process]'} completed on Day ${day}`,
-                  points: 30, // Full 30 Coins per individual in the duo
-                  status: 'APPROVED',
-                  timestamp: new Date(2026, 6, day, isOpening ? 8 : 22).getTime()
-                });
-                totalTasksSimulated++;
-                totalCoinsSimulated += 30;
-              }
-            });
-          }
-        } 
-        // 5. Standard Rotational & Dedicated Tasks Simulation (85% random completion rate)
-        else {
-          const randomComplete = Math.random() < 0.88;
-          if (randomComplete) {
-            appState.tasks.push({
-              id: `sim-july-task-${task.employeeId}-${day}-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-              employeeId: task.employeeId,
-              desc: `Daily Task Completed: ${task.title}`,
-              points: task.points || 15,
-              status: 'APPROVED',
-              timestamp: new Date(2026, 6, day, 14).getTime()
-            });
-            totalTasksSimulated++;
-            totalCoinsSimulated += (task.points || 15);
-          }
-        }
-      });
-    }
-
-    // Set selected date to middle of July for easy preview
-    appState.selectedDate = '2026-07-15';
-    const datePicker = document.getElementById('selected-date-picker');
-    if (datePicker) datePicker.value = '2026-07-15';
-
-    saveState();
-    renderAll();
-    showToast(`✨ July 2026 Task & Coin Simulation Complete! ${totalTasksSimulated} task validations simulated (${totalCoinsSimulated} Total Coins distributed across the team).`);
-  };
-
-  const btnSimulateJuly = document.getElementById('btn-simulate-july');
-  if (btnSimulateJuly) {
-    btnSimulateJuly.addEventListener('click', simulateJulyTasksAndCoins);
   }
 
   // Weekly Randomizer Engine: Shuffles & redistributes nominative tasks for the 7 days starting from selectedDate
