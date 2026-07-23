@@ -953,15 +953,16 @@ document.addEventListener('DOMContentLoaded', () => {
               }
 
               item.className = `task-item-card ${scopeClass}`;
+              item.style.cssText = 'display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; width: 100% !important; box-sizing: border-box !important; padding: 1.1rem 1.4rem !important; background: var(--bg-card-solid) !important; border: 1px solid var(--border-color) !important; border-radius: var(--radius-md) !important; margin-bottom: 0.65rem !important; gap: 1.5rem !important;';
 
               let statusAction = `
-                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}" style="padding:0.4rem 0.85rem; font-weight:700;">
+                <button class="btn btn-primary btn-sm btn-claim-task" data-id="${task.id}" data-desc="${task.title}" data-pts="${task.points}" style="padding:0.45rem 1.1rem; font-weight:700; border-radius:var(--radius-full); white-space:nowrap;">
                   <i data-lucide="check-circle"></i> Mark Done
                 </button>
               `;
 
               item.innerHTML = `
-                <div class="task-left-content">
+                <div class="task-left-content" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; flex:1; min-width:0;">
                   <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                     <strong class="task-user" style="font-size:1.05rem; color:var(--text-main); font-weight:700;">${task.title}</strong>
                     ${teamBadge}
@@ -969,12 +970,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${!isManager ? `<span class="badge badge-gold" style="font-size:0.65rem; padding:0.1rem 0.35rem;">👤 Your Shift</span>` : ''}
                   </div>
                   ${task.desc ? `<span style="font-size:0.85rem; color:var(--text-muted);">(${task.desc})</span>` : ''}
-                  <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-input); padding:0.25rem 0.65rem; border-radius:var(--radius-full); border:1px solid var(--border-color);">
+                  <div style="display:inline-flex; align-items:center; gap:0.4rem; background:var(--bg-input); padding:0.25rem 0.65rem; border-radius:var(--radius-full); border:1px solid var(--border-color); flex-shrink:0;">
                     <div class="avatar" style="background-color: ${emp.color}; width:22px; height:22px; font-size:0.65rem;">${emp.avatar}</div>
                     <span style="font-size:0.8rem; color:var(--text-muted);">Assigned to: <strong style="color:var(--text-main);">${emp.name}</strong> (${emp.title || emp.role})</span>
                   </div>
                 </div>
-                <div class="task-right-actions">
+                <div class="task-right-actions" style="display:flex; align-items:center; gap:1.25rem; flex-shrink:0; margin-left:auto; white-space:nowrap;">
                   <span class="task-pts" style="font-weight:800; font-size:1.1rem; color:var(--color-gold); white-space:nowrap;">+${task.points} Coins</span>
                   ${!isManager ? statusAction : `
                     <button class="btn btn-danger-outline btn-sm btn-delete-sched" data-id="${task.id}" title="Remove task" style="white-space:nowrap;">
